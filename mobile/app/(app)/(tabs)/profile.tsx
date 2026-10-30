@@ -1,6 +1,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Settings } from 'lucide-react-native';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
 
@@ -17,8 +18,16 @@ export default function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800">
+      <View className="px-4 py-3 border-b border-surface-800 flex-row items-center justify-between">
         <Text className="text-white text-lg font-bold">Profile</Text>
+        <Pressable
+          onPress={() => router.push('/(app)/settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Settings size={20} color="#9CA3AF" strokeWidth={2} />
+        </Pressable>
       </View>
 
       <View className="px-4 py-6 gap-4">

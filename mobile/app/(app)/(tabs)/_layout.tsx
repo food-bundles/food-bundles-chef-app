@@ -36,6 +36,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          tabBarAccessibilityLabel: 'Dashboard tab',
           tabBarIcon: ({ color }) => (
             <LayoutDashboard size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
@@ -45,6 +46,7 @@ export default function TabsLayout() {
         name="menu"
         options={{
           title: 'Menu',
+          tabBarAccessibilityLabel: 'Menu tab',
           tabBarIcon: ({ color }) => (
             <UtensilsCrossed size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
@@ -54,6 +56,7 @@ export default function TabsLayout() {
         name="purchasing"
         options={{
           title: 'Purchasing',
+          tabBarAccessibilityLabel: 'Purchasing tab',
           tabBarIcon: ({ color }) => (
             <ShoppingCart size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
@@ -63,6 +66,7 @@ export default function TabsLayout() {
         name="stock"
         options={{
           title: 'Stock',
+          tabBarAccessibilityLabel: 'Stock tab',
           tabBarIcon: ({ color }) => (
             <Package size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
@@ -72,6 +76,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          tabBarAccessibilityLabel: 'Profile tab',
           tabBarIcon: ({ color }) => (
             <User size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),

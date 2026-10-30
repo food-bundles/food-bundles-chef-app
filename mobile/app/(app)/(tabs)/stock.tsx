@@ -64,8 +64,13 @@ export default function StockScreen() {
 
 function StockRow({ item }: { item: StockItem }) {
   const days = calcDaysOfCover(item.quantityOnHand, item.dailyUseRate);
+  const coverLabel = isFinite(days) ? `${days.toFixed(1)} days cover` : 'unlimited cover';
   return (
-    <View className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
+    <View
+      className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between"
+      accessibilityRole="text"
+      accessibilityLabel={`${item.ingredientName}: ${item.quantityOnHand} ${item.unit} on hand, ${coverLabel}`}
+    >
       <View className="flex-1 mr-3">
         <Text className="text-white font-medium">{item.ingredientName}</Text>
         <Text className="text-surface-400 text-sm mt-0.5">

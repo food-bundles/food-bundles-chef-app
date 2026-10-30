@@ -26,7 +26,11 @@ export function QuantitySelector({
   const canIncrement = max === undefined || value < max;
 
   return (
-    <View style={styles.row} accessibilityLabel={accessibilityLabel}>
+    <View
+      style={styles.row}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ text: `${value}${unit ? ' ' + unit : ''}` }}
+    >
       <Pressable
         onPress={onDecrement}
         disabled={!canDecrement}
