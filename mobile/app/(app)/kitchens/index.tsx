@@ -1,7 +1,7 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle, ChevronRight } from 'lucide-react-native';
+import { CheckCircle, ChevronRight, Plus } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import type { Kitchen } from '@/domain/models/kitchen';
 
@@ -15,20 +15,33 @@ export default function KitchensScreen() {
 
   const handleSelect = (kitchen: Kitchen) => {
     setActiveKitchen(kitchen);
-    router.back();
+  };
+
+  const handleEdit = (kitchen: Kitchen) => {
+    router.push(`/(app)/kitchens/${kitchen.id}`);
   };
 
   return (
     <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 flex-row items-center gap-3 border-b border-surface-800">
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-800">
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text className="text-surface-300 text-2xl">←</Text>
+          </Pressable>
+          <Text className="text-white text-lg font-bold">Kitchens</Text>
+        </View>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.push('/(app)/kitchens/create')}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel="Add kitchen"
+          className="w-10 h-10 items-center justify-center rounded-xl bg-brand-500"
         >
-          <Text className="text-surface-300 text-2xl">←</Text>
+          <Plus size={20} color="#fff" strokeWidth={2.5} />
         </Pressable>
-        <Text className="text-white text-lg font-bold">Kitchens</Text>
       </View>
 
       <ScrollView
@@ -63,7 +76,15 @@ export default function KitchensScreen() {
                   <Text className="text-surface-500 text-xs mt-1">{kitchen.cuisineType}</Text>
                 ) : null}
               </View>
-              <ChevronRight size={16} color="#6B6860" strokeWidth={1.75} />
+              <Pressable
+                onPress={() => handleEdit(kitchen)}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${kitchen.name}`}
+                hitSlop={8}
+                className="p-1"
+              >
+                <ChevronRight size={16} color="#6B6860" strokeWidth={1.75} />
+              </Pressable>
             </Pressable>
           );
         })}

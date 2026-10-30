@@ -7,6 +7,7 @@ interface KitchenState {
   activeKitchen: Kitchen | null;
   setActiveKitchen: (kitchen: Kitchen) => void;
   addKitchen: (kitchen: Kitchen) => void;
+  updateKitchen: (kitchenId: string, patch: Partial<Omit<Kitchen, 'id' | 'chefId' | 'createdAt'>>) => void;
   archiveKitchen: (kitchenId: string) => void;
 }
 
@@ -23,6 +24,17 @@ export const useKitchenStore = create<KitchenState>()((set) => ({
 
   addKitchen: (kitchen) =>
     set((state) => ({ kitchens: [...state.kitchens, kitchen] })),
+
+  updateKitchen: (kitchenId, patch) =>
+    set((state) => ({
+      kitchens: state.kitchens.map((k) =>
+        k.id === kitchenId ? { ...k, ...patch } : k,
+      ),
+      activeKitchen:
+        state.activeKitchen?.id === kitchenId
+          ? { ...state.activeKitchen, ...patch }
+          : state.activeKitchen,
+    })),
 
   archiveKitchen: (kitchenId) =>
     set((state) => ({

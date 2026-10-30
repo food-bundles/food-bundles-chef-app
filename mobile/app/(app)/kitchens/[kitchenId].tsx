@@ -1,49 +1,176 @@
-import { View, Text } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
+import { AppTextField } from '@/components/ui/AppTextField';
+import { AppButton } from '@/components/ui/AppButton';
+import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
+import { spacing, colors, fontSize } from '@/lib/theme';
 
 export default function KitchenDetailScreen() {
-  const insets = useSafeAreaInsets();
   const { kitchenId } = useLocalSearchParams<{ kitchenId: string }>();
   const kitchen = useKitchenStore((s) => s.kitchens.find((k) => k.id === kitchenId));
+  const updateKitchen = useKitchenStore((s) => s.updateKitchen);
+  const archiveKitchen = useKitchenStore((s) => s.archiveKitchen);
+  const [archiveDialogVisible, setArchiveDialogVisible] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting, isDirty },
+  } = useForm<KitchenFormValues>({
+    resolver: zodResolver(kitchenSchema),
+    defaultValues: {
+      name: kitchen?.name ?? '',
+      address: kitchen?.address ?? '',
+      cuisineType: kitchen?.cuisineType ?? '',
+      seatingCapacity: kitchen?.seatingCapacity?.toString() ?? '',
+    },
+  });
 
   if (!kitchen) {
     return (
-      <View className="flex-1 bg-surface-900 items-center justify-center">
-        <Text className="text-surface-400">Kitchen not found.</Text>
-      </View>
+      <AppScreen>
+        <AppHeader title="Kitchen" showBack />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: colors.surface[400] }}>Kitchen not found.</Text>
+        </View>
+      </AppScreen>
     );
   }
 
-  return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800">
-        <Text className="text-white text-lg font-bold">{kitchen.name}</Text>
-      </View>
-      <View className="px-4 py-6 gap-3">
-        {kitchen.address && (
-          <InfoRow label="Address" value={kitchen.address} />
-        )}
-        {kitchen.cuisineType && (
-          <InfoRow label="Cuisine" value={kitchen.cuisineType} />
-        )}
-        {kitchen.seatingCapacity !== undefined && (
-          <InfoRow label="Seating" value={`${kitchen.seatingCapacity} covers`} />
-        )}
-        <InfoRow label="Status" value={kitchen.isArchived ? 'Archived' : 'Active'} />
-      </View>
-    </View>
-  );
-}
+  const onSubmit = (values: KitchenFormValues) => {
+    updateKitchen(kitchen.id, {
+      name: values.name,
+      address: values.address || undefined,
+      cuisineType: values.cuisineType || undefined,
+      seatingCapacity: values.seatingCapacity
+        ? parseInt(values.seatingCapacity, 10)
+        : undefined,
+    });
+    router.back();
+  };
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+  const handleArchive = () => {
+    archiveKitchen(kitchen.id);
+    setArchiveDialogVisible(false);
+    router.replace('/(app)/kitchens');
+  };
+
   return (
-    <View className="bg-surface-800 rounded-xl p-4">
-      <Text className="text-surface-400 text-xs font-medium uppercase tracking-wider mb-1">
-        {label}
-      </Text>
-      <Text className="text-white">{value}</Text>
-    </View>
+    <AppScreen>
+      <AppHeader title="Edit Kitchen" showBack />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            padding: spacing.md,
+            gap: spacing.md,
+            paddingBottom: spacing['2xl'],
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AppTextField
+                label="Kitchen Name"
+                placeholder="e.g. Kigali Bistro"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.name?.message}
+                autoCapitalize="words"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="cuisineType"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AppTextField
+                label="Cuisine Type (optional)"
+                placeholder="e.g. Rwandan, French"
+                value={value ?? ''}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.cuisineType?.message}
+                autoCapitalize="words"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="address"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AppTextField
+                label="Address (optional)"
+                placeholder="e.g. KG 7 Ave, Kigali"
+                value={value ?? ''}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.address?.message}
+                autoCapitalize="sentences"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="seatingCapacity"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AppTextField
+                label="Seating Capacity (optional)"
+                placeholder="e.g. 40"
+                value={value ?? ''}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.seatingCapacity?.message}
+                keyboardType="number-pad"
+              />
+            )}
+          />
+
+          <AppButton
+            label="Save Changes"
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={!isDirty}
+          />
+
+          {!kitchen.isArchived ? (
+            <AppButton
+              label="Archive Kitchen"
+              onPress={() => setArchiveDialogVisible(true)}
+              variant="danger"
+            />
+          ) : (
+            <Text style={{ color: colors.surface[500], fontSize: fontSize.sm, textAlign: 'center' }}>
+              This kitchen is archived.
+            </Text>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <ConfirmationDialog
+        visible={archiveDialogVisible}
+        title="Archive Kitchen?"
+        message="This kitchen will be hidden from your workspace. You can restore it later."
+        confirmLabel="Archive"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={handleArchive}
+        onCancel={() => setArchiveDialogVisible(false)}
+      />
+    </AppScreen>
   );
 }
