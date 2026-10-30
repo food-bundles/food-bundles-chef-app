@@ -1,4 +1,4 @@
-# Food Bundles Chef App — Claude Code Project Instructions
+# Food Bundles Chef App
 
 ## Mission
 
