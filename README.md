@@ -1,32 +1,17 @@
-# Food Bundles Chef App — Claude Code Implementation Kit
+# Food Bundles Chef App — Claude Code Project Instructions
 
-This package contains project-level instructions and implementation planning documents for the native Menu du Jour mobile app.
+## Mission
 
-## Contents
+B**Food Bundles Chef App**, a native mobile application for the Menu du Jour product.
 
-- `CLAUDE.md` — primary project instructions for Claude Code.
-- `.claude/skills/` — focused skills for repository setup, native feature implementation, domain calculations, offline data, and quality gates.
-- `docs/backlog.md` — prioritized engineering backlog and unresolved product decisions.
-- `docs/implementation-phases/` — sequential implementation plans from Git initialization through release readiness.
-- `docs/decisions/` — decision-record template and guidance.
+The product promise is:
 
-## Installation
+> Order right. Receive right. Know your stock before service.
 
-Copy the contents of this package into the **repository root** of:
+The application is chef-owned and kitchen-centric. Its core operational loop is:
 
-`C:\Users\emash\FoodBundles\food-bundles-chef-app`
-
-The `mobile/` app remains a subdirectory. Do not copy `CLAUDE.md` into `mobile/` unless you intentionally want a separate nested instruction scope.
-
-## Suggested initial workflow
-
-1. Inspect repository and Git state using Phase 00.
-2. Confirm product decisions that affect the MVP.
-3. Complete Phase 01 and verify the app launches.
-4. Complete Phase 02 before implementing feature screens.
-5. Proceed through phases and update backlog statuses.
-6. Run the quality gates before each phase is marked complete.
-
-## Important
-
-These documents guide an AI coding agent; they do not initialize Git or modify your local Windows repository automatically. Copy them into the repository root, then open that repository in Claude Code.
+1. Plan and place ingredient orders.
+2. Receive and inspect deliveries.
+3. Record actual accepted quantities and prices.
+4. Maintain kitchen stock visibility.
+5. Identify shortages and prepare replenishment.
