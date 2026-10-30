@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "continue": "Continuer",
+    "done": "Terminé",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "archive": "Archiver",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat trouvé"
+  },
+  "auth": {
+    "welcome": "Food Bundles Chef",
+    "tagline": "Commandez juste. Réceptionnez juste. Connaissez votre stock avant le service.",
+    "getStarted": "Commencer",
+    "enterPhone": "Entrez votre numéro",
+    "phoneLabel": "Numéro de téléphone",
+    "phonePlaceholder": "+250 7XX XXX XXX",
+    "sendingCode": "Envoi du code…",
+    "continueButton": "Continuer",
+    "phoneError": "Veuillez entrer un numéro de téléphone valide.",
+    "enterCode": "Entrez le code",
+    "codeSentTo": "Envoyé à",
+    "demoHint": "Démo : entrez 6 chiffres quelconques",
+    "verifying": "Vérification…",
+    "verifyButton": "Vérifier & Continuer",
+    "codeError": "Code invalide. Veuillez réessayer."
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "activeKitchen": "Cuisine active",
+    "switchKitchen": "Changer",
+    "noKitchen": "Aucune cuisine sélectionnée",
+    "lowStock": "Stock faible",
+    "pendingOrders": "Commandes en attente",
+    "deliveries": "Livraisons",
+    "recentDeliveries": "Livraisons récentes",
+    "procurementReminder": "Rappel d'approvisionnement",
+    "reviewPurchaseList": "Vérifier la liste d'achats",
+    "alerts": "Alerte",
+    "alertsPlural": "Alertes",
+    "seeAll": "Voir tout"
+  },
+  "kitchens": {
+    "title": "Cuisines",
+    "yourKitchens": "Vos Cuisines",
+    "selectKitchen": "Sélectionner une cuisine",
+    "noKitchens": "Aucune cuisine. Ajoutez votre première cuisine.",
+    "address": "Adresse",
+    "cuisine": "Type de cuisine",
+    "seating": "Capacité",
+    "status": "Statut",
+    "active": "Active",
+    "archived": "Archivée"
+  },
+  "profile": {
+    "title": "Profil",
+    "phone": "Téléphone",
+    "activeKitchen": "Cuisine active",
+    "noKitchen": "Aucune sélectionnée",
+    "manageKitchens": "Gérer les cuisines",
+    "signOut": "Se déconnecter"
+  },
+  "tabs": {
+    "dashboard": "Tableau de bord",
+    "menu": "Menu",
+    "purchasing": "Achats",
+    "stock": "Stock",
+    "profile": "Profil"
+  }
+}

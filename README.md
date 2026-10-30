@@ -1,32 +1,107 @@
-# Food Bundles Chef App — Claude Code Implementation Kit
+# Food Bundles Chef App — Mobile
 
-This package contains project-level instructions and implementation planning documents for the native Menu du Jour mobile app.
+> Order right. Receive right. Know your stock before service.
 
-## Contents
+Native mobile application for professional chefs to manage kitchen procurement, delivery receiving, stock visibility, and menu planning.
 
-- `CLAUDE.md` — primary project instructions for Claude Code.
-- `.claude/skills/` — focused skills for repository setup, native feature implementation, domain calculations, offline data, and quality gates.
-- `docs/backlog.md` — prioritized engineering backlog and unresolved product decisions.
-- `docs/implementation-phases/` — sequential implementation plans from Git initialization through release readiness.
-- `docs/decisions/` — decision-record template and guidance.
+## Product
 
-## Installation
+**Menu du Jour** — A chef-owned kitchen operations and procurement control application.
 
-Copy the contents of this package into the **repository root** of:
+## Technology Stack
 
-`C:\Users\emash\FoodBundles\food-bundles-chef-app`
+| Concern | Technology |
+|---|---|
+| Framework | Expo SDK 58 (managed workflow) |
+| Language | TypeScript (strict mode) |
+| Navigation | Expo Router |
+| Styling | NativeWind v4 |
+| State | Zustand |
+| Server state | TanStack Query |
+| Forms | React Hook Form + Zod |
+| Animations | React Native Reanimated 4 + Moti |
+| Database | expo-sqlite |
+| Icons | lucide-react-native |
+| i18n | i18next (en, rw, fr) |
 
-The `mobile/` app remains a subdirectory. Do not copy `CLAUDE.md` into `mobile/` unless you intentionally want a separate nested instruction scope.
+## Setup
 
-## Suggested initial workflow
+```bash
+# Install dependencies
+npm install
 
-1. Inspect repository and Git state using Phase 00.
-2. Confirm product decisions that affect the MVP.
-3. Complete Phase 01 and verify the app launches.
-4. Complete Phase 02 before implementing feature screens.
-5. Proceed through phases and update backlog statuses.
-6. Run the quality gates before each phase is marked complete.
+# Start Expo development server
+npm start
 
-## Important
+# Run on Android
+npm run android
+```
 
-These documents guide an AI coding agent; they do not initialize Git or modify your local Windows repository automatically. Copy them into the repository root, then open that repository in Claude Code.
+## Scripts
+
+| Script | Description |
+|---|---|
+| `npm start` | Start Expo development server |
+| `npm run android` | Launch on Android |
+| `npm run ios` | Launch on iOS (macOS required) |
+| `npm run typecheck` | TypeScript type check |
+| `npm run lint` | ESLint |
+| `npm run format:check` | Prettier check |
+| `npm test` | Jest tests |
+
+## Project Structure
+
+```
+mobile/
+  app/                        # Expo Router route files
+    (auth)/                   # Welcome, phone, OTP screens
+    (app)/                    # Authenticated app
+      (tabs)/                 # Bottom tab navigation
+      kitchens/               # Kitchen management
+      settings/               # Settings
+  src/
+    components/               # Reusable UI components
+    features/                 # Feature-specific components
+    domain/
+      calculations/           # Pure business logic (tested)
+      models/                 # Domain types
+    data/
+      repositories/           # Typed repository contracts
+      mock/                   # Mock implementations
+    store/                    # Zustand state stores
+    services/                 # Camera, AI, notifications
+    i18n/                     # Translations (en, rw, fr)
+    types/                    # Shared TypeScript types
+    constants/                # Application constants
+  __tests__/                  # Unit and integration tests
+  assets/                     # App icons, splash screen
+```
+
+## Implementation Status
+
+| Phase | Status |
+|---|---|
+| 00 Repository & Git | ✅ Done |
+| 01 Expo Foundation | 🔄 In Progress |
+| 02 Architecture & Design System | ⬜ TODO |
+| 03 i18n, Auth & Kitchens | ⬜ TODO |
+| 04 Dashboard, Menu, Recipes, Sales | ⬜ TODO |
+| 05 Purchasing & Orders | ⬜ TODO |
+| 06 Delivery Receiving & Quality | ⬜ TODO |
+| 07 Inventory & Offline Persistence | ⬜ TODO |
+| 08 Notifications & Accessibility | ⬜ TODO |
+| 09 Release Readiness | ⬜ TODO |
+
+## Known Limitations
+
+- This is a UI-only implementation. No real backend, OTP, payments, or AI calls.
+- All simulated operations are clearly marked in the UI.
+- SQLite persistence not yet implemented (Phase 07).
+- Kitchen data isolation is enforced at the store/query level; backend authorization is required in production.
+
+## Architecture Notes
+
+- Screens do not contain business logic — all calculations are in `src/domain/calculations/`.
+- Every kitchen-scoped record carries a `kitchenId`.
+- Repository interfaces in `src/data/repositories/` will be implemented against a real API without changing screens.
+- Mock adapters in `src/data/mock/` are the current implementations.
