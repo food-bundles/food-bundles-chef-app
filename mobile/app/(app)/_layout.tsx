@@ -22,6 +22,9 @@ export default function AppLayout() {
       <Stack.Screen name="kitchens/create" />
       <Stack.Screen name="kitchens/[kitchenId]" />
       <Stack.Screen name="sales/entry" />
+      <Stack.Screen name="receiving/index" />
+      <Stack.Screen name="receiving/[deliveryId]" />
+      <Stack.Screen name="receiving/[deliveryId]/item/[lineItemId]" />
       <Stack.Screen name="settings/index" />
     </Stack>
   );

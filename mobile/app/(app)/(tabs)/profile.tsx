@@ -42,6 +42,14 @@ export default function ProfileScreen() {
           >
             <Text className="text-brand-400 text-sm font-medium">Manage Kitchens →</Text>
           </Pressable>
+          <Pressable
+            onPress={() => router.push('/(app)/receiving')}
+            accessibilityRole="button"
+            accessibilityLabel="Receiving"
+            className="mt-2"
+          >
+            <Text className="text-brand-400 text-sm font-medium">Delivery Receiving →</Text>
+          </Pressable>
         </View>
 
         <Pressable

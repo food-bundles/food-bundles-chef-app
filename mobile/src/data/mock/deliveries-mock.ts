@@ -1,0 +1,67 @@
+import type { Delivery } from '@/domain/models/delivery';
+
+export const MOCK_DELIVERIES: Delivery[] = [
+  {
+    id: 'del-1',
+    kitchenId: 'kitchen-1',
+    orderId: 'ord-2',
+    supplierName: 'Food Bundles',
+    status: 'pending',
+    lineItems: [
+      {
+        id: 'dli-1',
+        orderId: 'ord-2',
+        productId: 'cat-3',
+        productName: 'Cooking Oil',
+        unit: 'L',
+        orderedQuantity: 20,
+        referencePrice: { amount: 2200, currency: 'RWF', source: 'reference', referenceDate: '2025-10-29' },
+      },
+      {
+        id: 'dli-2',
+        orderId: 'ord-2',
+        productId: 'cat-5',
+        productName: 'Maize Flour',
+        unit: 'kg',
+        orderedQuantity: 50,
+        referencePrice: { amount: 650, currency: 'RWF', source: 'reference', referenceDate: '2025-10-29' },
+      },
+    ],
+    scheduledAt: '2025-10-30T07:00:00Z',
+    createdAt: '2025-10-29T10:00:00Z',
+  },
+  {
+    id: 'del-2',
+    kitchenId: 'kitchen-1',
+    orderId: 'ord-1',
+    supplierName: 'Food Bundles',
+    status: 'completed',
+    lineItems: [
+      {
+        id: 'dli-3',
+        orderId: 'ord-1',
+        productId: 'cat-1',
+        productName: 'Tomatoes',
+        unit: 'kg',
+        orderedQuantity: 20,
+        acceptedQuantity: 20,
+        decision: 'accepted',
+        actualPrice: { amount: 800, currency: 'RWF', source: 'chef-entered' },
+      },
+      {
+        id: 'dli-4',
+        orderId: 'ord-1',
+        productId: 'cat-2',
+        productName: 'Onions',
+        unit: 'kg',
+        orderedQuantity: 25,
+        acceptedQuantity: 23,
+        decision: 'partially-accepted',
+        discrepancyReason: 'Two bags had visible mold',
+        actualPrice: { amount: 600, currency: 'RWF', source: 'chef-entered' },
+      },
+    ],
+    completedAt: '2025-10-28T08:15:00Z',
+    createdAt: '2025-10-27T09:00:00Z',
+  },
+];

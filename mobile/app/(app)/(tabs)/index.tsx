@@ -5,6 +5,7 @@ import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle } from 
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useStockStore } from '@/store/stock-store';
 import { useOrderStore } from '@/store/order-store';
+import { useDeliveryStore } from '@/store/delivery-store';
 import { SectionHeader, StatusBadge, StockIndicator } from '@/components/ui';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 
@@ -15,6 +16,7 @@ export default function DashboardScreen() {
   const getLowStockItems = useStockStore((s) => s.getLowStockItems);
 
   const orders = useOrderStore((s) => s.orders);
+  const deliveries = useDeliveryStore((s) => s.deliveries);
   const kitchenId = activeKitchen?.id ?? '';
   const lowStockItems = kitchenId ? getLowStockItems(kitchenId) : [];
   const lowStockCount = lowStockItems.length;
@@ -22,8 +24,8 @@ export default function DashboardScreen() {
   const pendingOrderCount = orders.filter(
     (o) => o.kitchenId === kitchenId && (o.status === 'submitted' || o.status === 'confirmed'),
   ).length;
-  const todayDeliveryCount = orders.filter(
-    (o) => o.kitchenId === kitchenId && o.status === 'out_for_delivery',
+  const todayDeliveryCount = deliveries.filter(
+    (d) => d.kitchenId === kitchenId && d.status !== 'completed',
   ).length;
 
   const alerts: { id: string; message: string }[] = [];
@@ -99,6 +101,7 @@ export default function DashboardScreen() {
             label="Deliveries"
             value={String(todayDeliveryCount)}
             valueColor="text-success"
+            onPress={() => router.push('/(app)/receiving')}
           />
         </View>
 
