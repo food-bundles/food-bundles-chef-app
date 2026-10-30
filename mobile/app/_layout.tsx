@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { getDatabase } from '@/data/sqlite/database';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,7 +23,10 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   useEffect(() => {
-    SplashScreen.hideAsync();
+    // Initialize SQLite and run pending migrations before hiding splash
+    getDatabase()
+      .then(() => SplashScreen.hideAsync())
+      .catch(() => SplashScreen.hideAsync());
   }, []);
 
   return (

@@ -9,3 +9,4 @@ export { SearchInput } from './SearchInput';
 export { SectionHeader } from './SectionHeader';
 export { StatusBadge } from './StatusBadge';
 export { StockIndicator } from './StockIndicator';
+export { SyncStatusBadge } from './SyncStatusBadge';

@@ -6,8 +6,9 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { useStockStore } from '@/store/stock-store';
 import { useOrderStore } from '@/store/order-store';
 import { useDeliveryStore } from '@/store/delivery-store';
-import { SectionHeader, StatusBadge, StockIndicator } from '@/components/ui';
+import { SectionHeader, StockIndicator, SyncStatusBadge } from '@/components/ui';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -27,6 +28,8 @@ export default function DashboardScreen() {
   const todayDeliveryCount = deliveries.filter(
     (d) => d.kitchenId === kitchenId && d.status !== 'completed',
   ).length;
+
+  const sync = useSyncStatus();
 
   const alerts: { id: string; message: string }[] = [];
   if (lowStockCount > 0) {
@@ -48,14 +51,17 @@ export default function DashboardScreen() {
             {activeKitchen?.name ?? 'No kitchen selected'}
           </Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/(app)/kitchens')}
-          accessibilityRole="button"
-          accessibilityLabel="Switch kitchen"
-          className="bg-surface-800 rounded-lg px-3 py-2"
-        >
-          <Text className="text-brand-400 text-sm font-medium">Switch</Text>
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <SyncStatusBadge phase={sync.phase} pendingCount={sync.pendingCount} />
+          <Pressable
+            onPress={() => router.push('/(app)/kitchens')}
+            accessibilityRole="button"
+            accessibilityLabel="Switch kitchen"
+            className="bg-surface-800 rounded-lg px-3 py-2"
+          >
+            <Text className="text-brand-400 text-sm font-medium">Switch</Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
