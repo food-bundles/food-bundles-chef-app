@@ -35,7 +35,7 @@ export default function ProfileScreen() {
           </Text>
           <Text className="text-white font-medium">{activeKitchen?.name ?? 'None selected'}</Text>
           <Pressable
-            onPress={() => router.push('/(app)/kitchens/index')}
+            onPress={() => router.push('/(app)/kitchens')}
             accessibilityRole="button"
             accessibilityLabel="Manage kitchens"
             className="mt-3"
