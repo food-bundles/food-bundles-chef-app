@@ -25,7 +25,7 @@ export default function VerifyOtpScreen() {
     // Mock: accept any 6-digit code
     if (otp.length === 6) {
       signIn({ phone: phone ?? '', id: `chef-${phone}` });
-      router.replace('/(app)/(tabs)/');
+      router.replace('/(app)/(tabs)');
     } else {
       setError('Invalid code. Please try again.');
     }

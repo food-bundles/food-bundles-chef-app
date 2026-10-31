@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Kitchen } from '@/domain/models/kitchen';
 import { MOCK_KITCHENS } from '@/data/mock/kitchens-mock';
+import { kitchenRepo } from '@/data/service-container';
 
 interface KitchenState {
   kitchens: Kitchen[];
@@ -22,10 +23,19 @@ export const useKitchenStore = create<KitchenState>()((set) => ({
 
   setActiveKitchen: (kitchen) => set({ activeKitchen: kitchen }),
 
-  addKitchen: (kitchen) =>
-    set((state) => ({ kitchens: [...state.kitchens, kitchen] })),
+  addKitchen: (kitchen) => {
+    set((state) => ({ kitchens: [...state.kitchens, kitchen] }));
+    kitchenRepo.create({
+      chefId: kitchen.chefId,
+      name: kitchen.name,
+      address: kitchen.address,
+      cuisineType: kitchen.cuisineType,
+      seatingCapacity: kitchen.seatingCapacity,
+      isArchived: kitchen.isArchived,
+    }).catch(() => {});
+  },
 
-  updateKitchen: (kitchenId, patch) =>
+  updateKitchen: (kitchenId, patch) => {
     set((state) => ({
       kitchens: state.kitchens.map((k) =>
         k.id === kitchenId ? { ...k, ...patch } : k,
@@ -34,14 +44,18 @@ export const useKitchenStore = create<KitchenState>()((set) => ({
         state.activeKitchen?.id === kitchenId
           ? { ...state.activeKitchen, ...patch }
           : state.activeKitchen,
-    })),
+    }));
+    kitchenRepo.update(kitchenId, patch).catch(() => {});
+  },
 
-  archiveKitchen: (kitchenId) =>
+  archiveKitchen: (kitchenId) => {
     set((state) => ({
       kitchens: state.kitchens.map((k) =>
         k.id === kitchenId ? { ...k, isArchived: true } : k,
       ),
       activeKitchen:
         state.activeKitchen?.id === kitchenId ? null : state.activeKitchen,
-    })),
+    }));
+    kitchenRepo.archive(kitchenId).catch(() => {});
+  },
 }));

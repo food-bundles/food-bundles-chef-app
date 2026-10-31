@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDatabase } from '@/data/sqlite/database';
+import { useDataHydration } from '@/hooks/useDataHydration';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +21,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function AppShell() {
+  useDataHydration();
+  return <Stack screenOptions={{ headerShown: false }} />;
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -34,7 +40,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <AppShell />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

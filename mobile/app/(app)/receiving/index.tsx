@@ -49,7 +49,7 @@ export default function ReceivingIndexScreen() {
             <Text className="text-surface-400 text-xs font-semibold uppercase tracking-wider mb-1">
               Expected Deliveries
             </Text>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item: delivery }) => (
           <Pressable

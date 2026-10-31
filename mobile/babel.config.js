@@ -1,6 +1,7 @@
 /** @type {import('@babel/core').TransformOptions} */
 module.exports = function (api) {
   api.cache(true);
+  const isTest = process.env.NODE_ENV === 'test';
   return {
     presets: ['babel-preset-expo'],
     plugins: [
@@ -13,9 +14,10 @@ module.exports = function (api) {
           },
         },
       ],
-      'nativewind/babel',
-      'react-native-reanimated/plugin',
-      // react-native-reanimated/plugin must always be last
+      // nativewind/babel adds null + reanimated plugin which breaks Jest; skip in test
+      ...(isTest ? [] : ['nativewind/babel']),
+      // Reanimated plugin requires react-native-worklets which is unavailable in Jest
+      ...(isTest ? [] : ['react-native-reanimated/plugin']),
     ],
   };
 };
