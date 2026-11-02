@@ -50,7 +50,6 @@ Thumbs.db
 
 # Metro bundler
 .metro-health-check*
-_expo-tmp
 
 # TypeScript incremental build info
 *.tsbuildinfo
@@ -67,3 +66,6 @@ CLAUDE.md
 ./mobile/docs/
 ./mobile/claude/
 ./mobile/CLAUDE.md
+./backend/docs/
+./backend/claude/
+./backend/CLAUDE.md
