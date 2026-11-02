@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+!.env.example
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# Type checking
+.mypy_cache/
+.pyright/
+
+# Local storage
+storage/
+
+# Alembic
+# Keep versions/ tracked; ignore pycache inside it
+migrations/__pycache__/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker volumes (local mounts)
+postgres_data/
+pip.ini
+
+# Local Docker dev overrides (never commit)
+docker-compose.override.yml

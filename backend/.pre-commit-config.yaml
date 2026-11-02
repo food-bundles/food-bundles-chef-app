@@ -1,0 +1,57 @@
+repos:
+  # ── General file hygiene ────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^food-bundles-chef-app/backend/
+      - id: end-of-file-fixer
+        files: ^food-bundles-chef-app/backend/
+      - id: check-yaml
+        files: ^food-bundles-chef-app/backend/
+      - id: check-toml
+        files: ^food-bundles-chef-app/backend/
+      - id: check-json
+        files: ^food-bundles-chef-app/backend/
+      - id: check-merge-conflict
+        files: ^food-bundles-chef-app/backend/
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+        files: ^food-bundles-chef-app/backend/
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # ── Ruff: lint + format ─────────────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.3
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^food-bundles-chef-app/backend/
+      - id: ruff-format
+        files: ^food-bundles-chef-app/backend/
+
+  # ── Bandit: security static analysis ───────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: [-c, food-bundles-chef-app/backend/pyproject.toml]
+        files: ^food-bundles-chef-app/backend/app/
+        additional_dependencies: ["bandit[toml]"]
+
+  # ── Mypy: type checking ─────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        args: [--config-file=food-bundles-chef-app/backend/pyproject.toml]
+        files: ^food-bundles-chef-app/backend/app/
+        additional_dependencies:
+          - pydantic
+          - pydantic-settings
+          - sqlalchemy[mypy]
+          - fastapi
+          - types-passlib
+          - types-python-jose

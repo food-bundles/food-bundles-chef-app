@@ -1,0 +1,88 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-foodbundles}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-foodbundles_chef}
+    ports:
+      - "${DB_EXTERNAL_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-foodbundles} -d ${DB_NAME:-foodbundles_chef}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis (arq broker + cache) ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      target: runtime
+    env_file: .env
+    environment:
+      # Docker-internal service hostnames override the localhost values in .env
+      DATABASE_URL: "postgresql+asyncpg://${DB_USER:-foodbundles}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-foodbundles_chef}"
+      DATABASE_URL_SYNC: "postgresql+psycopg://${DB_USER:-foodbundles}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-foodbundles_chef}"
+      REDIS_URL: "redis://redis:6379/0"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── arq Worker ──────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      target: runtime
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${DB_USER:-foodbundles}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-foodbundles_chef}"
+      DATABASE_URL_SYNC: "postgresql+psycopg://${DB_USER:-foodbundles}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-foodbundles_chef}"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    command: arq app.workers.scheduler.WorkerSettings
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
