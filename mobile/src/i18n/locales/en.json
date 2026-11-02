@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "back": "Back",
+    "continue": "Continue",
+    "done": "Done",
+    "edit": "Edit",
+    "delete": "Delete",
+    "archive": "Archive",
+    "search": "Search",
+    "noResults": "No results found"
+  },
+  "auth": {
+    "welcome": "Food Bundles Chef",
+    "tagline": "Order right. Receive right. Know your stock before service.",
+    "getStarted": "Get Started",
+    "enterPhone": "Enter your phone",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "+250 7XX XXX XXX",
+    "sendingCode": "Sending code…",
+    "continueButton": "Continue",
+    "phoneError": "Please enter a valid phone number.",
+    "enterCode": "Enter the code",
+    "codeSentTo": "Sent to",
+    "demoHint": "Demo: enter any 6 digits",
+    "verifying": "Verifying…",
+    "verifyButton": "Verify & Continue",
+    "codeError": "Invalid code. Please try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "activeKitchen": "Active Kitchen",
+    "switchKitchen": "Switch",
+    "noKitchen": "No kitchen selected",
+    "lowStock": "Low Stock",
+    "pendingOrders": "Pending Orders",
+    "deliveries": "Deliveries",
+    "recentDeliveries": "Recent Deliveries",
+    "procurementReminder": "Procurement Reminder",
+    "reviewPurchaseList": "Review Purchase List",
+    "alerts": "Alert",
+    "alertsPlural": "Alerts",
+    "seeAll": "See all"
+  },
+  "kitchens": {
+    "title": "Kitchens",
+    "yourKitchens": "Your Kitchens",
+    "selectKitchen": "Select kitchen",
+    "noKitchens": "No kitchens yet. Add your first kitchen.",
+    "address": "Address",
+    "cuisine": "Cuisine",
+    "seating": "Seating",
+    "status": "Status",
+    "active": "Active",
+    "archived": "Archived"
+  },
+  "profile": {
+    "title": "Profile",
+    "phone": "Phone",
+    "activeKitchen": "Active Kitchen",
+    "noKitchen": "None selected",
+    "manageKitchens": "Manage Kitchens",
+    "signOut": "Sign Out"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "menu": "Menu",
+    "purchasing": "Purchasing",
+    "stock": "Stock",
+    "profile": "Profile"
+  }
+}

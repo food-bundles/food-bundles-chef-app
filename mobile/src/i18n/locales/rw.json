@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Gutegereza…",
+    "error": "Habaye ikibazo",
+    "retry": "Ongera ugerageze",
+    "cancel": "Hagarika",
+    "confirm": "Emeza",
+    "save": "Bika",
+    "back": "Subira",
+    "continue": "Komeza",
+    "done": "Byarangiye",
+    "edit": "Hindura",
+    "delete": "Siba",
+    "archive": "Shyira mu bubiko",
+    "search": "Shakisha",
+    "noResults": "Nta bisubizo byaboneka"
+  },
+  "auth": {
+    "welcome": "Food Bundles Chef",
+    "tagline": "Gura neza. Sobanukirwa ibikuya. Menya ibiri mu bubiko.",
+    "getStarted": "Tangira",
+    "enterPhone": "Injiza nimero ya telefoni",
+    "phoneLabel": "Nimero ya Telefoni",
+    "phonePlaceholder": "+250 7XX XXX XXX",
+    "sendingCode": "Ohereza kode…",
+    "continueButton": "Komeza",
+    "phoneError": "Injiza nimero ya telefoni yemewe.",
+    "enterCode": "Injiza kode",
+    "codeSentTo": "Yoherejwe kuri",
+    "demoHint": "Demo: injiza imibare 6",
+    "verifying": "Gusuzuma…",
+    "verifyButton": "Emeza & Komeza",
+    "codeError": "Kode ntayo. Ongera ugerageze."
+  },
+  "dashboard": {
+    "title": "Ikibaho",
+    "activeKitchen": "Gutaraga Riri Gukoreshwa",
+    "switchKitchen": "Hindura",
+    "noKitchen": "Nta gutaraga ryatoranijwe",
+    "lowStock": "Ibiciro Bike",
+    "pendingOrders": "Amaporosi Ategereje",
+    "deliveries": "Ibikuya",
+    "recentDeliveries": "Ibikuya Bya Vuba",
+    "procurementReminder": "Ibutsa ryo Kugura",
+    "reviewPurchaseList": "Reba Urutonde rw'Ibigura",
+    "alerts": "Imenyesha",
+    "alertsPlural": "Imenyesha",
+    "seeAll": "Reba byose"
+  },
+  "kitchens": {
+    "title": "Amagataraga",
+    "yourKitchens": "Amagataraga Yawe",
+    "selectKitchen": "Hitamo igataraga",
+    "noKitchens": "Nta magataraga. Ongeraho igataraga yawe rya mbere.",
+    "address": "Aderesi",
+    "cuisine": "Ubwoko bw'Ituze",
+    "seating": "Ibibanza",
+    "status": "Imimerere",
+    "active": "Rikoreshwa",
+    "archived": "Ryashyiriwe mu bubiko"
+  },
+  "profile": {
+    "title": "Umwirondoro",
+    "phone": "Telefoni",
+    "activeKitchen": "Igataraga Rikoreshwa",
+    "noKitchen": "Nta ryatoranijwe",
+    "manageKitchens": "Gucunga Amagataraga",
+    "signOut": "Sohoka"
+  },
+  "tabs": {
+    "dashboard": "Ikibaho",
+    "menu": "Menu",
+    "purchasing": "Kugura",
+    "stock": "Bubiko",
+    "profile": "Umwirondoro"
+  }
+}
