@@ -47,3 +47,4 @@ Thumbs.db
 
 # Docker volumes (local mounts)
 postgres_data/
+pip.ini
