@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "food-bundles-chef-backend"
+version = "0.1.0"
+description = "Food Bundles Chef App — FastAPI backend"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi==0.115.5",
+    "uvicorn[standard]==0.32.1",
+
+    # Validation
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    "email-validator==2.2.0",
+    "phonenumbers==8.13.50",
+
+    # Database
+    "sqlalchemy==2.0.36",
+    "alembic==1.14.0",
+    "asyncpg==0.30.0",
+    "psycopg[binary]==3.2.3",
+
+    # Auth & security
+    "python-jose[cryptography]==3.3.0",
+    "passlib[argon2]==1.7.4",
+    "argon2-cffi==23.1.0",
+
+    # HTTP client
+    "httpx==0.28.0",
+
+    # Structured logging
+    "structlog==24.4.0",
+
+    # Redis / task queue
+    "redis==5.2.0",
+    "arq==0.26.1",
+
+    # Utilities
+    "python-multipart==0.0.18",
+    "python-slugify==8.0.4",
+    "babel==2.16.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "httpx==0.28.0",
+    "ruff==0.8.3",
+    "mypy==1.13.0",
+    "factory-boy==3.3.1",
+    "faker==33.1.0",
+    "asgi-lifespan==2.1.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "ANN", "S", "B", "A", "C4", "PT", "RUF"]
+ignore = ["ANN101", "ANN102", "ANN401", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S"]
+"migrations/**" = ["ANN"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+omit = ["tests/*", "migrations/*"]
