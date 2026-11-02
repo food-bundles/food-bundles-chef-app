@@ -60,9 +60,9 @@ class Ingredient(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    stock_entries: Mapped[list["InventoryEntry"]] = relationship(  # noqa: F821
+    stock_entries: Mapped[list[InventoryEntry]] = relationship(  # noqa: F821
         "InventoryEntry", back_populates="ingredient", lazy="noload"
     )
-    recipe_lines: Mapped[list["RecipeLine"]] = relationship(  # noqa: F821
+    recipe_lines: Mapped[list[RecipeLine]] = relationship(  # noqa: F821
         "RecipeLine", back_populates="ingredient", lazy="noload"
     )

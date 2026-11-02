@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import KitchenAccessDeniedError, NotFoundError
+from app.core.exceptions import KitchenAccessDeniedError
 
 
 async def require_kitchen_access(

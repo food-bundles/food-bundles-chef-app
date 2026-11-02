@@ -9,6 +9,17 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 logger = structlog.get_logger(__name__)
 
+# Security headers applied to every response
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+    # HSTS — 1 year; enable only in production (set by SecurityHeadersMiddleware)
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+}
+
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Attach a unique request_id to every request and response."""
@@ -18,7 +29,11 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = str(uuid.uuid4())
         structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(request_id=request_id)
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+        )
 
         start = time.perf_counter()
         response = await call_next(request)
@@ -26,11 +41,22 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-ID"] = request_id
 
-        logger.info(
+        log_fn = logger.warning if response.status_code >= 500 else logger.info
+        log_fn(
             "request",
-            method=request.method,
-            path=request.url.path,
             status_code=response.status_code,
             duration_ms=duration_ms,
         )
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to every response."""
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        response = await call_next(request)
+        for header, value in _SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
         return response

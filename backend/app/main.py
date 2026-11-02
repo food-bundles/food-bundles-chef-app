@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import uuid
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
-from app.core.middleware import RequestIdMiddleware
+from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.rate_limit import limiter
 
 configure_logging()
 logger = structlog.get_logger(__name__)
@@ -22,13 +26,17 @@ logger = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    from app.core.queue import connect as queue_connect
+    from app.core.queue import disconnect as queue_disconnect
     logger.info(
         "startup",
         app=settings.APP_NAME,
         env=settings.APP_ENV,
         debug=settings.DEBUG,
     )
+    await queue_connect()
     yield
+    await queue_disconnect()
     logger.info("shutdown", app=settings.APP_NAME)
 
 
@@ -41,7 +49,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Attach limiter so slowapi can find it on the app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # ── Middleware ─────────────────────────────────────────────────────────────────
+# Order matters: outermost middleware runs first on request, last on response.
+# SecurityHeaders wraps everything so headers are on every response including errors.
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,

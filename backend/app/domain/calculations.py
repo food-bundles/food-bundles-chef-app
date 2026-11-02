@@ -21,8 +21,8 @@ Key formulas (from INTEGRATION_DESIGN.md § Business Formulas):
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Sequence
 
 from app.core.constants import (
     DEMAND_WEIGHTS,
@@ -62,7 +62,7 @@ def weighted_demand(
         return _ZERO
 
     result = sum(
-        Decimal(str(p)) * w for p, w in zip(weekly_portions, w_seq)
+        Decimal(str(p)) * w for p, w in zip(weekly_portions, w_seq, strict=False)
     ) / total_weight
     return result.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 

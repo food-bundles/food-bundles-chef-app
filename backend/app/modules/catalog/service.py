@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.models import CatalogProduct
 from app.modules.catalog.repository import CatalogRepository
 from app.modules.catalog.schemas import CatalogProductResponse
 

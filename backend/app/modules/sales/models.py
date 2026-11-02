@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, date
-from decimal import Decimal
+from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,6 +49,6 @@ class DailySaleRecord(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    menu_item: Mapped["MenuItem"] = relationship(  # noqa: F821
+    menu_item: Mapped[MenuItem] = relationship(  # noqa: F821
         "MenuItem", lazy="noload"
     )

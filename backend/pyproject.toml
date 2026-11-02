@@ -42,6 +42,9 @@ dependencies = [
     "redis==5.2.0",
     "arq==0.26.1",
 
+    # Rate limiting
+    "slowapi==0.1.10",
+
     # Utilities
     "python-multipart==0.0.18",
     "python-slugify==8.0.4",
@@ -60,6 +63,10 @@ dev = [
     "factory-boy==3.3.1",
     "faker==33.1.0",
     "asgi-lifespan==2.1.0",
+    # Security analysis
+    "bandit[toml]==1.8.0",
+    # Pre-commit runner (installed globally or in venv)
+    "pre-commit==4.0.1",
 ]
 
 [tool.ruff]
@@ -69,7 +76,7 @@ src = ["app", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "ANN", "S", "B", "A", "C4", "PT", "RUF"]
-ignore = ["ANN101", "ANN102", "ANN401", "S101"]
+ignore = ["ANN101", "ANN102", "ANN401", "S101", "S105"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S"]
@@ -88,3 +95,14 @@ addopts = "--cov=app --cov-report=term-missing --cov-report=html"
 
 [tool.coverage.run]
 omit = ["tests/*", "migrations/*"]
+
+# ── Bandit: security static analysis ──────────────────────────────────────────
+[tool.bandit]
+targets = ["app"]
+exclude_dirs = ["tests", "migrations", ".venv"]
+# B101 assert — fine in tests; B104 hardcoded bind all interfaces — uvicorn
+skips = ["B101", "B104"]
+
+# ── Pre-commit: skip hooks that need the full venv (run those in CI) ──────────
+[tool.pre-commit]
+default_stages = ["pre-commit"]

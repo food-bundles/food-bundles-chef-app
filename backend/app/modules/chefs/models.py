@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +20,7 @@ class Chef(Base):
     name: Mapped[str | None] = mapped_column(String(200))
     email: Mapped[str | None] = mapped_column(String(254), unique=True)
     preferred_locale: Mapped[str] = mapped_column(String(5), default="en")
+    expo_push_token: Mapped[str | None] = mapped_column(String(300), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
@@ -30,9 +31,9 @@ class Chef(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    kitchens: Mapped[list["Kitchen"]] = relationship(  # noqa: F821
+    kitchens: Mapped[list[Kitchen]] = relationship(  # noqa: F821
         "Kitchen", back_populates="chef", lazy="noload"
     )
-    otp_challenges: Mapped[list["OtpChallenge"]] = relationship(  # noqa: F821
+    otp_challenges: Mapped[list[OtpChallenge]] = relationship(  # noqa: F821
         "OtpChallenge", back_populates="chef", lazy="noload"
     )

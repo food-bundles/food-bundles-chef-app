@@ -37,7 +37,7 @@ class Menu(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    items: Mapped[list["MenuItem"]] = relationship(
+    items: Mapped[list[MenuItem]] = relationship(
         "MenuItem", back_populates="menu", lazy="noload", cascade="all, delete-orphan"
     )
 
@@ -76,7 +76,7 @@ class MenuItem(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    menu: Mapped["Menu"] = relationship("Menu", back_populates="items", lazy="noload")
-    recipe_lines: Mapped[list["RecipeLine"]] = relationship(  # noqa: F821
+    menu: Mapped[Menu] = relationship("Menu", back_populates="items", lazy="noload")
+    recipe_lines: Mapped[list[RecipeLine]] = relationship(  # noqa: F821
         "RecipeLine", back_populates="menu_item", lazy="noload", cascade="all, delete-orphan"
     )

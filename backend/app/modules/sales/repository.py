@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.sales.models import DailySaleRecord

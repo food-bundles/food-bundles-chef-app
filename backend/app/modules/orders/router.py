@@ -69,4 +69,25 @@ async def submit_order(
     db: AsyncSession = Depends(get_db),
 ) -> OrderSubmitResponse:
     svc = OrderService(db)
-    return await svc.submit_order(kitchen, order_id)
+    result = await svc.submit_order(kitchen, order_id)
+    # Fire-and-forget: sync to Food Bundles API via background worker
+    from app.core.queue import get_queue
+    queue = await get_queue()
+    if queue is not None:
+        await queue.enqueue_job(
+            "sync_order_to_food_bundles",
+            order_id=str(order_id),
+            kitchen_id=str(kitchen.id),
+        )
+    return result
+
+
+@router.post("/{order_id}/confirm", response_model=OrderSubmitResponse)
+async def confirm_order(
+    order_id: uuid.UUID,
+    kitchen=Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> OrderSubmitResponse:
+    """Mark order as confirmed (called by Food Bundles backend or for manual confirmation)."""
+    svc = OrderService(db)
+    return await svc.confirm_order(kitchen, order_id)

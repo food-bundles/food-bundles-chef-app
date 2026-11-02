@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import KitchenAccessDeniedError
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.service import KitchenService

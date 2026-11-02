@@ -3,8 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Generic, TypeVar
 
-import structlog
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 

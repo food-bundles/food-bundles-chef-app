@@ -8,6 +8,9 @@ from app.integrations.sms.mock_provider import MockSmsProvider
 def get_sms_provider() -> SmsProvider:
     if settings.OTP_PROVIDER == "mock":
         return MockSmsProvider()
+    if settings.OTP_PROVIDER == "pindo":
+        from app.integrations.sms.pindo_provider import PindoSmsProvider
+        return PindoSmsProvider()
     raise NotImplementedError(
         f"SMS provider '{settings.OTP_PROVIDER}' is not yet implemented. "
         "Add an adapter in app/integrations/sms/ and register it here."

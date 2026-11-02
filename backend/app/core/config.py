@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
         return v
 
     # OTP
-    OTP_PROVIDER: Literal["mock", "africas_talking", "twilio"] = "mock"
+    OTP_PROVIDER: Literal["mock", "pindo", "africas_talking", "twilio"] = "mock"
     OTP_EXPIRY_SECONDS: int = 300
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
@@ -87,12 +87,16 @@ class Settings(BaseSettings):
     FOOD_BUNDLES_API_KEY: str = ""
 
     # Object storage
-    OBJECT_STORAGE_PROVIDER: Literal["local", "s3", "gcs"] = "local"
+    OBJECT_STORAGE_PROVIDER: Literal["local", "s3", "gcs", "cloudinary"] = "local"
     OBJECT_STORAGE_BUCKET: str = "food-bundles-chef"
     OBJECT_STORAGE_ACCESS_KEY: str = ""
     OBJECT_STORAGE_SECRET_KEY: str = ""
     OBJECT_STORAGE_ENDPOINT_URL: str = ""
     LOCAL_STORAGE_PATH: str = "./storage"
+    # Cloudinary (used when OBJECT_STORAGE_PROVIDER=cloudinary)
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     # Push notifications
     PUSH_NOTIFICATIONS_PROVIDER: Literal["mock", "expo"] = "mock"

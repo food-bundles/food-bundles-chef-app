@@ -30,7 +30,7 @@ class OtpChallenge(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
-    chef: Mapped["Chef | None"] = relationship(  # noqa: F821
+    chef: Mapped[Chef | None] = relationship(  # noqa: F821
         "Chef", back_populates="otp_challenges", lazy="noload"
     )
 

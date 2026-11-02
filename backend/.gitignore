@@ -48,3 +48,6 @@ Thumbs.db
 # Docker volumes (local mounts)
 postgres_data/
 pip.ini
+
+# Local Docker dev overrides (never commit)
+docker-compose.override.yml

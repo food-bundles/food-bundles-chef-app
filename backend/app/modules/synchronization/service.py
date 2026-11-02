@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from typing import Any
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -105,7 +104,7 @@ class SyncService:
                 error_code=exc.error_code,
                 error_message=exc.message,
             )
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 "sync_mutation_unexpected_error",
                 operation_id=mutation.operation_id,

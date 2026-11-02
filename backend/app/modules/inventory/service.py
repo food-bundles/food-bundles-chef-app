@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.domain.calculations import (
     days_cover as calc_days_cover,
+)
+from app.domain.calculations import (
     expected_daily_use,
     is_low_stock,
-    weighted_demand,
 )
 from app.modules.ingredients.models import Ingredient
 from app.modules.ingredients.repository import IngredientRepository

@@ -17,7 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.calculations import (
     days_cover as calc_days_cover,
-    expected_daily_use,
+)
+from app.domain.calculations import (
     is_low_stock,
     purchase_quantity,
     weighted_demand,

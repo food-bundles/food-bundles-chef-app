@@ -37,7 +37,6 @@ class ReceivingService:
         chef_id: uuid.UUID,
         data: BulkReceivingRequest,
     ) -> list[ReceivingResponse]:
-        from sqlalchemy import select
 
         order = await self._order_repo.get_with_lines(order_id)
         if order is None or order.kitchen_id != kitchen.id:

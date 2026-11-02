@@ -38,6 +38,12 @@ class KitchenRepository:
         )
         return list(result.scalars().all())
 
+    async def list_all_active(self) -> list[Kitchen]:
+        result = await self._db.execute(
+            select(Kitchen).where(Kitchen.status != KitchenStatus.ARCHIVED)
+        )
+        return list(result.scalars().all())
+
     async def create(self, kitchen: Kitchen) -> Kitchen:
         self._db.add(kitchen)
         await self._db.flush()

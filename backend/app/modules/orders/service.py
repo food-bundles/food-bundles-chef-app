@@ -87,6 +87,21 @@ class OrderService:
             message="Order submitted to Food Bundles.",
         )
 
+    async def confirm_order(
+        self, kitchen: Kitchen, order_id: uuid.UUID
+    ) -> OrderSubmitResponse:
+        order = await self._require_owned(kitchen, order_id)
+        if order.status not in (OrderStatus.SUBMITTED, OrderStatus.CONFIRMED):
+            raise ConflictError(f"Order cannot be confirmed from status '{order.status}'.")
+        order.status = OrderStatus.CONFIRMED
+        order = await self._repo.update(order)
+        return OrderSubmitResponse(
+            order_id=order.id,
+            external_order_id=order.external_order_id,
+            status=OrderStatus(order.status),
+            message="Order confirmed.",
+        )
+
     async def get_order(
         self, kitchen: Kitchen, order_id: uuid.UUID
     ) -> OrderWithLinesResponse:

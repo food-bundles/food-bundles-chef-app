@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import KitchenAccessDeniedError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.modules.kitchens.models import Kitchen
 from app.modules.menus.models import Menu, MenuItem
 from app.modules.menus.repository import MenuItemRepository, MenuRepository

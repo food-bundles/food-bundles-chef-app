@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text
@@ -50,7 +50,7 @@ class Order(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    lines: Mapped[list["OrderLine"]] = relationship(
+    lines: Mapped[list[OrderLine]] = relationship(
         "OrderLine", back_populates="order", lazy="noload", cascade="all, delete-orphan"
     )
 
@@ -80,4 +80,4 @@ class OrderLine(Base):
         UUID(as_uuid=True), ForeignKey("ingredients.id", ondelete="SET NULL")
     )
 
-    order: Mapped["Order"] = relationship("Order", back_populates="lines", lazy="noload")
+    order: Mapped[Order] = relationship("Order", back_populates="lines", lazy="noload")

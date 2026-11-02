@@ -42,9 +42,9 @@ class RecipeLine(Base):
     unit: Mapped[str] = mapped_column(String(30), nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
 
-    menu_item: Mapped["MenuItem"] = relationship(  # noqa: F821
+    menu_item: Mapped[MenuItem] = relationship(  # noqa: F821
         "MenuItem", back_populates="recipe_lines", lazy="noload"
     )
-    ingredient: Mapped["Ingredient"] = relationship(  # noqa: F821
+    ingredient: Mapped[Ingredient] = relationship(  # noqa: F821
         "Ingredient", back_populates="recipe_lines", lazy="noload"
     )

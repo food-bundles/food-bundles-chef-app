@@ -7,11 +7,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, MappedColumn, mapped_column
-from sqlalchemy import DateTime, func
-from datetime import datetime
+from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
+
 
 def _engine_kwargs() -> dict:
     """Pool kwargs that only apply to real databases, not SQLite."""

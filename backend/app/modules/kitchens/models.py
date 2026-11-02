@@ -37,6 +37,6 @@ class Kitchen(Base):
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    chef: Mapped["Chef"] = relationship(  # noqa: F821
+    chef: Mapped[Chef] = relationship(  # noqa: F821
         "Chef", back_populates="kitchens", lazy="noload"
     )

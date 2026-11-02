@@ -49,6 +49,6 @@ class InventoryEntry(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
     )
 
-    ingredient: Mapped["Ingredient"] = relationship(  # noqa: F821
+    ingredient: Mapped[Ingredient] = relationship(  # noqa: F821
         "Ingredient", back_populates="stock_entries", lazy="noload"
     )
