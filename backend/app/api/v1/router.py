@@ -12,6 +12,7 @@ from app.modules.purchasing.router import router as purchasing_router
 from app.modules.receiving.router import router as receiving_router
 from app.modules.recipes.router import router as recipes_router
 from app.modules.sales.router import router as sales_router
+from app.modules.synchronization.router import router as sync_router
 
 router = APIRouter(prefix="/v1")
 router.include_router(auth_router)
@@ -24,3 +25,4 @@ router.include_router(sales_router)
 router.include_router(purchasing_router)
 router.include_router(orders_router)
 router.include_router(receiving_router)
+router.include_router(sync_router)
