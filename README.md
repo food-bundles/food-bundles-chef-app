@@ -1,175 +1,107 @@
-# Food Bundles Chef App
+# Food Bundles Chef App — Mobile
 
-**Order right. Receive right. Know your stock before service.**
+> Order right. Receive right. Know your stock before service.
 
-Food Bundles Chef App is a mobile application designed to help chefs manage kitchen operations, procurement, deliveries, and inventory from one place.
+Native mobile application for professional chefs to manage kitchen procurement, delivery receiving, stock visibility, and menu planning.
 
-The app gives chefs better visibility and control over what they order, what they receive, what is available in their kitchens, and what they need to purchase before the next service.
+## Product
 
-## About the App
+**Menu du Jour** — A chef-owned kitchen operations and procurement control application.
 
-Food Bundles Chef App is built around a simple operational workflow:
+## Technology Stack
 
-**Order → Receive → Track Stock → Reorder**
+| Concern | Technology |
+|---|---|
+| Framework | Expo SDK 58 (managed workflow) |
+| Language | TypeScript (strict mode) |
+| Navigation | Expo Router |
+| Styling | NativeWind v4 |
+| State | Zustand |
+| Server state | TanStack Query |
+| Forms | React Hook Form + Zod |
+| Animations | React Native Reanimated 4 + Moti |
+| Database | expo-sqlite |
+| Icons | lucide-react-native |
+| i18n | i18next (en, rw, fr) |
 
-Instead of managing procurement and stock through disconnected processes, chefs can use the app to organize kitchen activities, verify incoming deliveries, monitor ingredient availability, and make more informed purchasing decisions.
+## Setup
 
-The application is designed primarily for chefs and kitchen teams working with Food Bundles.
+```bash
+# Install dependencies
+npm install
 
-## Core Features
+# Start Expo development server
+npm start
 
-### 1. Chef Accounts and Kitchen Management
+# Run on Android
+npm run android
+```
 
-- Personal accounts for individual chefs.
-- Secure phone-number-based authentication.
-- Ability to manage multiple kitchens from one account.
-- Separate operational data for each kitchen.
-- Access to current and archived kitchens.
-- Optional connection to a restaurant, subject to the required approval and permissions.
+## Scripts
 
-### 2. Kitchen Dashboard
+| Script | Description |
+|---|---|
+| `npm start` | Start Expo development server |
+| `npm run android` | Launch on Android |
+| `npm run ios` | Launch on iOS (macOS required) |
+| `npm run typecheck` | TypeScript type check |
+| `npm run lint` | ESLint |
+| `npm run format:check` | Prettier check |
+| `npm test` | Jest tests |
 
-A centralized overview of kitchen operations, helping chefs understand their current position at a glance.
+## Project Structure
 
-The dashboard is intended to provide visibility into:
+```
+mobile/
+  app/                        # Expo Router route files
+    (auth)/                   # Welcome, phone, OTP screens
+    (app)/                    # Authenticated app
+      (tabs)/                 # Bottom tab navigation
+      kitchens/               # Kitchen management
+      settings/               # Settings
+  src/
+    components/               # Reusable UI components
+    features/                 # Feature-specific components
+    domain/
+      calculations/           # Pure business logic (tested)
+      models/                 # Domain types
+    data/
+      repositories/           # Typed repository contracts
+      mock/                   # Mock implementations
+    store/                    # Zustand state stores
+    services/                 # Camera, AI, notifications
+    i18n/                     # Translations (en, rw, fr)
+    types/                    # Shared TypeScript types
+    constants/                # Application constants
+  __tests__/                  # Unit and integration tests
+  assets/                     # App icons, splash screen
+```
 
-- Kitchen stock levels.
-- Ingredients running low.
-- Recent deliveries.
-- Pending orders.
-- Upcoming purchasing needs.
-- Relevant kitchen activity and notifications.
+## Implementation Status
 
-### 3. Menu and Recipe Management
+| Phase |
+|---|
+| 00 Repository & Git |
+| 01 Expo Foundation |
+| 02 Architecture & Design System |
+| 03 i18n, Auth & Kitchens |
+| 04 Dashboard, Menu, Recipes, Sales |
+| 05 Purchasing & Orders |
+| 06 Delivery Receiving & Quality |
+| 07 Inventory & Offline Persistence |
+| 08 Notifications & Accessibility |
+| 09 Release Readiness |
 
-Tools for organizing the food prepared and sold by the kitchen.
+## Known Limitations
 
-- Create and manage menus.
-- Maintain recipes and ingredient quantities.
-- Define ingredient requirements per portion.
-- Connect recipes to kitchen ingredients.
-- Support menu planning and operational preparation.
+- This is a UI-only implementation. No real backend, OTP, payments, or AI calls.
+- All simulated operations are clearly marked in the UI.
+- SQLite persistence not yet implemented (Phase 07).
+- Kitchen data isolation is enforced at the store/query level; backend authorization is required in production.
 
-### 4. Sales and Demand Tracking
+## Architecture Notes
 
-Sales information helps chefs estimate future ingredient requirements.
-
-- Record or review weekly sales.
-- Track expected portions.
-- Use historical sales information to support purchasing decisions.
-- Estimate ingredient consumption based on recipes and expected demand.
-
-### 5. Food Bundles Procurement
-
-A procurement workflow that helps chefs plan and manage ingredient purchases.
-
-- Browse available Food Bundles products.
-- Select ingredients and quantities.
-- Prepare and manage purchase orders.
-- Review purchasing requirements.
-- Submit orders directly through Food Bundles checkout.
-- Support restaurant-linked order approval workflows where enabled.
-
-### 6. Delivery Verification and Receiving
-
-A structured workflow for checking ingredients when deliveries arrive.
-
-Chefs can:
-
-- Review ordered items against delivered items.
-- Record actual received quantities by weight or count.
-- Record actual prices.
-- Capture delivery photos.
-- Identify missing, damaged, spoiled, or poor-quality products.
-- Accept, flag, or reject items based on inspection.
-- Record delivery discrepancies.
-
-The app is designed to support AI-assisted visual quality assessment across six dimensions:
-
-1. Freshness
-2. Ripeness
-3. Physical damage
-4. Spoilage
-5. Size and grade
-6. Foreign matter
-
-AI assessments support the receiving process, while chefs retain control over final acceptance and actual quantity records.
-
-### 7. Inventory Management
-
-The app helps chefs maintain a practical picture of what is available in each kitchen.
-
-- Track ingredient stock.
-- Record accepted deliveries.
-- Monitor stock changes.
-- Calculate expected stock usage.
-- Identify low-stock ingredients.
-- Estimate days of stock coverage.
-- Support stock adjustments and manual records.
-
-### 8. Smart Purchasing Recommendations
-
-Purchasing recommendations are designed to account for expected demand, recipe requirements, available stock, and ingredient yield.
-
-The objective is to help chefs:
-
-- Purchase quantities that match expected demand.
-- Avoid unnecessary over-ordering.
-- Reduce the risk of running out of ingredients.
-- Make purchasing decisions using operational data.
-
-### 9. Notifications and Activity
-
-The app is intended to keep chefs informed about important kitchen activities, including:
-
-- Order updates.
-- Delivery and receiving activities.
-- Low-stock alerts.
-- Purchasing reminders.
-- Relevant approval updates.
-- Important operational notifications.
-
-## How It Works
-
-The application follows a connected kitchen-management workflow.
-
-| Step       | What happens                                                      |
-| ---------- | ----------------------------------------------------------------- |
-| 1. Plan    | Review menus, recipes, sales, and expected demand.                |
-| 2. Order   | Calculate purchasing needs and place ingredient orders.           |
-| 3. Receive | Verify deliveries, inspect quality, and record actual quantities. |
-| 4. Track   | Update inventory using accepted deliveries and stock usage.       |
-| 5. Reorder | Identify shortages and prepare the next purchase.                 |
-
-## Languages
-
-The application is intended to support:
-
-- English (`en`)
-- French (`fr`)
-- Kinyarwanda (`rw`)
-
-## Privacy and Data Isolation
-
-Kitchen data is treated as operationally sensitive.
-
-The application is designed around the following principles:
-
-- Each kitchen maintains separate operational records.
-- Chefs can manage multiple kitchens without mixing their data.
-- Restaurant access is limited to explicitly authorized information.
-- Optional restaurant connections require the appropriate approval.
-- Supplier information outside Food Bundles must not be shared with Food Bundles.
-- AI-assisted workflows should use only the information necessary for the requested assessment.
-
-## Product Direction
-
-Food Bundles Chef App aims to become a practical kitchen operations and procurement tool that helps chefs make better decisions using accurate, accessible operational information.
-
-Its central objective is to connect purchasing, delivery verification, and inventory management so chefs can spend less time managing disconnected processes and more time running their kitchens.
-
----
-
-**Food Bundles Chef App**
-
-_Order right. Receive right. Know your stock before service._
+- Screens do not contain business logic — all calculations are in `src/domain/calculations/`.
+- Every kitchen-scoped record carries a `kitchenId`.
+- Repository interfaces in `src/data/repositories/` will be implemented against a real API without changing screens.
+- Mock adapters in `src/data/mock/` are the current implementations.
