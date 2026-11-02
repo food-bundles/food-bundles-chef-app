@@ -68,7 +68,7 @@ async def update_recipe_line(
     return RecipeLineResponse.model_validate(line)
 
 
-@router.delete("/{line_id}", status_code=204)
+@router.delete("/{line_id}", status_code=204, response_model=None)
 async def delete_recipe_line(
     menu_item_id: uuid.UUID,
     line_id: uuid.UUID,

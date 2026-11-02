@@ -116,7 +116,7 @@ async def test_logout(client: AsyncClient, monkeypatch) -> None:
         "/api/v1/auth/logout",
         json={"refresh_token": tokens["refresh_token"]},
     )
-    assert resp.status_code == 204
+    assert resp.status_code == 200
     # After logout refresh token must be invalid
     resp2 = await client.post(
         "/api/v1/auth/token/refresh",

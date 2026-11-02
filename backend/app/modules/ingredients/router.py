@@ -73,7 +73,7 @@ async def update_ingredient(
     return IngredientResponse.model_validate(ingredient)
 
 
-@router.delete("/{ingredient_id}", status_code=204)
+@router.delete("/{ingredient_id}", status_code=204, response_model=None)
 async def deactivate_ingredient(
     ingredient_id: uuid.UUID,
     kitchen=Depends(_get_kitchen),

@@ -52,12 +52,13 @@ async def refresh_token(
     return await service.refresh_tokens(body.refresh_token)
 
 
-@router.post("/logout", status_code=204)
+@router.post("/logout", status_code=200)
 async def logout(
     body: RefreshRequest,
     service: AuthenticationService = Depends(_get_service),
-) -> None:
+) -> dict:
     await service.logout(body.refresh_token)
+    return {"message": "Logged out."}
 
 
 @router.get("/me", response_model=ChefProfileResponse)

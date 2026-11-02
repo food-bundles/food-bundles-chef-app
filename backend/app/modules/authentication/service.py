@@ -45,7 +45,10 @@ class AuthenticationService:
         """Send an OTP to the given phone. Returns seconds until expiry."""
         last = await self._otp_repo.get_latest_any_status(phone_number)
         if last is not None:
-            cooldown_boundary = last.created_at + timedelta(
+            created = last.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=UTC)
+            cooldown_boundary = created + timedelta(
                 seconds=settings.OTP_RESEND_COOLDOWN_SECONDS
             )
             if datetime.now(UTC) < cooldown_boundary:

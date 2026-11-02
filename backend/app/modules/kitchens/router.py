@@ -62,7 +62,7 @@ async def update_kitchen(
     return KitchenResponse.model_validate(kitchen)
 
 
-@router.delete("/{kitchen_id}", status_code=204)
+@router.delete("/{kitchen_id}", status_code=204, response_model=None)
 async def archive_kitchen(
     kitchen_id: uuid.UUID,
     current_chef: Chef = Depends(get_current_chef),

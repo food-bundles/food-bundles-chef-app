@@ -13,12 +13,18 @@ from datetime import datetime
 
 from app.core.config import settings
 
+def _engine_kwargs() -> dict:
+    """Pool kwargs that only apply to real databases, not SQLite."""
+    url = settings.DATABASE_URL
+    if url.startswith("sqlite"):
+        return {}
+    return {"pool_pre_ping": True, "pool_size": 10, "max_overflow": 20}
+
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    **_engine_kwargs(),
 )
 
 AsyncSessionFactory = async_sessionmaker(
