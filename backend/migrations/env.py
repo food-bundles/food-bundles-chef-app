@@ -18,6 +18,8 @@ import app.modules.ingredients.models  # noqa: F401
 import app.modules.inventory.models  # noqa: F401
 import app.modules.kitchens.models  # noqa: F401
 import app.modules.menus.models  # noqa: F401
+import app.modules.orders.models  # noqa: F401
+import app.modules.receiving.models  # noqa: F401
 import app.modules.recipes.models  # noqa: F401
 import app.modules.sales.models  # noqa: F401
 
