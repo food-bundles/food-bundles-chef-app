@@ -22,11 +22,13 @@ from app.core.security import (
     verify_password,
 )
 from app.integrations.sms.base import SmsProvider
+from app.modules.audit.service import AuditService
 from app.modules.authentication.models import OtpChallenge, RefreshToken
 from app.modules.authentication.repository import OtpRepository, RefreshTokenRepository
 from app.modules.authentication.schemas import TokenResponse
 from app.modules.chefs.models import Chef
 from app.modules.chefs.repository import ChefRepository
+from app.shared.enums import AuditEventType
 
 
 class AuthenticationService:
@@ -64,6 +66,10 @@ class AuthenticationService:
         )
         await self._otp_repo.create(challenge)
         await self._sms.send_otp(phone_number, code)
+        await AuditService(self._db).record(
+            AuditEventType.AUTH_OTP_REQUESTED,
+            details={"phone_suffix": phone_number[-4:]},
+        )
         return settings.OTP_EXPIRY_SECONDS
 
     async def verify_otp_and_authenticate(
@@ -93,6 +99,11 @@ class AuthenticationService:
             self._db.add(chef)
             await self._db.flush()
 
+        await AuditService(self._db).record(
+            AuditEventType.AUTH_LOGIN,
+            actor_id=chef.id,
+            details={"phone_suffix": phone_number[-4:]},
+        )
         return await self._issue_token_pair(chef)
 
     async def refresh_tokens(self, raw_refresh_token: str) -> TokenResponse:
@@ -111,6 +122,10 @@ class AuthenticationService:
         if chef is None:
             raise UnauthorizedError("Chef not found.")
 
+        await AuditService(self._db).record(
+            AuditEventType.AUTH_TOKEN_REFRESHED,
+            actor_id=chef.id,
+        )
         return await self._issue_token_pair(chef)
 
     async def logout(self, raw_refresh_token: str) -> None:

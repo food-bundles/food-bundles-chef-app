@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import all models so Alembic can detect them
+import app.modules.audit.models  # noqa: F401
 import app.modules.authentication.models  # noqa: F401
 import app.modules.catalog.models  # noqa: F401
 import app.modules.chefs.models  # noqa: F401
