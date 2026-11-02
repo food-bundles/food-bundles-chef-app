@@ -52,6 +52,15 @@ class MenuItemRepository:
         )
         return result.scalar_one_or_none()
 
+    async def list_for_menu_all(self, kitchen_id: uuid.UUID) -> list[MenuItem]:
+        """All active menu items across all menus for a kitchen."""
+        result = await self._db.execute(
+            select(MenuItem)
+            .where(MenuItem.kitchen_id == kitchen_id, MenuItem.is_active == True)
+            .order_by(MenuItem.name)
+        )
+        return list(result.scalars().all())
+
     async def list_for_menu(self, menu_id: uuid.UUID) -> list[MenuItem]:
         result = await self._db.execute(
             select(MenuItem)

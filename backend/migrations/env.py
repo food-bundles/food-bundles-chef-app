@@ -19,6 +19,7 @@ import app.modules.inventory.models  # noqa: F401
 import app.modules.kitchens.models  # noqa: F401
 import app.modules.menus.models  # noqa: F401
 import app.modules.recipes.models  # noqa: F401
+import app.modules.sales.models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
