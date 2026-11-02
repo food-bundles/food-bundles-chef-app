@@ -13,6 +13,7 @@ from app.core.database import Base
 
 # Import all models so Alembic can detect them
 import app.modules.authentication.models  # noqa: F401
+import app.modules.catalog.models  # noqa: F401
 import app.modules.chefs.models  # noqa: F401
 import app.modules.ingredients.models  # noqa: F401
 import app.modules.inventory.models  # noqa: F401
