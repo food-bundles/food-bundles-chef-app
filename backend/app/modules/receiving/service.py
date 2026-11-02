@@ -58,22 +58,24 @@ class ReceivingService:
                     f"Order line {req_line.order_line_id} not found in this order."
                 )
 
+            accepted_qty = _accepted_quantity(
+                req_line.quantity_received, req_line.decision
+            )
+            short = _is_short_delivery(accepted_qty, order_line.quantity_ordered)
+
             receiving = DeliveryReceiving(
                 order_line_id=order_line.id,
                 kitchen_id=kitchen.id,
                 quantity_received=req_line.quantity_received,
                 decision=req_line.decision,
                 rejection_reason=req_line.rejection_reason,
+                short_delivery=short,
                 received_by=chef_id,
             )
             self._db.add(receiving)
             await self._db.flush()
             await self._db.refresh(receiving)
 
-            # Post accepted/partial quantities to inventory
-            accepted_qty = _accepted_quantity(
-                req_line.quantity_received, req_line.decision
-            )
             if accepted_qty > Decimal("0") and order_line.ingredient_id is not None:
                 entry = InventoryEntry(
                     kitchen_id=kitchen.id,
@@ -98,3 +100,11 @@ def _accepted_quantity(qty: Decimal, decision: ReceivingDecision) -> Decimal:
     if decision == ReceivingDecision.REJECTED:
         return Decimal("0")
     return qty  # ACCEPTED or PARTIALLY_ACCEPTED — use what was received
+
+
+def _is_short_delivery(accepted: Decimal, ordered: Decimal) -> bool:
+    """True when accepted is more than SHORT_DELIVERY_THRESHOLD below ordered."""
+    if ordered <= Decimal("0"):
+        return False
+    shortfall_fraction = (ordered - accepted) / ordered
+    return shortfall_fraction > Decimal(str(SHORT_DELIVERY_THRESHOLD))

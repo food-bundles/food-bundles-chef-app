@@ -29,5 +29,6 @@ class ReceivingResponse(BaseModel):
     quantity_received: Decimal
     decision: ReceivingDecision
     rejection_reason: str | None
+    short_delivery: bool
     received_by: uuid.UUID | None
     received_at: datetime

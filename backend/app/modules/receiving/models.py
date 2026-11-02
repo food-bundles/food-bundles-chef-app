@@ -42,6 +42,8 @@ class DeliveryReceiving(Base):
         String(30), nullable=False, default=ReceivingDecision.ACCEPTED
     )
     rejection_reason: Mapped[str | None] = mapped_column(Text)
+    # True when accepted quantity is more than 5% below ordered quantity (BE028)
+    short_delivery: Mapped[bool] = mapped_column(default=False, nullable=False)
     received_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("chefs.id", ondelete="SET NULL")
     )
