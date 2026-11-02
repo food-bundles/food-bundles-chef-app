@@ -12,8 +12,8 @@ class OrderStatus(StrEnum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
     CONFIRMED = "confirmed"
-    PARTIALLY_FULFILLED = "partially_fulfilled"
-    FULFILLED = "fulfilled"
+    OUT_FOR_DELIVERY = "out_for_delivery"
+    DELIVERED = "delivered"
     CANCELLED = "cancelled"
 
 
@@ -21,12 +21,13 @@ class DeliveryStatus(StrEnum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
-    CANCELLED = "cancelled"
 
 
+# Hyphen preserved to match mobile TypeScript union type exactly.
+# Do NOT normalize to underscore without a coordinated mobile PR.
 class ReceivingDecision(StrEnum):
     ACCEPTED = "accepted"
-    PARTIALLY_ACCEPTED = "partially_accepted"
+    PARTIALLY_ACCEPTED = "partially-accepted"
     REJECTED = "rejected"
 
 
@@ -47,8 +48,7 @@ class StockMovementReason(StrEnum):
 
 class MutationStatus(StrEnum):
     PENDING = "pending"
-    PROCESSING = "processing"
-    SUCCEEDED = "succeeded"
+    SYNCING = "syncing"      # mobile value — do not change to 'processing'
     FAILED = "failed"
     CONFLICT = "conflict"
 
