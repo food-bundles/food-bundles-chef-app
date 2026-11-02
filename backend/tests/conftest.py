@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
+
+# Set required env vars before any app module is imported so pydantic-settings
+# can construct Settings() successfully in the test process.
+os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production-use")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("APP_ENV", "development")
 
 import pytest
 import pytest_asyncio
