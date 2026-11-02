@@ -69,12 +69,17 @@ class Settings(BaseSettings):
     MUSE_SPARK_OPEN_BASE_URL: str = ""
     MUSE_SPARK_OPEN_MODEL: str = ""
 
-    # AI controls
+    # AI controls — all capabilities off by default (AI004)
     AI_ENABLED: bool = False
     AI_DEFAULT_TIMEOUT_SECONDS: int = 20
     AI_MAX_RETRIES: int = 1
     AI_MAX_IMAGE_SIZE_BYTES: int = 1_048_576  # 1 MB
-    AI_LOG_CONTENT: bool = False
+    AI_LOG_CONTENT: bool = False  # never log raw media or prompts
+    # Per-capability flags — require AI_ENABLED=True AND individual flag=True
+    AI_QUALITY_ASSESSMENT_ENABLED: bool = False
+    AI_TRANSCRIPTION_ENABLED: bool = False
+    # Per-kitchen daily request limits (0 = no limit configured)
+    AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY: int = 0
 
     # Food Bundles catalog
     FOOD_BUNDLES_CATALOG_PROVIDER: Literal["mock", "live"] = "mock"
