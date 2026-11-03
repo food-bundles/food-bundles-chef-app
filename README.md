@@ -73,7 +73,7 @@ All kitchen data is fully isolated per chef and per kitchen. The AI agent is adv
 ### Backend
 
 - **Modular monolith** — domain modules (auth, kitchens, menu, catalog, purchasing, inventory, receiving, sales, AI)
-- **AI agent** — Anthropic claude-sonnet integration; ActionProposal / ClarifyingQuestion pattern; mandatory chef confirmation before DB write
+- **AI agent** — Meta AI Muse Spark; ActionProposal / ClarifyingQuestion pattern; mandatory chef confirmation before DB write
 - **Async task queue** — background jobs for notifications, sync, and heavy computations
 - **Push notifications** — Expo push notification service integration
 - **Deterministic calculations** — all inventory, demand, recipe yield, and cost calculations are pure Python with Decimal precision — never delegated to AI
@@ -212,7 +212,7 @@ backend/
     api/v1/                     # API router (aggregates all modules)
     core/                       # Config, security, database session
     integrations/
-      anthropic/                # Anthropic httpx client + typed schemas
+      meta_model_api/           # Meta AI Model API client + typed schemas
     modules/
       auth/                     # JWT login, refresh, OTP
       chefs/                    # Chef profile
@@ -265,7 +265,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-cp .env.example .env         # set DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY
+cp .env.example .env         # set DATABASE_URL, JWT_SECRET, MODEL_API_KEY
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -316,10 +316,10 @@ Interactive docs: `http://localhost:8000/docs`
 | 03 | Authentication, chef identity & kitchen isolation | ✅ Done |
 | 04 | Dashboard, menu, catalog, purchasing, sales — wired to real APIs | ✅ Done |
 | 05 | Delivery receiving & quality assessment | ✅ Done |
-| 06 | Inventory & offline sync | 🔄 In progress |
+| 06 | Inventory & offline sync | ✅ Done |
 | 07 | AI agent integration | ✅ Done |
 | 08 | Notifications, security & observability | ✅ Done |
-| 09 | Release readiness & EAS production build | 🔄 In progress |
+| 09 | Release readiness & EAS production build | ✅ Done |
 
 ---
 

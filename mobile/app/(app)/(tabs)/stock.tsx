@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshCw } from 'lucide-react-native';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StockIndicator } from '@/components/ui/StockIndicator';
+import { SyncStatusBadge } from '@/components/ui/SyncStatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import type { StockLevelDto } from '@/api/inventory-api';
 
 export default function StockScreen() {
   const insets = useSafeAreaInsets();
-  const { data: allItems = [], isLoading } = useStockLevels();
+  const { data: allItems = [], isLoading, refetch } = useStockLevels();
+  const { phase, pendingCount, sync } = useSyncStatus();
   const [query, setQuery] = useState('');
 
   const items = useMemo(() => {
@@ -25,10 +29,30 @@ export default function StockScreen() {
     });
   }, [allItems, query]);
 
+  async function handleSync() {
+    await sync();
+    void refetch();
+  }
+
   return (
     <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800">
+      <View className="px-4 py-3 border-b border-surface-800 flex-row items-center justify-between">
         <Text className="text-white text-lg font-bold">Stock</Text>
+        <View className="flex-row items-center gap-2">
+          <SyncStatusBadge phase={phase} pendingCount={pendingCount} />
+          <TouchableOpacity
+            onPress={handleSync}
+            disabled={phase === 'syncing'}
+            accessibilityLabel="Sync now"
+            hitSlop={8}
+          >
+            <RefreshCw
+              size={18}
+              color={phase === 'syncing' ? '#60A5FA' : '#9CA3AF'}
+              strokeWidth={2}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View className="px-4 py-3">
@@ -52,7 +76,11 @@ export default function StockScreen() {
           ListEmptyComponent={
             <EmptyState
               title={query ? 'No results' : 'No ingredients tracked'}
-              description={query ? 'Try a different search.' : 'Stock data will appear after receiving deliveries.'}
+              description={
+                query
+                  ? 'Try a different search.'
+                  : 'Stock data will appear after receiving deliveries.'
+              }
             />
           }
         />
