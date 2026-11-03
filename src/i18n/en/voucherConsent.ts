@@ -1,0 +1,71 @@
+export const voucherConsent = {
+  consent_title: 'Authorize data access',
+  consent_subtitle:
+    'FoodBundles uses verified data from trusted partners to size your credit line. Each source you authorize improves your limit.',
+  consent_whatWeCollect: 'What we collect',
+  consent_alwaysIncluded: 'Always included',
+  consent_acknowledgement:
+    "I confirm each selected source may access my business data for 30 days, per FoodBundles' data policy.",
+  consent_continue: 'Continue with selected sources',
+  consent_moreSourcesHint: 'The more sources you authorize, the higher your potential credit limit.',
+  consent_estimatedLimit: 'Estimated limit: {{amount}}',
+  consent_otherSources: 'Other sources',
+  consent_selectAll: 'Select all',
+  consent_included: 'Included',
+
+  consent_otpTitle: 'Confirm data access',
+  consent_otpSubtitleAll: "Enter the 6-digit code sent to {{phone}} to authorize access for all selected sources for 30 days.",
+  consent_rememberChoice: "Remember my choice for these sources — don't ask again",
+  consent_otpConfirm: 'Confirm access',
+
+  consent_euclName: 'EUCL Cash Power',
+  consent_euclDescription: 'Electricity purchase history from your registered meter.',
+  consent_euclBullet1: 'Electricity purchase amounts and dates',
+  consent_euclBullet2: 'Meter device ID and location',
+  consent_euclHelps: 'Shows financial regularity and whether your premises is owned or rented.',
+
+  consent_rraName: 'RRA EBM receipts',
+  consent_rraDescription: 'Tax-verified sales from your Electronic Billing Machine.',
+  consent_rraBullet1: 'Tax-verified sales records',
+  consent_rraBullet2: 'VAT compliance history',
+  consent_rraBullet3: 'Declared revenue trend',
+  consent_rraHelps: 'Our highest-weight signal — verified revenue raises your limit the most.',
+
+  consent_vubaName: 'Vuba Vuba',
+  consent_vubaDescription: 'Delivery order history from the Vuba Vuba platform.',
+  consent_vubaBullet1: 'Order volume and frequency',
+  consent_vubaBullet2: 'Delivery pickup location',
+  consent_vubaBullet3: 'Cash-flow timing',
+  consent_vubaHelps: 'Cross-checked against EBM receipts to verify your true sales volume.',
+
+  consent_kaykoName: 'Kayko POS',
+  consent_kaykoDescription: 'Counter and walk-in sales from your Kayko point-of-sale.',
+  consent_kaykoBullet1: 'Counter and walk-in sales',
+  consent_kaykoBullet2: 'Transaction timing',
+  consent_kaykoHelps: 'Captures in-store sales that delivery platforms never see.',
+
+  consent_foodbundlesName: 'FoodBundles transactions',
+  consent_foodbundlesDescription: 'Your own order and repayment history with FoodBundles.',
+  consent_foodbundlesBullet1: 'Repayment history',
+  consent_foodbundlesBullet2: 'Prepaid balance patterns',
+  consent_foodbundlesHelps: "Your own data — always included, no extra authorization needed.",
+
+  consent_bureauName: 'Credit bureau',
+  consent_bureauDescription: 'A standard check on your existing debt exposure.',
+  consent_bureauBullet1: 'Outstanding loans and credit lines',
+  consent_bureauBullet2: 'Repayment standing with other lenders',
+  consent_bureauHelps: 'Confirms you can responsibly take on additional credit.',
+
+  consent_expiredSingle: 'Your {{source}} data access expired — renew to maintain your credit limit',
+  consent_expiredMultiple: '{{count}} data sources expired — renew to maintain your credit limit',
+  consent_renew: 'Renew',
+
+  score_title: "You're approved for",
+  score_approvedLimit: '{{amount}}',
+  score_creditLineTitle: 'Your credit line',
+  score_availableToUse: 'Available to use: {{amount}}',
+  score_validFor: 'Valid for 30 days · Renews on {{date}}',
+  score_supplier: 'Supplier: {{name}}',
+  score_authorizeMoreSources: 'Authorize more data sources to increase your limit →',
+  score_claimCta: 'Claim your credit line',
+} as const;

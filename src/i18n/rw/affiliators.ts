@@ -1,0 +1,30 @@
+import type { affiliators as affiliatorsEn } from '../en/affiliators';
+
+export const affiliators: Record<keyof typeof affiliatorsEn, string> = {
+  aff_title: 'Abakozi',
+  aff_subtitle: 'Abakozi bakurikira batumiza mu izina rya {{business}}.',
+  aff_statusActive: 'Bikora',
+  aff_statusInvited: 'Batumiwe',
+  aff_previewStaff: 'Reba nk’umukozi',
+  aff_addTitle: 'Ongeraho umukozi',
+  aff_photo: 'Ifoto',
+  aff_uploadPhoto: 'Ohereza ifoto y’umukozi',
+  aff_fullName: 'Amazina yombi',
+  aff_emailCredentials: 'Imeli n’amakuru y’kwinjira',
+  aff_role: 'Uruhare',
+  aff_phone: 'Telefone',
+  aff_permissions: 'Uburenganzira',
+  aff_placeOrders: 'Gutumiza',
+  aff_useVouchers: 'Gusaba inguzanyo',
+  aff_voucherNote: 'Ni umuyobozi wenyine ubifitiye uburenganzira. Abakozi bagumana uburenganzira bwo gutumiza n’ikofi.',
+  aff_sendInvite: 'Ohereza ubutumire',
+  aff_signedInAs: 'Winjiye nka',
+  aff_affiliatorBadge: 'Umukozi',
+  aff_exitPreview: 'Reka kureba',
+  aff_exitSessionLabel: 'Reka kureba nk’umukozi',
+  aff_orderingAs: 'Utumiza mu izina rya {{business}}',
+  aff_walletAvailable: 'Iboneka ku bakozi',
+  aff_voucherRestricted: 'Birabujijwe — bisaba uruhushya rw’umuyobozi',
+  aff_voucherRestrictedNote:
+    'Abakozi bashobora kureba, gutumiza no kwishyura bakoresheje ikofi. Gusaba inguzanyo ni ku muyobozi gusa — saba {{manager}} kubyemerera.',
+};

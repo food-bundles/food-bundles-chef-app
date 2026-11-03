@@ -1,0 +1,30 @@
+export const common = {
+  tab_shop: 'Shop',
+  tab_orders: 'Orders',
+  tab_wallet: 'Wallet',
+  tab_more: 'More',
+  nav_aiSupport: 'AI Support',
+
+  st_pending: 'Pending',
+  st_confirmed: 'Confirmed',
+  st_preparing: 'Preparing',
+  st_ready: 'Ready',
+  st_intransit: 'In transit',
+  st_delivered: 'Delivered',
+  st_cancelled: 'Cancelled',
+  st_refunded: 'Refunded',
+
+  action_back: 'Go back',
+  action_retry: 'Retry',
+  action_continue: 'Continue',
+  action_cancel: 'Cancel',
+  action_save: 'Save',
+  action_close: 'Close',
+  action_remove: 'Remove',
+
+  common_loading: 'Loading…',
+  common_pressBackToExit: 'Press back again to exit',
+  a11y_skipSplash: 'Skip splash screen',
+  a11y_decreaseQty: 'Decrease quantity',
+  a11y_increaseQty: 'Increase quantity',
+} as const;

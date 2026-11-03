@@ -1,0 +1,30 @@
+import type { wallet as walletEn } from '../en/wallet';
+
+export const wallet: Record<keyof typeof walletEn, string> = {
+  wallet_title: 'Ikofi',
+  wallet_availableBalance: 'Amafaranga ahari',
+  wallet_topUp: 'Ongeramo',
+  wallet_history: 'Amateka',
+  wallet_recentActivity: 'Ibyakozwe vuba',
+  wallet_seeAll: 'Reba byose',
+  wallet_topUpWallet: 'Ongeramo ku ikofi',
+  wallet_payFrom: 'Ishyura ukoresheje',
+  wallet_shareLink: 'Sangiza ihuza',
+  wallet_askAccountant: 'Saba umubare w’amafaranga',
+  wallet_topUpAmount: 'Ongeramo {{amount}}',
+  wallet_amountLabel: 'Amafaranga',
+  wallet_transactions: 'Ibikorwa by’amafaranga',
+  wallet_filterAll: 'Byose',
+  wallet_filterTopUps: 'Ibyongewemo',
+  wallet_filterPayments: 'Ubwishyu',
+  wallet_filterRefunds: 'Ibisubijwe',
+  wallet_emptyTitle: 'Nta gikorwa kirahari',
+  wallet_emptyMessage: 'Ongeramo cyangwa wishyure kugira ngo ubone ibikorwa hano.',
+  wallet_shareSheetTitle: 'Sangiza ihuza ry’ukwongeramo',
+  wallet_shareSheetMessage: 'Sangiza iri huza n’uwo ushaka ko yakwishyurira — amafaranga arahamara.',
+  wallet_accountantSheetTitle: 'Saba umubare w’amafaranga',
+  wallet_accountantSheetMessage: 'Ohereza iki gusaba ku mubare w’amafaranga wawe kugira ngo abikorere mu izina ryawe.',
+
+  a11y_shareTopUpLink: 'Sangiza ihuza ry’ukwongeramo',
+  a11y_askAccountantTopUp: 'Saba umubare w’amafaranga wawe kongeramo',
+};

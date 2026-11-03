@@ -1,0 +1,32 @@
+import type { auth as authEn } from '../en/auth';
+
+export const auth: Record<keyof typeof authEn, string> = {
+  auth_backToBrowsing: 'Retour à la navigation',
+  auth_backToLogin: 'Retour à la connexion',
+  auth_welcomeBack: 'Bon retour',
+  auth_loginSub: 'Connectez-vous pour gérer vos commandes, portefeuille et bons.',
+  auth_email: 'E-mail',
+  auth_password: 'Mot de passe',
+  auth_show: 'Afficher',
+  auth_forgotQ: 'Mot de passe oublié ?',
+  auth_logIn: 'Se connecter',
+  auth_newHere: 'Nouveau ici ?',
+  auth_createBizAccount: 'Créer un compte professionnel',
+  auth_createAccountTitle: 'Créez votre compte',
+  auth_forRestaurants: 'Pour les restaurants et hôtels de Kigali.',
+  auth_businessName: 'Nom de l’entreprise',
+  auth_businessType: 'Type d’entreprise',
+  auth_restaurant: 'Restaurant',
+  auth_hotel: 'Hôtel',
+  auth_phone: 'Téléphone',
+  auth_tin: 'NIF (Numéro d’Identification Fiscale)',
+  auth_tinHelper: 'Requis pour la facturation liée à l’EBM — vous pouvez l’ajouter plus tard',
+  auth_tinError: 'Saisissez votre NIF à 9 chiffres',
+  auth_createAccountBtn: 'Créer un compte',
+  auth_staffNote:
+    'Le personnel (affiliés) est ajouté plus tard par votre gestionnaire dans l’application — il n’y a pas d’inscription distincte pour le personnel.',
+  auth_resetPassword: 'Réinitialiser le mot de passe',
+  auth_resetSub: 'Saisissez votre e-mail et nous vous envoyons un lien pour réinitialiser votre mot de passe.',
+  auth_sendReset: 'Envoyer le lien',
+  auth_resetHint: 'Si cet e-mail est enregistré, vous recevrez un lien de réinitialisation sous peu.',
+};

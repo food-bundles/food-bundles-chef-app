@@ -1,0 +1,32 @@
+import type { auth as authEn } from '../en/auth';
+
+export const auth: Record<keyof typeof authEn, string> = {
+  auth_backToBrowsing: 'Subira kureba',
+  auth_backToLogin: 'Subira ku kwinjira',
+  auth_welcomeBack: 'Ikaze wagarutse',
+  auth_loginSub: 'Injira kugira ngo ucunge ibyatumijwe, ikofi n’inguzanyo byawe.',
+  auth_email: 'Imeli',
+  auth_password: 'Ijambo ry’ibanga',
+  auth_show: 'Erekana',
+  auth_forgotQ: 'Wibagiwe ijambo ry’ibanga?',
+  auth_logIn: 'Injira',
+  auth_newHere: 'Uri gushya hano?',
+  auth_createBizAccount: 'Iyandikishe nk’ubucuruzi',
+  auth_createAccountTitle: 'Fungura konti yawe',
+  auth_forRestaurants: 'Ku maresitora n’amahoteli yo mu Kigali.',
+  auth_businessName: 'Izina ry’ubucuruzi',
+  auth_businessType: 'Ubwoko bw’ubucuruzi',
+  auth_restaurant: 'Iresitora',
+  auth_hotel: 'Hoteli',
+  auth_phone: 'Telefone',
+  auth_tin: 'TIN (Nomero y’Umutero)',
+  auth_tinHelper: 'Isabwa mu gutanga fagitire ya EBM — ushobora kuyongeramo nyuma',
+  auth_tinError: 'Andika TIN yawe ya miterere 9',
+  auth_createAccountBtn: 'Fungura konti',
+  auth_staffNote:
+    'Abakozi (affiliators) bongerwaho nyuma n’umuyobozi wawe muri apu — nta kwiyandikisha kw’abakozi kwihariye.',
+  auth_resetPassword: 'Hindura ijambo ry’ibanga',
+  auth_resetSub: 'Andika imeli yawe tuguhe ihuza ryo guhindura ijambo ry’ibanga.',
+  auth_sendReset: 'Ohereza ihuza',
+  auth_resetHint: 'Niba iyo imeli yiyandikishije, uzabona ihuza mu kanya gato.',
+};

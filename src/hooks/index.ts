@@ -1,0 +1,1 @@
+export { useHideOnScroll } from './useHideOnScroll';

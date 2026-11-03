@@ -1,0 +1,30 @@
+import type { affiliators as affiliatorsEn } from '../en/affiliators';
+
+export const affiliators: Record<keyof typeof affiliatorsEn, string> = {
+  aff_title: 'Affiliés',
+  aff_subtitle: 'Le personnel ci-dessous passe des commandes en tant que {{business}}.',
+  aff_statusActive: 'Actif',
+  aff_statusInvited: 'Invité',
+  aff_previewStaff: 'Aperçu vue employé',
+  aff_addTitle: 'Ajouter un affilié',
+  aff_photo: 'Photo',
+  aff_uploadPhoto: 'Télécharger la photo de l’employé',
+  aff_fullName: 'Nom complet',
+  aff_emailCredentials: 'E-mail et identifiants de connexion',
+  aff_role: 'Rôle',
+  aff_phone: 'Téléphone',
+  aff_permissions: 'Permissions',
+  aff_placeOrders: 'Passer des commandes',
+  aff_useVouchers: 'Demander des bons',
+  aff_voucherNote: 'Réservé au gestionnaire par défaut. Le personnel garde un accès complet aux commandes et au portefeuille.',
+  aff_sendInvite: 'Envoyer l’invitation',
+  aff_signedInAs: 'Connecté en tant que',
+  aff_affiliatorBadge: 'Affilié',
+  aff_exitPreview: 'Quitter l’aperçu',
+  aff_exitSessionLabel: 'Quitter l’aperçu employé',
+  aff_orderingAs: 'Commande en tant que {{business}}',
+  aff_walletAvailable: 'Disponible pour le personnel',
+  aff_voucherRestricted: 'Restreint — approbation du gestionnaire requise',
+  aff_voucherRestrictedNote:
+    'Le personnel peut parcourir, commander et payer via le portefeuille. La demande de bons est réservée au gestionnaire — demandez à {{manager}} de l’activer.',
+};
