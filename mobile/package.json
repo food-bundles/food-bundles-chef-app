@@ -73,6 +73,9 @@
     "lucide-react-native": {
       "react": "19.3.0"
     },
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-i18next": {
+      "typescript": "6.0.3"
+    }
   }
 }
