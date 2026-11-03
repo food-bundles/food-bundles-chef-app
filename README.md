@@ -114,7 +114,7 @@ All kitchen data is fully isolated per chef and per kitchen. The AI agent is adv
 | Validation | Pydantic v2 |
 | Auth | JWT + refresh tokens (python-jose, passlib) |
 | Task queue | Custom async worker |
-| AI | Anthropic claude-sonnet-4-5 (httpx client) |
+| AI | Meta AI Model API — Muse Spark, Muse Voice Transcribe, SAM 3.1 |
 | Notifications | Expo Push Notification Service |
 | Containerization | Docker + Docker Compose |
 | Linting | Ruff, Mypy, Bandit |
@@ -136,7 +136,7 @@ graph TD
     F --> G[PostgreSQL via SQLAlchemy]
     F --> H[Async task queue]
     F --> I[AI Agent]
-    I --> J[Anthropic claude-sonnet-4-5]
+    I --> J[Meta AI — Muse Spark / Muse Voice Transcribe / SAM 3.1]
     I --> K[Chef confirmation required]
   end
 
