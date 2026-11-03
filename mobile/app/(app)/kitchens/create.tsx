@@ -13,9 +13,11 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
 import { useCreateKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
+import { useColorScheme } from 'react-native';
 import { spacing, colors, fontSize } from '@/lib/theme';
 
 export default function CreateKitchenScreen() {
+  const isDark = useColorScheme() === 'dark';
   const createKitchen = useCreateKitchen();
 
   const {
@@ -38,7 +40,7 @@ export default function CreateKitchenScreen() {
       address: values.address || null,
       location: values.cuisineType || null,
     });
-    router.back();
+    router.replace('/(app)/(tabs)');
   };
 
   return (
@@ -57,7 +59,7 @@ export default function CreateKitchenScreen() {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>
+          <Text style={{ color: isDark ? colors.surface[400] : colors.surface[600], fontSize: fontSize.sm }}>
             Set up your kitchen workspace. You can update these details later.
           </Text>
 

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, useColorScheme } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle, ChevronRight, Clock } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
@@ -31,6 +31,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function DeliveryDetailScreen() {
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
+  const isDark = useColorScheme() === 'dark';
+  const cardBg = isDark ? colors.surface[800] : colors.white;
+  const textPrimary = isDark ? colors.white : colors.surface[900];
+  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
   const { data: order, isLoading, error } = useDeliveryDetail(deliveryId ?? '');
   const startDeliveryMutation = useStartDelivery();
   const receiveDeliveryMutation = useReceiveDelivery();
@@ -104,9 +108,9 @@ export default function DeliveryDetailScreen() {
         contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
       >
         {/* Header info */}
-        <View style={{ backgroundColor: colors.surface[800], borderRadius: 12, padding: spacing.md }}>
+        <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: spacing.md, borderWidth: 1, borderColor: isDark ? 'transparent' : colors.surface[200] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-            <Text style={{ color: colors.white, fontWeight: fontWeight.semibold }}>
+            <Text style={{ color: textPrimary, fontWeight: fontWeight.semibold }}>
               {order.external_order_id ? `Order ${order.external_order_id}` : `Order ${order.id.slice(0, 8)}`}
             </Text>
             <StatusBadge
@@ -139,7 +143,7 @@ export default function DeliveryDetailScreen() {
         )}
 
         {/* Line items */}
-        <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           Items ({lines.length})
         </Text>
 
@@ -184,6 +188,10 @@ function LineItemRow({
   canReceive: boolean;
   decision?: PendingLineDecision;
 }) {
+  const isDark = useColorScheme() === 'dark';
+  const cardBg = isDark ? colors.surface[800] : colors.white;
+  const textPrimary = isDark ? colors.white : colors.surface[900];
+  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
   const isReceived = decision !== undefined;
   const receivedQty = decision ? parseFloat(decision.quantity_received) : undefined;
   const orderedQty = parseFloat(line.quantity_ordered);
@@ -205,26 +213,28 @@ function LineItemRow({
       accessibilityRole={canReceive ? 'button' : 'none'}
       accessibilityLabel={`${line.product_name} — ${isReceived ? 'received' : 'tap to receive'}`}
       style={{
-        backgroundColor: colors.surface[800],
+        backgroundColor: cardBg,
         borderRadius: 12,
         padding: spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
         opacity: !canReceive && !isReceived ? 0.5 : 1,
+        borderWidth: 1,
+        borderColor: isDark ? 'transparent' : colors.surface[200],
       }}
     >
       <View style={{ flex: 1, marginRight: spacing.sm }}>
-        <Text style={{ color: colors.white, fontWeight: fontWeight.medium }}>{line.product_name}</Text>
-        <Text style={{ color: colors.surface[400], fontSize: fontSize.sm, marginTop: 2 }}>
+        <Text style={{ color: textPrimary, fontWeight: fontWeight.medium }}>{line.product_name}</Text>
+        <Text style={{ color: textSecondary, fontSize: fontSize.sm, marginTop: 2 }}>
           Ordered: {line.quantity_ordered} {line.unit}
         </Text>
         {receivedQty !== undefined && (
-          <Text style={{ color: isShort ? colors.warning : colors.surface[400], fontSize: fontSize.sm }}>
+          <Text style={{ color: isShort ? colors.warning : textSecondary, fontSize: fontSize.sm }}>
             Received: {decision!.quantity_received} {line.unit}
             {isShort ? ' ⚠ Short delivery' : ''}
           </Text>
         )}
-        <Text style={{ color: colors.surface[600], fontSize: fontSize.xs, marginTop: 2 }}>
+        <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
           Ref: {line.unit_price} RWF/{line.unit}
         </Text>
       </View>

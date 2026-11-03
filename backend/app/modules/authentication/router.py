@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.rate_limit import AUTH_LIMIT, OTP_REQUEST_LIMIT, OTP_VERIFY_LIMIT, limiter
 from app.integrations.sms.factory import get_sms_provider
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.authentication.schemas import (
@@ -27,9 +26,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> AuthenticationService:
 
 
 @router.post("/otp/request", response_model=OtpRequestResponse, status_code=200)
-@limiter.limit(OTP_REQUEST_LIMIT)
 async def request_otp(
-    request: Request,
     body: OtpRequestSchema,
     service: AuthenticationService = Depends(_get_service),
 ) -> OtpRequestResponse:
@@ -41,9 +38,7 @@ async def request_otp(
 
 
 @router.post("/otp/verify", response_model=TokenResponse, status_code=200)
-@limiter.limit(OTP_VERIFY_LIMIT)
 async def verify_otp(
-    request: Request,
     body: OtpVerifySchema,
     service: AuthenticationService = Depends(_get_service),
 ) -> TokenResponse:
@@ -51,9 +46,7 @@ async def verify_otp(
 
 
 @router.post("/token/refresh", response_model=TokenResponse, status_code=200)
-@limiter.limit(AUTH_LIMIT)
 async def refresh_token(
-    request: Request,
     body: RefreshRequest,
     service: AuthenticationService = Depends(_get_service),
 ) -> TokenResponse:

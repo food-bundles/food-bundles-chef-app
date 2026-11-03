@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ShoppingCart } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ShoppingCart, ChevronRight } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
 import { useOrders, useCreateOrder, useSubmitOrder } from '@/features/orders/useOrders';
@@ -92,9 +93,9 @@ export default function PurchasingScreen() {
   const isPlacingOrder = createOrder.isPending || submitOrderMutation.isPending;
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-800">
-        <Text className="text-white text-lg font-bold">Purchasing</Text>
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Purchasing</Text>
         {cartCount > 0 && (
           <Pressable
             onPress={() => setTab('catalog')}
@@ -109,7 +110,7 @@ export default function PurchasingScreen() {
       </View>
 
       {/* Tab bar */}
-      <View className="flex-row border-b border-surface-800">
+      <View className="flex-row border-b border-surface-200 dark:border-surface-800">
         {([['needs', 'Need to Buy'], ['catalog', 'Catalog'], ['orders', 'Orders']] as [Tab, string][]).map(
           ([key, label]) => (
             <Pressable
@@ -131,7 +132,7 @@ export default function PurchasingScreen() {
       {tab === 'needs' && (
         suggestionsLoading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#1DB954" />
           </View>
         ) : (
           <FlatList
@@ -140,10 +141,27 @@ export default function PurchasingScreen() {
             contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
             renderItem={({ item }) => <NeedsRow item={item} />}
             ListEmptyComponent={
-              <EmptyState
-                title="Purchase list is clear"
-                description="All ingredients are stocked for the next 3 days."
-              />
+              <View className="px-4 py-8 items-center gap-3">
+                <Text className="text-4xl">✅</Text>
+                <Text className="text-surface-900 dark:text-white font-semibold text-base">All stocked up</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                  Your kitchen has enough of every ingredient for the next 3 days.
+                  This list fills automatically when stock runs low.
+                </Text>
+                <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 mt-2 w-full gap-2">
+                  <Text className="text-surface-700 dark:text-surface-300 text-xs font-medium uppercase tracking-wider">How it works</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">1. Add ingredients to Stock tab</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">2. Record daily sales in Menu</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">3. Items needing reorder appear here</Text>
+                </View>
+                <Pressable
+                  onPress={() => setTab('catalog')}
+                  accessibilityRole="button"
+                  className="mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-6 py-3 active:opacity-70"
+                >
+                  <Text className="text-brand-400 font-medium">Browse Catalog anyway →</Text>
+                </Pressable>
+              </View>
             }
           />
         )
@@ -157,7 +175,7 @@ export default function PurchasingScreen() {
           </View>
           {catalogLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#1DB954" />
             </View>
           ) : (
           <FlatList
@@ -180,9 +198,9 @@ export default function PurchasingScreen() {
           />
           )}
           {cartCount > 0 && (
-            <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 bg-surface-950/95">
+            <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 bg-surface-100/95 dark:bg-surface-950/95">
               <View className="mt-3 mb-2 flex-row items-center justify-between">
-                <Text className="text-surface-400 text-sm">
+                <Text className="text-surface-600 dark:text-surface-400 text-sm">
                   {cartCount} item{cartCount > 1 ? 's' : ''} · {cartTotal.toLocaleString()} RWF
                 </Text>
               </View>
@@ -191,7 +209,7 @@ export default function PurchasingScreen() {
                 disabled={isPlacingOrder}
                 accessibilityRole="button"
                 accessibilityLabel="Place order with Food Bundles"
-                className={`rounded-xl py-4 items-center flex-row justify-center gap-2 active:opacity-80 ${isPlacingOrder ? 'bg-surface-700' : 'bg-brand-500'}`}
+                className={`rounded-full py-4 items-center flex-row justify-center gap-2 active:opacity-80 ${isPlacingOrder ? 'bg-surface-300 dark:bg-surface-700' : 'bg-brand-700'}`}
               >
                 <ShoppingCart size={18} color="#fff" strokeWidth={2} />
                 <Text className="text-white font-semibold">
@@ -207,7 +225,7 @@ export default function PurchasingScreen() {
       {tab === 'orders' && (
         ordersLoading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#1DB954" />
           </View>
         ) : (
           <FlatList
@@ -215,26 +233,47 @@ export default function PurchasingScreen() {
             keyExtractor={(o) => o.id}
             contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
             renderItem={({ item: order }) => (
-              <View className="bg-surface-800 rounded-xl p-4">
+              <Pressable
+                onPress={() => router.push(`/(app)/orders/${order.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`Order ${order.id.slice(-6)}`}
+                className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 active:opacity-70"
+              >
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-white font-semibold text-sm">Order #{order.id.slice(-4)}</Text>
-                  <StatusBadge
-                    label={order.status.replace(/_/g, ' ')}
-                    variant={ORDER_STATUS_VARIANT[order.status] ?? 'neutral'}
-                  />
+                  <Text className="text-surface-900 dark:text-white font-semibold text-sm">Order #{order.id.slice(-6).toUpperCase()}</Text>
+                  <View className="flex-row items-center gap-2">
+                    <StatusBadge
+                      label={order.status.replace(/_/g, ' ')}
+                      variant={ORDER_STATUS_VARIANT[order.status] ?? 'neutral'}
+                    />
+                    <ChevronRight size={16} color="#4D4B45" strokeWidth={2} />
+                  </View>
                 </View>
                 {order.delivery_date && (
-                  <Text className="text-surface-400 text-xs mb-1">
+                  <Text className="text-surface-600 dark:text-surface-400 text-xs mb-1">
                     Delivery {new Date(order.delivery_date).toLocaleDateString()}
                   </Text>
                 )}
                 <Text className="text-surface-500 text-xs">
                   Created {new Date(order.created_at).toLocaleDateString()}
                 </Text>
-              </View>
+              </Pressable>
             )}
             ListEmptyComponent={
-              <EmptyState title="No orders yet" description="Browse the catalog to place your first order." />
+              <View className="px-4 py-8 items-center gap-3">
+                <Text className="text-4xl">🛒</Text>
+                <Text className="text-surface-900 dark:text-white font-semibold text-base">No orders yet</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                  Go to the Catalog tab, add products to your cart, and place an order.
+                </Text>
+                <Pressable
+                  onPress={() => setTab('catalog')}
+                  accessibilityRole="button"
+                  className="mt-2 bg-brand-700 rounded-full px-6 py-3 active:opacity-80"
+                >
+                  <Text className="text-white font-semibold">Browse Catalog</Text>
+                </Pressable>
+              </View>
             }
           />
         )
@@ -246,10 +285,10 @@ export default function PurchasingScreen() {
 function NeedsRow({ item }: { item: PurchaseSuggestionDto }) {
   const days = item.days_cover != null ? parseFloat(item.days_cover) : Infinity;
   return (
-    <View className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
+    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between">
       <View className="flex-1 mr-3">
-        <Text className="text-white font-medium">{item.ingredient_name}</Text>
-        <Text className="text-surface-400 text-sm mt-0.5">
+        <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
+        <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
           On hand: {item.current_stock} {item.unit}
         </Text>
         <Text className="text-brand-400 text-sm font-semibold mt-1">
@@ -259,6 +298,35 @@ function NeedsRow({ item }: { item: PurchaseSuggestionDto }) {
       <StockIndicator daysOfCover={days} />
     </View>
   );
+}
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  vegetables: '🥦',
+  fruits: '🍎',
+  meat: '🥩',
+  poultry: '🍗',
+  seafood: '🐟',
+  dairy: '🧀',
+  eggs: '🥚',
+  grains: '🌾',
+  legumes: '🫘',
+  spices: '🌶️',
+  herbs: '🌿',
+  oils: '🫙',
+  sauces: '🥫',
+  beverages: '🧃',
+  bakery: '🍞',
+  frozen: '🧊',
+  cleaning: '🧹',
+  packaging: '📦',
+};
+
+function getCategoryEmoji(category: string): string {
+  const key = category.toLowerCase().replace(/[^a-z]/g, '');
+  for (const [k, emoji] of Object.entries(CATEGORY_EMOJI)) {
+    if (key.includes(k) || k.includes(key)) return emoji;
+  }
+  return '📦';
 }
 
 function CatalogRow({
@@ -271,14 +339,22 @@ function CatalogRow({
   onQtyChange: (q: number) => void;
 }) {
   const price = product.reference_price != null ? parseFloat(product.reference_price) : null;
+  const emoji = getCategoryEmoji(product.category);
   return (
-    <View className="bg-surface-800 rounded-xl p-4">
-      <View className="flex-row items-start justify-between mb-3">
-        <View className="flex-1 mr-3">
-          <Text className="text-white font-medium">{product.name}</Text>
-          <Text className="text-surface-400 text-xs mt-0.5">{product.category}</Text>
+    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4">
+      <View className="flex-row items-start mb-3 gap-3">
+        <View className="w-12 h-12 rounded-xl bg-surface-100 dark:bg-surface-700 items-center justify-center overflow-hidden">
+          {product.image_url ? (
+            <Image source={{ uri: product.image_url }} className="w-12 h-12" resizeMode="cover" />
+          ) : (
+            <Text style={{ fontSize: 26 }}>{emoji}</Text>
+          )}
+        </View>
+        <View className="flex-1">
+          <Text className="text-surface-900 dark:text-white font-medium">{product.name}</Text>
+          <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5 capitalize">{product.category}</Text>
           {price != null ? (
-            <Text className="text-surface-300 text-sm font-semibold mt-1">
+            <Text className="text-brand-400 text-sm font-semibold mt-1">
               {price.toLocaleString()} RWF/{product.unit}
             </Text>
           ) : (

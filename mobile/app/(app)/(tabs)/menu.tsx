@@ -30,15 +30,15 @@ export default function MenuScreen() {
   }, [allItems, query, category]);
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-800">
-        <Text className="text-white text-lg font-bold">Menu</Text>
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Menu</Text>
         <View className="flex-row gap-2">
           <Pressable
             onPress={() => router.push('/(app)/sales/entry')}
             accessibilityRole="button"
             accessibilityLabel="Record sales"
-            className="w-10 h-10 items-center justify-center rounded-xl bg-surface-700"
+            className="w-10 h-10 items-center justify-center rounded-xl bg-surface-200 dark:bg-surface-700"
           >
             <ClipboardList size={18} color="#B3B0A6" strokeWidth={1.75} />
           </Pressable>
@@ -62,9 +62,9 @@ export default function MenuScreen() {
               onPress={() => setCategory(cat)}
               accessibilityRole="button"
               accessibilityLabel={cat}
-              className={`px-3 py-1.5 rounded-full ${category === cat ? 'bg-brand-500' : 'bg-surface-800'}`}
+              className={`px-3 py-1.5 rounded-full ${category === cat ? 'bg-brand-500' : 'bg-surface-200 dark:bg-surface-800'}`}
             >
-              <Text className={`text-xs font-medium ${category === cat ? 'text-white' : 'text-surface-400'}`}>
+              <Text className={`text-xs font-medium ${category === cat ? 'text-white' : 'text-surface-600 dark:text-surface-400'}`}>
                 {cat}
               </Text>
             </Pressable>
@@ -74,7 +74,7 @@ export default function MenuScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="#1DB954" />
         </View>
       ) : (
         <FlatList
@@ -94,10 +94,31 @@ export default function MenuScreen() {
             />
           )}
           ListEmptyComponent={
-            <EmptyState
-              title={query ? 'No results' : 'No menu items yet'}
-              description={query ? 'Try a different search.' : 'Add your first item with the + button.'}
-            />
+            query ? (
+              <EmptyState title="No results" description="Try a different search term." />
+            ) : (
+              <View className="px-4 py-10 items-center gap-4">
+                <Text className="text-5xl">🍽️</Text>
+                <Text className="text-surface-900 dark:text-white font-bold text-lg">Your menu is empty</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                  Add your dishes and drinks so you can record sales and track which ingredients you need.
+                </Text>
+                <Pressable
+                  onPress={() => router.push('/(app)/menu/create-item' as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add your first menu item"
+                  className="bg-brand-700 rounded-full px-8 py-3 active:opacity-80"
+                >
+                  <Text className="text-white font-semibold">Add First Item</Text>
+                </Pressable>
+                <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 w-full gap-2 mt-2">
+                  <Text className="text-surface-700 dark:text-surface-300 text-xs font-medium uppercase tracking-wider">Why add menu items?</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Record daily sales per dish</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Auto-calculate ingredient usage</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Get purchase suggestions when stock is low</Text>
+                </View>
+              </View>
+            )
           }
         />
       )}
@@ -114,10 +135,10 @@ function MenuItemRow({
 }) {
   const priceRwf = parseFloat(item.selling_price);
   return (
-    <View className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
+    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between">
       <View className="flex-1 mr-3">
         <View className="flex-row items-center gap-2">
-          <Text className={`font-semibold ${item.is_active ? 'text-white' : 'text-surface-500'}`}>
+          <Text className={`font-semibold ${item.is_active ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
             {item.name}
           </Text>
           {!item.is_active && <StatusBadge label="Off" variant="neutral" />}
@@ -127,7 +148,7 @@ function MenuItemRow({
             {item.description}
           </Text>
         ) : null}
-        <Text className="text-surface-400 text-sm mt-1">
+        <Text className="text-surface-600 dark:text-surface-400 text-sm mt-1">
           {isNaN(priceRwf) ? item.selling_price : priceRwf.toLocaleString()} RWF
         </Text>
       </View>
@@ -136,7 +157,7 @@ function MenuItemRow({
         accessibilityRole="switch"
         accessibilityLabel={item.is_active ? 'Deactivate' : 'Activate'}
         accessibilityState={{ checked: item.is_active }}
-        className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-700'}`}
+        className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-300 dark:bg-surface-700'}`}
       >
         <View
           className={`w-5 h-5 rounded-full bg-white shadow-sm mx-1 ${item.is_active ? 'self-end' : 'self-start'}`}

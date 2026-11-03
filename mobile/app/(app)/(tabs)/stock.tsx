@@ -35,9 +35,9 @@ export default function StockScreen() {
   }
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800 flex-row items-center justify-between">
-        <Text className="text-white text-lg font-bold">Stock</Text>
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center justify-between">
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Stock</Text>
         <View className="flex-row items-center gap-2">
           <SyncStatusBadge phase={phase} pendingCount={pendingCount} />
           <TouchableOpacity
@@ -65,7 +65,7 @@ export default function StockScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="#1DB954" />
         </View>
       ) : (
         <FlatList
@@ -95,13 +95,13 @@ function StockRow({ item }: { item: StockLevelDto }) {
   const coverLabel = isFinite(days) ? `${days.toFixed(1)} days cover` : 'unlimited cover';
   return (
     <View
-      className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between"
+      className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between"
       accessibilityRole="text"
       accessibilityLabel={`${item.ingredient_name}: ${item.current_stock} ${item.unit} on hand, ${coverLabel}`}
     >
       <View className="flex-1 mr-3">
-        <Text className="text-white font-medium">{item.ingredient_name}</Text>
-        <Text className="text-surface-400 text-sm mt-0.5">
+        <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
+        <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
           {item.current_stock} {item.unit} on hand
           {dailyUse != null ? ` · ${dailyUse.toFixed(2)} ${item.unit}/day use` : ''}
         </Text>

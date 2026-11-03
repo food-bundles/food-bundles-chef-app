@@ -68,11 +68,6 @@ class Settings(BaseSettings):
     MUSE_SPARK_OPEN_BASE_URL: str = ""
     MUSE_SPARK_OPEN_MODEL: str = ""
 
-    # Anthropic API (for AI agent / action planner)
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_AGENT_MODEL: str = "claude-sonnet-4-5"
-    ANTHROPIC_AGENT_MAX_TOKENS: int = 1024
-
     # AI controls — all capabilities off by default (AI004)
     AI_ENABLED: bool = False
     AI_AGENT_ENABLED: bool = False

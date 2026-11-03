@@ -17,5 +17,6 @@ class CatalogProductResponse(BaseModel):
     unit: str
     reference_price: Decimal | None
     description: str | None
+    image_url: str | None
     is_active: bool
     updated_at: datetime

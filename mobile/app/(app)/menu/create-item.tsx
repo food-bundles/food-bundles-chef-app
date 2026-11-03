@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session-store';
 import { queryKeys } from '@/api/query-keys';
 import { listMenus, createMenu, createMenuItem } from '@/api/menus-api';
+import { useColorScheme } from 'react-native';
 import { colors, spacing, fontSize } from '@/lib/theme';
 
 const schema = z.object({
@@ -32,6 +33,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function CreateMenuItemScreen() {
+  const isDark = useColorScheme() === 'dark';
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
@@ -86,7 +88,7 @@ export default function CreateMenuItemScreen() {
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>
+          <Text style={{ color: isDark ? colors.surface[400] : colors.surface[600], fontSize: fontSize.sm }}>
             Add a dish or drink to your menu. Activate or deactivate items from the Menu tab.
           </Text>
 

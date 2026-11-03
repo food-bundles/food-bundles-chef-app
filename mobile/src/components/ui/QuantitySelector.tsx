@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useColorScheme } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import { colors, radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
 
@@ -24,6 +24,9 @@ export function QuantitySelector({
 }: QuantitySelectorProps) {
   const canDecrement = value > min;
   const canIncrement = max === undefined || value < max;
+  const isDark = useColorScheme() === 'dark';
+  const btnBg = isDark ? colors.surface[700] : colors.surface[200];
+  const activeIconColor = isDark ? colors.white : colors.surface[800];
 
   return (
     <View
@@ -37,13 +40,13 @@ export function QuantitySelector({
         accessibilityRole="button"
         accessibilityLabel="Decrease quantity"
         accessibilityState={{ disabled: !canDecrement }}
-        style={[styles.btn, !canDecrement && styles.btnDisabled]}
+        style={[styles.btn, { backgroundColor: btnBg }, !canDecrement && styles.btnDisabled]}
       >
-        <Minus size={16} color={canDecrement ? colors.white : colors.surface[600]} strokeWidth={2} />
+        <Minus size={16} color={canDecrement ? activeIconColor : colors.surface[600]} strokeWidth={2} />
       </Pressable>
 
       <View style={styles.valueBox}>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={[styles.value, { color: isDark ? colors.white : colors.surface[900] }]}>{value}</Text>
         {unit ? <Text style={styles.unit}>{unit}</Text> : null}
       </View>
 
@@ -53,9 +56,9 @@ export function QuantitySelector({
         accessibilityRole="button"
         accessibilityLabel="Increase quantity"
         accessibilityState={{ disabled: !canIncrement }}
-        style={[styles.btn, !canIncrement && styles.btnDisabled]}
+        style={[styles.btn, { backgroundColor: btnBg }, !canIncrement && styles.btnDisabled]}
       >
-        <Plus size={16} color={canIncrement ? colors.white : colors.surface[600]} strokeWidth={2} />
+        <Plus size={16} color={canIncrement ? activeIconColor : colors.surface[600]} strokeWidth={2} />
       </Pressable>
     </View>
   );
@@ -71,14 +74,12 @@ const styles = StyleSheet.create({
     width: MIN_TOUCH_SIZE,
     height: MIN_TOUCH_SIZE,
     borderRadius: radius.md,
-    backgroundColor: colors.surface[700],
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnDisabled: { opacity: 0.4 },
   valueBox: { alignItems: 'center', minWidth: 48 },
   value: {
-    color: colors.white,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
   },

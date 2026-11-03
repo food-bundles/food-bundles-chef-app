@@ -45,58 +45,82 @@ export default function PhoneNumberScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-surface-900"
+      style={{ flex: 1, backgroundColor: '#0E2A18' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View
-        className="flex-1 px-6"
-        style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom }}
+        style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom }}
       >
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="mb-8 w-10 h-10 items-center justify-center"
+          style={{ marginBottom: 32, width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: '#1A3D22', borderRadius: 20 }}
         >
-          <Text className="text-surface-300 text-2xl">←</Text>
+          <Text style={{ color: '#A7C4A0', fontSize: 18, lineHeight: 20 }}>←</Text>
         </Pressable>
 
-        <Text className="text-2xl font-bold text-white mb-2">Enter your phone</Text>
-        <Text className="text-surface-400 mb-8">
+        <Text style={{ color: '#22C55E', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+          Sign in
+        </Text>
+        <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
+          Enter your phone
+        </Text>
+        <Text style={{ color: '#A7C4A0', fontSize: 15, marginBottom: 32, lineHeight: 22 }}>
           We'll send you a one-time code to verify your number.
         </Text>
 
-        <View className="mb-2">
-          <Text className="text-surface-400 text-xs font-medium mb-2 uppercase tracking-wider">
+        <View style={{ marginBottom: 8 }}>
+          <Text style={{ color: '#5A7A54', fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             Phone Number
           </Text>
           <TextInput
             value={phone}
             onChangeText={(v) => { setPhone(v); setError(null); }}
             placeholder="+250 7XX XXX XXX"
-            placeholderTextColor="#6B6860"
+            placeholderTextColor="#3A5A3A"
             keyboardType="phone-pad"
             autoFocus
             accessibilityLabel="Phone number"
-            className="bg-surface-800 text-white text-lg rounded-xl px-4 py-4 border border-surface-700"
+            style={{
+              backgroundColor: '#163A20',
+              color: '#FFFFFF',
+              fontSize: 18,
+              borderRadius: 14,
+              paddingHorizontal: 18,
+              paddingVertical: 16,
+              borderWidth: 1.5,
+              borderColor: error ? '#EF4444' : '#2A5230',
+            }}
           />
         </View>
 
         {error ? (
-          <Text className="text-danger text-sm mb-4">{error}</Text>
+          <Text style={{ color: '#EF4444', fontSize: 13, marginBottom: 16, marginTop: 4 }}>{error}</Text>
         ) : null}
 
-        <View className="flex-1" />
+        <View style={{ flex: 1 }} />
 
         <Pressable
           onPress={handleContinue}
           disabled={!isValid || loading}
           accessibilityRole="button"
           accessibilityLabel="Continue"
-          className={`rounded-xl py-4 items-center ${isValid && !loading ? 'bg-brand-500 active:opacity-80' : 'bg-surface-700'}`}
+          style={({ pressed }) => ({
+            borderRadius: 50,
+            paddingVertical: 18,
+            alignItems: 'center',
+            backgroundColor: isValid && !loading ? '#22C55E' : '#1A3D22',
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          <Text className={`font-semibold text-base ${isValid && !loading ? 'text-white' : 'text-surface-500'}`}>
-            {loading ? 'Sending code…' : 'Continue'}
+          <Text style={{
+            fontWeight: '800',
+            fontSize: 16,
+            color: isValid && !loading ? '#0E2A18' : '#3A5A3A',
+          }}>
+            {loading ? 'Sending code…' : 'Continue ›'}
           </Text>
         </Pressable>
       </View>

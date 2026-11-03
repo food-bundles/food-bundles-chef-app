@@ -22,17 +22,17 @@ export default function KitchensScreen() {
   };
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-800">
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
         <View className="flex-row items-center gap-3">
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text className="text-surface-300 text-2xl">←</Text>
+            <Text className="text-surface-700 dark:text-surface-300 text-2xl">←</Text>
           </Pressable>
-          <Text className="text-white text-lg font-bold">Kitchens</Text>
+          <Text className="text-surface-900 dark:text-white text-lg font-bold">Kitchens</Text>
         </View>
         <Pressable
           onPress={() => router.push('/(app)/kitchens/create')}
@@ -48,7 +48,7 @@ export default function KitchensScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 16, gap: 10 }}
       >
-        <Text className="text-surface-400 text-xs font-semibold uppercase tracking-wider mb-2">
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider mb-2">
           Your Kitchens
         </Text>
 
@@ -60,17 +60,17 @@ export default function KitchensScreen() {
               onPress={() => handleSelect(kitchen)}
               accessibilityRole="button"
               accessibilityLabel={`Select ${kitchen.name}`}
-              className={`bg-surface-800 rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isActive ? 'border border-brand-500' : ''}`}
+              className={`bg-white dark:bg-surface-800 rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isActive ? 'border border-brand-500' : 'border border-surface-200 dark:border-transparent'}`}
             >
               <View className="flex-1">
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-white font-semibold">{kitchen.name}</Text>
+                  <Text className="text-surface-900 dark:text-white font-semibold">{kitchen.name}</Text>
                   {isActive && (
                     <CheckCircle size={14} color="#1DB954" strokeWidth={2} />
                   )}
                 </View>
                 {kitchen.address ? (
-                  <Text className="text-surface-400 text-sm mt-0.5">{kitchen.address}</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">{kitchen.address}</Text>
                 ) : null}
                 {kitchen.cuisineType ? (
                   <Text className="text-surface-500 text-xs mt-1">{kitchen.cuisineType}</Text>
@@ -94,6 +94,7 @@ export default function KitchensScreen() {
             <Text className="text-surface-500 text-sm">No kitchens yet. Add your first kitchen.</Text>
           </View>
         )}
+
       </ScrollView>
     </View>
   );

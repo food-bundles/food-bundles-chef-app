@@ -43,7 +43,7 @@ class MetaTranscriptionAdapter:
 
         # STUB: re-verify endpoint path and field names against official docs
         response = await self._client.post_multipart(
-            path="/v1/audio/transcriptions",  # re-verify
+            path="/audio/transcriptions",  # re-verify — base URL already includes /v1
             fields={
                 "model": settings.META_MUSE_VOICE_MODEL,
                 "language": request.language,

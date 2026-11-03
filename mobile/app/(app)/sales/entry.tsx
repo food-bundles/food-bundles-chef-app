@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, useColorScheme } from 'react-native';
 import { router } from 'expo-router';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { useRecordSale } from '@/features/sales/useSales';
@@ -13,6 +13,10 @@ function todayISO(): string {
 }
 
 export default function SalesEntryScreen() {
+  const isDark = useColorScheme() === 'dark';
+  const cardBg = isDark ? colors.surface[800] : colors.white;
+  const textPrimary = isDark ? colors.white : colors.surface[900];
+  const textMuted = isDark ? colors.surface[500] : colors.surface[600];
   const { data: allItems = [], isLoading } = useMenuItems();
   const menuItems = allItems.filter((i) => i.is_active);
   const recordSaleMutation = useRecordSale();
@@ -78,7 +82,7 @@ export default function SalesEntryScreen() {
           </Text>
 
           {isLoading ? (
-            <ActivityIndicator color={colors.white} style={{ marginTop: spacing.xl }} />
+            <ActivityIndicator color={colors.brand[500]} style={{ marginTop: spacing.xl }} />
           ) : menuItems.length === 0 ? (
             <Text style={{ color: colors.surface[500], textAlign: 'center', marginTop: spacing.xl }}>
               No active menu items. Add items to the menu first.
@@ -90,7 +94,7 @@ export default function SalesEntryScreen() {
                 <View
                   key={item.id}
                   style={{
-                    backgroundColor: colors.surface[800],
+                    backgroundColor: cardBg,
                     borderRadius: 12,
                     padding: spacing.md,
                     flexDirection: 'row',
@@ -99,8 +103,8 @@ export default function SalesEntryScreen() {
                   }}
                 >
                   <View style={{ flex: 1, marginRight: spacing.md }}>
-                    <Text style={{ color: colors.white, fontWeight: '600' }}>{item.name}</Text>
-                    <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
+                    <Text style={{ color: textPrimary, fontWeight: '600' }}>{item.name}</Text>
+                    <Text style={{ color: textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
                       {isNaN(priceRwf) ? item.selling_price : priceRwf.toLocaleString()} RWF
                     </Text>
                   </View>

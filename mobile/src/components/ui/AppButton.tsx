@@ -58,17 +58,18 @@ export function AppButton({
 const styles = StyleSheet.create({
   base: {
     minHeight: MIN_TOUCH_SIZE,
-    borderRadius: radius.md,
+    borderRadius: 50,
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
-  primary: { backgroundColor: colors.brand[500] },
+  primary: { backgroundColor: colors.brand[700] },
   secondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: colors.brand[500],
+    borderColor: colors.brand[600],
   },
   danger: { backgroundColor: colors.danger },
   ghost: { backgroundColor: 'transparent' },
@@ -76,10 +77,10 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   label: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
   },
   primaryLabel: { color: colors.white },
-  secondaryLabel: { color: colors.brand[500] },
+  secondaryLabel: { color: colors.brand[600] },
   dangerLabel: { color: colors.white },
   ghostLabel: { color: colors.brand[500] },
 });

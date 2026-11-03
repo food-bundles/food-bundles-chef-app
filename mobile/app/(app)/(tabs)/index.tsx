@@ -1,15 +1,31 @@
-import { ScrollView, View, Text, Pressable } from 'react-native';
+import { ScrollView, View, Text, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle } from 'lucide-react-native';
+import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useOrders } from '@/features/orders/useOrders';
 import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { useKitchens } from '@/features/kitchens/useKitchens';
+import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
 import { SectionHeader, StockIndicator, SyncStatusBadge } from '@/components/ui';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  vegetables: '🥦', fruits: '🍎', meat: '🥩', poultry: '🍗', seafood: '🐟',
+  dairy: '🧀', eggs: '🥚', grains: '🌾', legumes: '🫘', spices: '🌶️',
+  herbs: '🌿', oils: '🫙', sauces: '🥫', beverages: '🧃', bakery: '🍞',
+  frozen: '🧊', cleaning: '🧹', packaging: '📦',
+};
+
+function getCategoryEmoji(category: string): string {
+  const key = category.toLowerCase().replace(/[^a-z]/g, '');
+  for (const [k, emoji] of Object.entries(CATEGORY_EMOJI)) {
+    if (key.includes(k) || k.includes(key)) return emoji;
+  }
+  return '📦';
+}
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -21,6 +37,7 @@ export default function DashboardScreen() {
   const { data: stockLevels = [] } = useStockLevels();
   const { data: orders = [] } = useOrders();
   const { data: deliveries = [] } = useDeliveries();
+  const { data: allCatalog = [], isLoading: catalogLoading } = useCatalog();
 
   const lowStockItems = stockLevels.filter((s) => s.is_low_stock);
   const lowStockCount = lowStockItems.length;
@@ -35,6 +52,11 @@ export default function DashboardScreen() {
 
   const sync = useSyncStatus();
 
+  const isNewKitchen =
+    lowStockCount === 0 && pendingOrderCount === 0 && activeDeliveryCount === 0 && stockLevels.length === 0;
+
+  const catalogPreview = allCatalog.filter((p) => p.is_active).slice(0, 10);
+
   const alerts: { id: string; message: string }[] = [];
   if (lowStockCount > 0) {
     alerts.push({
@@ -44,14 +66,14 @@ export default function DashboardScreen() {
   }
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-800">
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
         <View>
-          <Text className="text-surface-400 text-xs font-medium uppercase tracking-wider">
+          <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
             Active Kitchen
           </Text>
-          <Text className="text-white text-lg font-bold" numberOfLines={1}>
+          <Text className="text-surface-900 dark:text-white text-lg font-bold" numberOfLines={1}>
             {activeKitchen?.name ?? 'No kitchen selected'}
           </Text>
         </View>
@@ -61,7 +83,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/kitchens')}
             accessibilityRole="button"
             accessibilityLabel="Switch kitchen"
-            className="bg-surface-800 rounded-lg px-3 py-2"
+            className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2"
           >
             <Text className="text-brand-400 text-sm font-medium">Switch</Text>
           </Pressable>
@@ -83,7 +105,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
             {alerts.map((alert) => (
-              <Text key={alert.id} className="text-surface-300 text-sm mb-1">
+              <Text key={alert.id} className="text-surface-700 dark:text-surface-300 text-sm mb-1">
                 • {alert.message}
               </Text>
             ))}
@@ -115,15 +137,134 @@ export default function DashboardScreen() {
           />
         </View>
 
+        {/* Quick actions — always visible */}
+        <View className="gap-2">
+          <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
+            Quick Actions
+          </Text>
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/menu')}
+              accessibilityRole="button"
+              accessibilityLabel="Manage menu"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <Utensils size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Menu</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Dishes &amp; recipes</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/receiving')}
+              accessibilityRole="button"
+              accessibilityLabel="Receive a delivery"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <Package size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Receive</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Log a delivery</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Catalog preview list */}
+        <SectionHeader
+          title="Catalog"
+          actionLabel="See all"
+          onAction={() => router.push('/(app)/(tabs)/purchasing')}
+        />
+        {catalogLoading ? (
+          <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center">
+            <Text className="text-surface-600 dark:text-surface-400 text-sm">Loading catalog…</Text>
+          </View>
+        ) : catalogPreview.length === 0 ? (
+          <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center">
+            <Text className="text-surface-600 dark:text-surface-400 text-sm">No products in catalog yet.</Text>
+          </View>
+        ) : (
+          <View className="gap-2">
+            {catalogPreview.map((product) => (
+              <CatalogPreviewRow key={product.id} product={product} />
+            ))}
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/purchasing')}
+              accessibilityRole="button"
+              accessibilityLabel="View full catalog"
+              className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center active:opacity-70"
+            >
+              <Text className="text-brand-400 text-sm font-medium">View full catalog →</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* New kitchen onboarding callouts */}
+        {isNewKitchen && (
+          <View className="gap-3">
+            <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
+              Get Started
+            </Text>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/menu')}
+              accessibilityRole="button"
+              accessibilityLabel="Add your first menu item"
+              className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <Utensils size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-surface-900 dark:text-white font-semibold text-sm">Add menu items</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5">Set up your dishes and prices</Text>
+              </View>
+              <Text className="text-surface-500 text-lg">›</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/stock')}
+              accessibilityRole="button"
+              accessibilityLabel="Track your ingredients"
+              className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <Archive size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-surface-900 dark:text-white font-semibold text-sm">Track ingredients</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5">Add stock to monitor purchasing needs</Text>
+              </View>
+              <Text className="text-surface-500 text-lg">›</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/receiving')}
+              accessibilityRole="button"
+              accessibilityLabel="Receive a delivery"
+              className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <Package size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-surface-900 dark:text-white font-semibold text-sm">Receive a delivery</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5">Log an incoming supplier order</Text>
+              </View>
+              <Text className="text-surface-500 text-lg">›</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Low stock ingredients */}
+        {!isNewKitchen && (
+          <>
         <SectionHeader
           title="Low Stock"
           actionLabel="See all"
           onAction={() => router.push('/(app)/(tabs)/stock')}
         />
         {lowStockItems.length === 0 ? (
-          <View className="bg-surface-800 rounded-xl p-4 items-center">
-            <Text className="text-surface-400 text-sm">All ingredients are stocked.</Text>
+          <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center">
+            <Text className="text-surface-600 dark:text-surface-400 text-sm">All ingredients are stocked.</Text>
           </View>
         ) : (
           lowStockItems.map((item) => {
@@ -131,10 +272,10 @@ export default function DashboardScreen() {
             const dailyUse = item.expected_daily_use ? parseFloat(item.expected_daily_use) : 0;
             const days = calcDaysOfCover(stock, dailyUse);
             return (
-              <View key={item.ingredient_id} className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
+              <View key={item.ingredient_id} className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-white font-medium">{item.ingredient_name}</Text>
-                  <Text className="text-surface-400 text-sm mt-0.5">
+                  <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
+                  <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
                     {item.current_stock} {item.unit} remaining
                   </Text>
                 </View>
@@ -151,7 +292,7 @@ export default function DashboardScreen() {
               <CheckCircle size={16} color="#1DB954" strokeWidth={2} />
               <Text className="text-brand-400 font-semibold text-sm">Procurement Reminder</Text>
             </View>
-            <Text className="text-surface-300 text-sm">
+            <Text className="text-surface-700 dark:text-surface-300 text-sm">
               {lowStockCount} ingredient{lowStockCount > 1 ? 's are' : ' is'} below the reorder threshold.
               Your purchase list is ready to review before tomorrow's service.
             </Text>
@@ -159,14 +300,46 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(app)/(tabs)/purchasing')}
               accessibilityRole="button"
               accessibilityLabel="Review purchase list"
-              className="mt-3 bg-brand-500 rounded-lg py-2.5 items-center active:opacity-80"
+              className="mt-3 bg-brand-700 rounded-full py-3 items-center active:opacity-80"
             >
-              <Text className="text-white font-semibold text-sm">Review Purchase List</Text>
+              <Text className="text-white font-bold text-sm">Review Purchase List ›</Text>
             </Pressable>
           </View>
         )}
+          </>
+        )}
       </ScrollView>
     </View>
+  );
+}
+
+function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
+  const price = product.reference_price != null ? parseFloat(product.reference_price) : null;
+  const emoji = getCategoryEmoji(product.category);
+  return (
+    <Pressable
+      onPress={() => router.push('/(app)/(tabs)/purchasing')}
+      accessibilityRole="button"
+      accessibilityLabel={`${product.name} — go to catalog`}
+      className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 flex-row items-center gap-3 active:opacity-70"
+    >
+      <View className="w-10 h-10 rounded-xl bg-surface-100 dark:bg-surface-700 items-center justify-center overflow-hidden">
+        {product.image_url ? (
+          <Image source={{ uri: product.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+        ) : (
+          <Text style={{ fontSize: 22 }}>{emoji}</Text>
+        )}
+      </View>
+      <View className="flex-1">
+        <Text className="text-surface-900 dark:text-white font-medium text-sm">{product.name}</Text>
+        <Text className="text-surface-600 dark:text-surface-400 text-xs capitalize">{product.category}</Text>
+      </View>
+      {price != null && (
+        <Text className="text-brand-400 text-sm font-semibold">
+          {price.toLocaleString()} RWF/{product.unit}
+        </Text>
+      )}
+    </Pressable>
   );
 }
 
@@ -188,11 +361,11 @@ function StatCard({
       onPress={onPress}
       accessibilityRole={onPress ? 'button' : 'none'}
       accessibilityLabel={label}
-      className="flex-1 bg-surface-800 rounded-xl p-3 items-center active:opacity-70"
+      className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center active:opacity-70"
     >
       {icon}
       <Text className={`text-2xl font-bold mt-2 ${valueColor}`}>{value}</Text>
-      <Text className="text-surface-400 text-xs mt-1 text-center">{label}</Text>
+      <Text className="text-surface-600 dark:text-surface-400 text-xs mt-1 text-center">{label}</Text>
     </Pressable>
   );
 }

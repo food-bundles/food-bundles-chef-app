@@ -1,9 +1,11 @@
 import { Redirect } from 'expo-router';
+import { useSessionStore } from '@/store/session-store';
 
-/**
- * Root redirect — sends unauthenticated users to auth flow.
- * The session store decides where to route on mount.
- */
 export default function Index() {
-  return <Redirect href="/(auth)/welcome" />;
+  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const isRestoring = useSessionStore((s) => s.isRestoring);
+
+  if (isRestoring) return null;
+
+  return <Redirect href={isAuthenticated ? '/(app)/(tabs)' : '/(auth)/welcome'} />;
 }

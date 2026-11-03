@@ -64,6 +64,9 @@ interface SessionState {
     chef: ChefSession;
   }): Promise<void>;
 
+  /** Update the in-memory chef profile without touching tokens. */
+  updateChef(chef: ChefSession): void;
+
   /** Clears local session and tokens from SecureStore. */
   signOut(): Promise<void>;
 
@@ -130,6 +133,10 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       SecureStore.setItemAsync(KEY_REFRESH_TOKEN, refreshToken),
     ]);
     set({ chef, isAuthenticated: true });
+  },
+
+  updateChef(chef) {
+    set({ chef });
   },
 
   async signOut() {

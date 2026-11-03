@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, useColorScheme } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,7 @@ import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitch
 import { spacing, colors, fontSize } from '@/lib/theme';
 
 export default function KitchenDetailScreen() {
+  const isDark = useColorScheme() === 'dark';
   const { kitchenId } = useLocalSearchParams<{ kitchenId: string }>();
   const kitchen = useKitchenStore((s) => s.kitchens.find((k) => k.id === kitchenId));
   const updateKitchen = useUpdateKitchen();
@@ -38,7 +39,7 @@ export default function KitchenDetailScreen() {
       <AppScreen>
         <AppHeader title="Kitchen" showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.surface[400] }}>Kitchen not found.</Text>
+          <Text style={{ color: isDark ? colors.surface[400] : colors.surface[600] }}>Kitchen not found.</Text>
         </View>
       </AppScreen>
     );
@@ -161,7 +162,7 @@ export default function KitchenDetailScreen() {
               variant="danger"
             />
           ) : (
-            <Text style={{ color: colors.surface[500], fontSize: fontSize.sm, textAlign: 'center' }}>
+            <Text style={{ color: isDark ? colors.surface[500] : colors.surface[600], fontSize: fontSize.sm, textAlign: 'center' }}>
               This kitchen is archived.
             </Text>
           )}

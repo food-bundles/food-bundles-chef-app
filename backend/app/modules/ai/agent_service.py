@@ -6,8 +6,8 @@ the real API endpoint is called.
 
 Flow:
   1. Build kitchen context (stock, open orders, menu items)
-  2. Build conversation history for Claude
-  3. Call Claude → parse structured JSON response
+  2. Build conversation history for Muse Spark
+  3. Call Muse Spark → parse structured JSON response
   4. Return either ClarifyingQuestion or ActionProposal
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import AiDisabledError, AiProviderError
-from app.integrations.anthropic.client import chat
+from app.integrations.meta_model_api.client import chat
 from app.modules.ai.schemas.agent import (
     ActionProposal,
     ActionType,
@@ -166,7 +166,7 @@ async def _build_kitchen_context(
 def _build_messages(
     agent_request: AgentRequest,
 ) -> list[dict[str, str]]:
-    """Convert AgentMessage list to Anthropic messages format."""
+    """Convert AgentMessage list to messages format for Muse Spark."""
     result = []
     for msg in agent_request.messages:
         role = "user" if msg.role.value == "chef" else "assistant"
@@ -175,7 +175,7 @@ def _build_messages(
 
 
 def _parse_llm_response(raw: str, last_action: ActionProposal | None) -> AgentResponse:
-    """Parse Claude's JSON response into AgentResponse."""
+    """Parse Muse Spark's JSON response into AgentResponse."""
     try:
         data: dict[str, Any] = json.loads(raw.strip())
     except json.JSONDecodeError:
@@ -246,7 +246,7 @@ class AgentService:
         if not settings.AI_AGENT_ENABLED:
             raise AiDisabledError("AI agent is not enabled.")
 
-        if not settings.ANTHROPIC_API_KEY:
+        if not settings.MODEL_API_KEY:
             raise AiDisabledError("No LLM API key configured for the agent.")
 
         kitchen_context = await _build_kitchen_context(kitchen, self._db)
@@ -262,7 +262,7 @@ class AgentService:
             raw = await chat(system_prompt=system_prompt, messages=messages)
         except Exception as exc:
             logger.warning(
-                "agent_llm_call_failed",
+                "agent_meta_call_failed",
                 kitchen_id=str(kitchen.id),
                 # No content logged (AI_LOG_CONTENT=False)
             )

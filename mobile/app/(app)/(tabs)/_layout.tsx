@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { useColorScheme } from 'react-native';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -10,17 +10,20 @@ import {
 } from 'lucide-react-native';
 
 const ICON_SIZE = 22;
-const ACTIVE_COLOR = '#1DB954';
-const INACTIVE_COLOR = '#6B6860';
+const ACTIVE_COLOR = '#0E8438';
+const INACTIVE_COLOR = '#8C897E';
 
 export default function TabsLayout() {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1A1916',
-          borderTopColor: '#32302C',
+          backgroundColor: isDark ? '#1A1916' : '#FFFFFF',
+          borderTopColor: isDark ? '#32302C' : '#EAE9E4',
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 8,

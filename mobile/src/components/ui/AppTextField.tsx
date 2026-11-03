@@ -1,4 +1,4 @@
-import { View, Text, TextInput, StyleSheet, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
+import { View, Text, TextInput, StyleSheet, useColorScheme, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
 import { colors, radius, spacing, fontSize, fontWeight } from '@/lib/theme';
 
 export interface AppTextFieldProps {
@@ -45,15 +45,16 @@ export function AppTextField({
   inputProps,
 }: AppTextFieldProps) {
   const hasError = Boolean(error);
+  const isDark = useColorScheme() === 'dark';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: isDark ? colors.surface[400] : colors.surface[600] }]}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.surface[600]}
+        placeholderTextColor={isDark ? colors.surface[600] : colors.surface[500]}
         keyboardType={keyboardType}
         autoFocus={autoFocus}
         autoCapitalize={autoCapitalize}
@@ -66,7 +67,15 @@ export function AppTextField({
         returnKeyType={returnKeyType}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ disabled: !editable }}
-        style={[styles.input, hasError && styles.inputError, multiline && styles.multiline]}
+        style={[
+          styles.input,
+          {
+            backgroundColor: isDark ? colors.surface[800] : colors.white,
+            color: isDark ? colors.white : colors.surface[900],
+            borderColor: hasError ? colors.danger : (isDark ? colors.surface[700] : colors.surface[300]),
+          },
+          multiline && styles.multiline,
+        ]}
         {...inputProps}
       />
       {hasError && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
@@ -77,24 +86,19 @@ export function AppTextField({
 const styles = StyleSheet.create({
   container: { gap: 6 },
   label: {
-    color: colors.surface[400],
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: colors.surface[800],
-    color: colors.white,
     fontSize: fontSize.base,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     borderWidth: 1.5,
-    borderColor: colors.surface[700],
     minHeight: 48,
   },
-  inputError: { borderColor: colors.danger },
   multiline: { minHeight: 80, textAlignVertical: 'top', paddingTop: spacing.sm + 4 },
   error: { color: colors.danger, fontSize: fontSize.xs },
 });

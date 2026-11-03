@@ -10,7 +10,16 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  useColorScheme,
 } from 'react-native';
+// expo-av is a native module — unavailable in Expo Go, works in dev/production builds
+let Audio: typeof import('expo-av').Audio | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Audio = require('expo-av').Audio;
+} catch {
+  // running in Expo Go — voice input will be disabled
+}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, ChevronDown } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -35,6 +44,7 @@ const nextId = () => `entry-${++_idCounter}`;
 
 export default function AgentScreen() {
   const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === 'dark';
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const agentTurnMutation = useAgentTurn();
   const confirmMutation = useConfirmAction();
@@ -51,7 +61,11 @@ export default function AgentScreen() {
   ]);
   const [inputText, setInputText] = useState('');
   const [lastAction, setLastAction] = useState<ActionProposal | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const listRef = useRef<FlatList>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recordingRef = useRef<any>(null);
 
   // Build conversation history for the API (only message entries)
   const buildHistory = useCallback(
@@ -86,11 +100,11 @@ export default function AgentScreen() {
       });
       handleAgentResponse(response);
     } catch (err) {
-      const is503 = err instanceof ApiError && err.status === 503;
+      const isUnavailable = err instanceof ApiError && (err.status === 503 || err.status === 502);
       appendEntry({
         type: 'error',
-        content: is503
-          ? 'The AI agent is not available right now. Please use the manual screens.'
+        content: isUnavailable
+          ? 'The AI assistant could not reach the language model. Check your connection and try again.'
           : 'Something went wrong. Please try again.',
         id: nextId(),
       });
@@ -169,35 +183,74 @@ export default function AgentScreen() {
 
   const handleVoiceInput = async () => {
     if (!activeKitchen) return;
-    Alert.alert(
-      'Voice Input',
-      'Record audio and transcribe it as your message.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Use Microphone',
-          onPress: () => {
-            // Voice recording requires expo-av which needs additional setup.
-            // For now guide the user to type. The transcribeAudio API is ready.
-            Alert.alert(
-              'Coming Soon',
-              'Voice recording will be available in the next update. Please type your request.',
-            );
-          },
-        },
-      ],
-    );
+    if (!Audio) {
+      Alert.alert('Development build required', 'Voice input is not available in Expo Go. Use a development build to enable it.');
+      return;
+    }
+
+    // If already recording: stop and transcribe
+    if (isRecording && recordingRef.current) {
+      try {
+        setIsRecording(false);
+        await recordingRef.current.stopAndUnloadAsync();
+        const uri = recordingRef.current.getURI();
+        recordingRef.current = null;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
+        if (!uri) return;
+        setIsTranscribing(true);
+        try {
+          const result = await transcribeAudio(activeKitchen.id, uri, 'rw');
+          if (result.text.trim()) {
+            setInputText(result.text.trim());
+          } else {
+            Alert.alert('No speech detected', 'Could not hear anything. Please try again.');
+          }
+        } catch {
+          Alert.alert('Transcription failed', 'Could not transcribe audio. Please type your message.');
+        } finally {
+          setIsTranscribing(false);
+        }
+      } catch {
+        setIsRecording(false);
+        recordingRef.current = null;
+      }
+      return;
+    }
+
+    // Start recording
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert('Permission required', 'Microphone access is needed for voice input.');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch {
+      Alert.alert('Recording failed', 'Could not start recording. Please type your message.');
+    }
   };
 
+  const bg = isDark ? colors.surface[900] : colors.surface[50];
+  const bgCard = isDark ? colors.surface[800] : colors.white;
+  const borderColor = isDark ? colors.surface[800] : colors.surface[200];
+  const textPrimary = isDark ? colors.white : colors.surface[900];
+  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface[900], paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: bg, paddingTop: insets.top }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.surface[800], flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+      <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: borderColor, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <Bot size={20} color={colors.brand[400]} strokeWidth={1.75} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.white, fontWeight: fontWeight.bold, fontSize: fontSize.base }}>Kitchen Assistant</Text>
+          <Text style={{ color: textPrimary, fontWeight: fontWeight.bold, fontSize: fontSize.base }}>Kitchen Assistant</Text>
           {activeKitchen ? (
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs }}>{activeKitchen.name}</Text>
+            <Text style={{ color: textSecondary, fontSize: fontSize.xs }}>{activeKitchen.name}</Text>
           ) : null}
         </View>
         {lastAction ? (
@@ -205,7 +258,7 @@ export default function AgentScreen() {
             onPress={handleUndo}
             accessibilityRole="button"
             accessibilityLabel="Undo last action"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 4, backgroundColor: colors.surface[800], borderRadius: radius.sm }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 4, backgroundColor: bgCard, borderRadius: radius.sm }}
           >
             <RotateCcw size={14} color={colors.surface[400]} />
             <Text style={{ color: colors.surface[400], fontSize: fontSize.xs }}>Undo</Text>
@@ -224,15 +277,15 @@ export default function AgentScreen() {
 
       {/* Input bar */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: colors.surface[800], flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
+        <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: borderColor, flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
           <TextInput
             style={{
               flex: 1,
-              backgroundColor: colors.surface[800],
+              backgroundColor: bgCard,
               borderRadius: radius.md,
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.sm,
-              color: colors.white,
+              color: textPrimary,
               fontSize: fontSize.base,
               maxHeight: 100,
             }}
@@ -247,12 +300,23 @@ export default function AgentScreen() {
             accessibilityLabel="Message input"
           />
           <Pressable
-            onPress={handleVoiceInput}
+            onPress={() => void handleVoiceInput()}
+            disabled={isTranscribing}
             accessibilityRole="button"
-            accessibilityLabel="Voice input"
-            style={{ backgroundColor: colors.surface[800], borderRadius: radius.md, padding: spacing.sm }}
+            accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
+            style={[
+              { borderRadius: radius.md, padding: spacing.sm },
+              isRecording
+                ? { backgroundColor: colors.danger }
+                : { backgroundColor: bgCard },
+              isTranscribing && { opacity: 0.5 },
+            ]}
           >
-            <Mic size={20} color={colors.surface[400]} />
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color={colors.surface[400]} />
+            ) : (
+              <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
+            )}
           </Pressable>
           <Pressable
             onPress={() => void sendMessage(inputText)}
@@ -260,7 +324,7 @@ export default function AgentScreen() {
             accessibilityRole="button"
             accessibilityLabel="Send message"
             style={[
-              { backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.sm },
+              { backgroundColor: colors.brand[700], borderRadius: radius.md, padding: spacing.sm },
               (!inputText.trim() || agentTurnMutation.isPending) && { opacity: 0.5 },
             ]}
           >
@@ -291,6 +355,14 @@ function ChatEntryRow({
   onOptionSelect: (option: string) => void;
   confirmingId: string | null;
 }) {
+  const isDark = useColorScheme() === 'dark';
+  const bgCard = isDark ? colors.surface[800] : colors.white;
+  const textPrimary = isDark ? colors.white : colors.surface[900];
+  const textSecondary = isDark ? colors.surface[300] : colors.surface[700];
+  const textMuted = isDark ? colors.surface[400] : colors.surface[600];
+  const bgInner = isDark ? (colors.surface[850] ?? colors.surface[900]) : colors.surface[100];
+  const btnSecondaryBg = isDark ? colors.surface[700] : colors.surface[200];
+
   if (entry.type === 'message') {
     const isChef = entry.role === 'chef';
     return (
@@ -302,7 +374,7 @@ function ChatEntryRow({
           </View>
         )}
         <View style={{
-          backgroundColor: isChef ? colors.brand[600] : colors.surface[800],
+          backgroundColor: isChef ? colors.brand[600] : bgCard,
           borderRadius: radius.lg,
           borderBottomRightRadius: isChef ? 4 : radius.lg,
           borderBottomLeftRadius: isChef ? radius.lg : 4,
@@ -310,7 +382,7 @@ function ChatEntryRow({
           paddingVertical: spacing.sm,
           maxWidth: '85%',
         }}>
-          <Text style={{ color: colors.white, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
+          <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
         </View>
       </View>
     );
@@ -331,9 +403,9 @@ function ChatEntryRow({
           <Bot size={12} color={colors.brand[400]} />
           <Text style={{ color: colors.brand[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold }}>Assistant</Text>
         </View>
-        <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '90%', gap: spacing.sm }}>
-          <Text style={{ color: colors.white, fontSize: fontSize.base }}>{entry.replyText}</Text>
-          <Text style={{ color: colors.surface[300], fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>{entry.question.question}</Text>
+        <View style={{ backgroundColor: bgCard, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '90%', gap: spacing.sm }}>
+          <Text style={{ color: textPrimary, fontSize: fontSize.base }}>{entry.replyText}</Text>
+          <Text style={{ color: textSecondary, fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>{entry.question.question}</Text>
           {entry.question.options && (
             <View style={{ gap: spacing.xs }}>
               {entry.question.options.map((opt) => (
@@ -341,9 +413,9 @@ function ChatEntryRow({
                   key={opt}
                   onPress={() => onOptionSelect(opt)}
                   accessibilityRole="button"
-                  style={{ backgroundColor: colors.surface[700], borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 6 }}
+                  style={{ backgroundColor: btnSecondaryBg, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 6 }}
                 >
-                  <Text style={{ color: colors.surface[200], fontSize: fontSize.sm }}>{opt}</Text>
+                  <Text style={{ color: textPrimary, fontSize: fontSize.sm }}>{opt}</Text>
                 </Pressable>
               ))}
             </View>
@@ -363,15 +435,15 @@ function ChatEntryRow({
           <Bot size={12} color={colors.brand[400]} />
           <Text style={{ color: colors.brand[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold }}>Assistant</Text>
         </View>
-        <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '95%', gap: spacing.md }}>
-          <Text style={{ color: colors.white, fontSize: fontSize.base }}>{entry.replyText}</Text>
+        <View style={{ backgroundColor: bgCard, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '95%', gap: spacing.md }}>
+          <Text style={{ color: textPrimary, fontSize: fontSize.base }}>{entry.replyText}</Text>
 
           {/* Confirmation card */}
-          <View style={{ backgroundColor: colors.surface[850] ?? colors.surface[900], borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.surface[700] }}>
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: fontWeight.semibold }}>
+          <View style={{ backgroundColor: bgInner, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: isDark ? colors.surface[700] : colors.surface[200] }}>
+            <Text style={{ color: textMuted, fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: fontWeight.semibold }}>
               Proposed Action
             </Text>
-            <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
+            <Text style={{ color: textPrimary, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
               {entry.proposal.summary}
             </Text>
             <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
@@ -399,10 +471,10 @@ function ChatEntryRow({
                 onPress={() => onCancel(entry.id)}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel proposed action"
-                style={{ flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.surface[700], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
+                style={{ flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: btnSecondaryBg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
               >
                 <XCircle size={16} color={colors.surface[400]} />
-                <Text style={{ color: colors.surface[300], fontWeight: fontWeight.medium, fontSize: fontSize.sm }}>Cancel</Text>
+                <Text style={{ color: textSecondary, fontWeight: fontWeight.medium, fontSize: fontSize.sm }}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={() => onConfirm(entry)}
@@ -410,7 +482,7 @@ function ChatEntryRow({
                 accessibilityRole="button"
                 accessibilityLabel="Confirm proposed action"
                 style={[
-                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.brand[500], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
+                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.brand[700], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
                   isConfirming && { opacity: 0.6 },
                 ]}
               >

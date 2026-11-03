@@ -29,9 +29,9 @@ export default function ReceivingIndexScreen() {
   const completed = orders.filter((o) => o.status === 'delivered');
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800">
-        <Text className="text-white text-lg font-bold">Receiving</Text>
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800">
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Receiving</Text>
       </View>
 
       {isLoading ? (
@@ -40,7 +40,7 @@ export default function ReceivingIndexScreen() {
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-red-400 text-sm text-center">
+          <Text className="text-danger text-sm text-center">
             Could not load deliveries. Check your connection and try again.
           </Text>
         </View>
@@ -51,7 +51,7 @@ export default function ReceivingIndexScreen() {
           contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
           ListHeaderComponent={
             pending.length > 0 ? (
-              <Text className="text-surface-400 text-xs font-semibold uppercase tracking-wider mb-1">
+              <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider mb-1">
                 Expected Deliveries
               </Text>
             ) : undefined
@@ -80,18 +80,18 @@ function DeliveryRow({ order }: { order: OrderDto }) {
       onPress={() => router.push(`/(app)/receiving/${order.id}`)}
       accessibilityRole="button"
       accessibilityLabel={`Open delivery order ${order.external_order_id ?? order.id}`}
-      className="bg-surface-800 rounded-xl p-4 active:opacity-70"
+      className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 active:opacity-70"
     >
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center gap-2">
           <Package size={16} color="#B3B0A6" strokeWidth={1.75} />
-          <Text className="text-white font-semibold">
+          <Text className="text-surface-900 dark:text-white font-semibold">
             {order.external_order_id ? `Order ${order.external_order_id}` : `Order ${order.id.slice(0, 8)}`}
           </Text>
         </View>
         <StatusBadge label={label} variant={variant} />
       </View>
-      <Text className="text-surface-400 text-sm">
+      <Text className="text-surface-600 dark:text-surface-400 text-sm">
         {order.delivery_date
           ? `Expected ${new Date(order.delivery_date).toLocaleDateString()}`
           : `Created ${new Date(order.created_at).toLocaleDateString()}`}

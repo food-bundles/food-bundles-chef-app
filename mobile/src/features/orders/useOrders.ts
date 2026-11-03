@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { queryKeys } from '@/api/query-keys';
-import { listOrders, createOrder, submitOrder, cancelOrder } from '@/api/orders-api';
-import type { OrderCreateBody, OrderDto } from '@/api/orders-api';
+import { listOrders, getOrder, createOrder, submitOrder, cancelOrder } from '@/api/orders-api';
+import type { OrderCreateBody, OrderDto, OrderWithLinesDto } from '@/api/orders-api';
 
 function useOrdersContext() {
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
@@ -20,6 +20,16 @@ export function useOrders() {
     queryFn: () => listOrders(kitchenId),
     enabled,
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useOrderDetail(orderId: string) {
+  const { chefId, kitchenId } = useOrdersContext();
+  return useQuery<OrderWithLinesDto>({
+    queryKey: [...queryKeys.orders.list(chefId, kitchenId), orderId],
+    queryFn: () => getOrder(kitchenId, orderId),
+    enabled: Boolean(chefId && kitchenId && orderId),
+    staleTime: 60 * 1000,
   });
 }
 

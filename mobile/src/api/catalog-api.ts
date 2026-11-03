@@ -8,6 +8,7 @@ export interface CatalogProductDto {
   unit: string;
   reference_price: string | null;
   description: string | null;
+  image_url: string | null;
   is_active: boolean;
   updated_at: string;
 }

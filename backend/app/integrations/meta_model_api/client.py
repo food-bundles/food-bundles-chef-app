@@ -17,7 +17,10 @@ Privacy constraints (AI008):
 """
 from __future__ import annotations
 
+import os
+
 import httpx
+import certifi
 import structlog
 
 from app.core.config import settings
@@ -62,7 +65,8 @@ class MetaModelAPIClient:
         last_exc: Exception | None = None
         for attempt in range(self._max_retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=self._timeout) as client:
+                ssl_verify = os.environ.get("SSL_CERT_FILE", certifi.where())
+                async with httpx.AsyncClient(timeout=self._timeout, verify=ssl_verify) as client:
                     response = await client.post(url, headers=headers, json=payload)
                 if response.status_code >= 500:
                     raise MetaModelAPIError(
@@ -85,6 +89,29 @@ class MetaModelAPIClient:
                 )
         raise MetaModelAPIError(0, f"Meta API unreachable after retries: {last_exc}")
 
+    async def chat(
+        self,
+        system_prompt: str,
+        messages: list[dict[str, str]],
+        max_tokens: int = 1024,
+    ) -> str:
+        """Send a chat completion request to Muse Spark and return the text content.
+
+        Re-verify /v1/chat/completions path and response schema before production use.
+        Never logs prompt content (AI_LOG_CONTENT=False).
+        """
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+        payload = {
+            "model": settings.META_MUSE_SPARK_MODEL,
+            "messages": full_messages,
+            "max_tokens": max_tokens,
+        }
+        response = await self.post_json("/chat/completions", payload)
+        try:
+            return response["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as exc:
+            raise MetaModelAPIError(0, f"Unexpected Muse Spark response shape: {exc}") from exc
+
     async def post_multipart(self, path: str, fields: dict, files: dict) -> dict:
         """POST multipart form data (for image/audio uploads)."""
         url = f"{self._base_url}/{path.lstrip('/')}"
@@ -94,7 +121,8 @@ class MetaModelAPIClient:
         last_exc: Exception | None = None
         for attempt in range(self._max_retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=self._timeout) as client:
+                ssl_verify = os.environ.get("SSL_CERT_FILE", certifi.where())
+                async with httpx.AsyncClient(timeout=self._timeout, verify=ssl_verify) as client:
                     response = await client.post(
                         url, headers=headers, data=fields, files=files
                     )
@@ -108,3 +136,15 @@ class MetaModelAPIClient:
                 last_exc = exc
                 logger.warning("meta_api_retry_multipart", attempt=attempt + 1)
         raise MetaModelAPIError(0, f"Meta API unreachable: {last_exc}")
+
+
+_client = MetaModelAPIClient()
+
+
+async def chat(
+    system_prompt: str,
+    messages: list[dict[str, str]],
+    max_tokens: int = 1024,
+) -> str:
+    """Module-level chat helper — drop-in replacement for the Anthropic client's chat()."""
+    return await _client.chat(system_prompt=system_prompt, messages=messages, max_tokens=max_tokens)
