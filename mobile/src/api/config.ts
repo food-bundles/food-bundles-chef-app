@@ -34,5 +34,6 @@ function resolveBaseUrl(): string {
 
 export const API_BASE_URL = resolveBaseUrl();
 
-/** Milliseconds before a request times out. */
-export const REQUEST_TIMEOUT_MS = 20_000;
+/** Milliseconds before a request times out.
+ * AI agent calls (muse-spark-1.3) need ~60 s — keep this above the backend's AI_DEFAULT_TIMEOUT_SECONDS. */
+export const REQUEST_TIMEOUT_MS = 65_000;

@@ -154,7 +154,7 @@ _client = MetaModelAPIClient()
 async def chat(
     system_prompt: str,
     messages: list[dict[str, str]],
-    max_tokens: int = 1024,
+    max_tokens: int = 4096,
 ) -> str:
-    """Module-level chat helper — drop-in replacement for the Anthropic client's chat()."""
+    """Module-level chat helper."""
     return await _client.chat(system_prompt=system_prompt, messages=messages, max_tokens=max_tokens)

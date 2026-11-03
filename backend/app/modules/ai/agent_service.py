@@ -264,8 +264,9 @@ class AgentService:
             logger.warning(
                 "agent_meta_call_failed",
                 kitchen_id=str(kitchen.id),
-                # No content logged (AI_LOG_CONTENT=False)
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
             )
-            raise AiProviderError(f"LLM call failed: {type(exc).__name__}") from exc
+            raise AiProviderError(f"LLM call failed: {type(exc).__name__}: {exc}") from exc
 
         return _parse_llm_response(raw, last_action=request.last_confirmed_action)
