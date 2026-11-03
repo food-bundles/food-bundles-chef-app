@@ -62,8 +62,3 @@ yarn-error.log*
 
 .claude/
 CLAUDE.md
-./mobile/docs/
-./mobile/claude/
-./mobile/CLAUDE.md
-./backend/claude/
-./backend/CLAUDE.md

@@ -2,10 +2,25 @@ import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
+import { verifyOtp, getMe, registerPushToken } from '@/api/auth-api';
+import { ApiError } from '@/api/errors';
 import { useSessionStore } from '@/store/session-store';
 
-/** Mock OTP for demo — any 6-digit code is accepted */
-const MOCK_OTP_HINT = '123456';
+async function tryRegisterPushToken(): Promise<void> {
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    const finalStatus =
+      existing === 'granted'
+        ? existing
+        : (await Notifications.requestPermissionsAsync()).status;
+    if (finalStatus !== 'granted') return;
+    const { data: token } = await Notifications.getExpoPushTokenAsync();
+    await registerPushToken({ token });
+  } catch {
+    // Push token registration is best-effort — never block login on failure
+  }
+}
 
 export default function VerifyOtpScreen() {
   const insets = useSafeAreaInsets();
@@ -21,15 +36,46 @@ export default function VerifyOtpScreen() {
     if (!isValid) return;
     setError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    // Mock: accept any 6-digit code
-    if (otp.length === 6) {
-      signIn({ phone: phone ?? '', id: `chef-${phone}` });
+    try {
+      const tokens = await verifyOtp({ phone_number: phone ?? '', code: otp });
+      // Fetch the full chef profile so session-store has name + phone.
+      // http-client now has the access token via TokenProvider, but we inject
+      // it manually here for the first post-login call.
+      const profile = await getMe();
+      await signIn({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        chef: {
+          id: profile.id,
+          phoneNumber: profile.phone_number,
+          name: profile.name,
+        },
+      });
+      // Fire-and-forget: push token registration must not delay navigation
+      void tryRegisterPushToken();
       router.replace('/(app)/(tabs)');
-    } else {
-      setError('Invalid code. Please try again.');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        switch (err.kind) {
+          case 'auth':
+          case 'validation':
+            setError('Invalid code. Please check and try again.');
+            break;
+          case 'rate_limit':
+            setError('Too many attempts. Please wait a moment.');
+            break;
+          case 'transport':
+            setError('No connection. Check your internet and try again.');
+            break;
+          default:
+            setError('Could not verify. Please try again.');
+        }
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -51,11 +97,8 @@ export default function VerifyOtpScreen() {
         </Pressable>
 
         <Text className="text-2xl font-bold text-white mb-2">Enter the code</Text>
-        <Text className="text-surface-400 mb-1">
+        <Text className="text-surface-400 mb-8">
           Sent to <Text className="text-white">{phone}</Text>
-        </Text>
-        <Text className="text-surface-500 text-xs mb-8">
-          Demo: enter any 6 digits (hint: {MOCK_OTP_HINT})
         </Text>
 
         <TextInput

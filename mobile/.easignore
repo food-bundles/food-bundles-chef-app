@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+build/
+web-build/
+android/app/build/
+android/build/
+ios/build/
+.metro-health-check*
+*.tsbuildinfo
+coverage/
+.jest-cache/
+.claude/
+CLAUDE.md

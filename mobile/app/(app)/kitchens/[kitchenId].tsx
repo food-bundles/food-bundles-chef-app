@@ -8,14 +8,15 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
 import { spacing, colors, fontSize } from '@/lib/theme';
 
 export default function KitchenDetailScreen() {
   const { kitchenId } = useLocalSearchParams<{ kitchenId: string }>();
   const kitchen = useKitchenStore((s) => s.kitchens.find((k) => k.id === kitchenId));
-  const updateKitchen = useKitchenStore((s) => s.updateKitchen);
-  const archiveKitchen = useKitchenStore((s) => s.archiveKitchen);
+  const updateKitchen = useUpdateKitchen();
+  const archiveKitchen = useArchiveKitchen();
   const [archiveDialogVisible, setArchiveDialogVisible] = useState(false);
 
   const {
@@ -43,20 +44,20 @@ export default function KitchenDetailScreen() {
     );
   }
 
-  const onSubmit = (values: KitchenFormValues) => {
-    updateKitchen(kitchen.id, {
-      name: values.name,
-      address: values.address || undefined,
-      cuisineType: values.cuisineType || undefined,
-      seatingCapacity: values.seatingCapacity
-        ? parseInt(values.seatingCapacity, 10)
-        : undefined,
+  const onSubmit = async (values: KitchenFormValues) => {
+    await updateKitchen.mutateAsync({
+      kitchenId: kitchen.id,
+      body: {
+        name: values.name,
+        address: values.address || null,
+        location: values.cuisineType || null,
+      },
     });
     router.back();
   };
 
-  const handleArchive = () => {
-    archiveKitchen(kitchen.id);
+  const handleArchive = async () => {
+    await archiveKitchen.mutateAsync(kitchen.id);
     setArchiveDialogVisible(false);
     router.replace('/(app)/kitchens');
   };
@@ -143,9 +144,15 @@ export default function KitchenDetailScreen() {
           <AppButton
             label="Save Changes"
             onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
+            loading={isSubmitting || updateKitchen.isPending}
             disabled={!isDirty}
           />
+
+          {updateKitchen.isError && (
+            <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
+              Failed to save changes. Please try again.
+            </Text>
+          )}
 
           {!kitchen.isArchived ? (
             <AppButton

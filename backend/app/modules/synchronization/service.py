@@ -177,6 +177,16 @@ class SyncService:
             resp = await svc.submit_order(kitchen, uuid.UUID(mutation.resource_id))
             return resp.order_id
 
+        if op == "cancel_order":
+            svc = OrderService(self._db)
+            resp = await svc.cancel_order(kitchen, uuid.UUID(mutation.resource_id))
+            return resp.order_id
+
+        if op == "start_delivery":
+            svc = ReceivingService(self._db)
+            resp = await svc.start_delivery(kitchen, uuid.UUID(mutation.resource_id))
+            return resp.order_id
+
         if op == "receive_delivery":
             svc = ReceivingService(self._db)
             results = await svc.receive_delivery(

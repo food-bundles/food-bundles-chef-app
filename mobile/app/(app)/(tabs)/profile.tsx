@@ -35,7 +35,7 @@ export default function ProfileScreen() {
           <Text className="text-surface-400 text-xs font-medium uppercase tracking-wider mb-1">
             Phone
           </Text>
-          <Text className="text-white font-medium">{chef?.phone ?? '—'}</Text>
+          <Text className="text-white font-medium">{chef?.phoneNumber ?? '—'}</Text>
         </View>
 
         <View className="bg-surface-800 rounded-xl p-4">

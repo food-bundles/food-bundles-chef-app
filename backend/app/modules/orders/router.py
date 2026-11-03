@@ -91,3 +91,14 @@ async def confirm_order(
     """Mark order as confirmed (called by Food Bundles backend or for manual confirmation)."""
     svc = OrderService(db)
     return await svc.confirm_order(kitchen, order_id)
+
+
+@router.post("/{order_id}/cancel", response_model=OrderSubmitResponse)
+async def cancel_order(
+    order_id: uuid.UUID,
+    kitchen=Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> OrderSubmitResponse:
+    """Cancel a draft or submitted order."""
+    svc = OrderService(db)
+    return await svc.cancel_order(kitchen, order_id)

@@ -51,3 +51,6 @@ pip.ini
 
 # Local Docker dev overrides (never commit)
 docker-compose.override.yml
+
+.claude/
+CLAUDE.md

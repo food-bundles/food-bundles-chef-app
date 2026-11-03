@@ -3,9 +3,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
-import { useStockStore } from '@/store/stock-store';
-import { useOrderStore } from '@/store/order-store';
-import { useDeliveryStore } from '@/store/delivery-store';
+import { useStockLevels } from '@/features/inventory/useStockLevels';
+import { useOrders } from '@/features/orders/useOrders';
+import { useDeliveries } from '@/features/receiving/useDeliveries';
+import { useKitchens } from '@/features/kitchens/useKitchens';
 import { SectionHeader, StockIndicator, SyncStatusBadge } from '@/components/ui';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
@@ -13,20 +14,23 @@ import { useSyncStatus } from '@/hooks/useSyncStatus';
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const allStock = useStockStore((s) => s.items);
-  const getLowStockItems = useStockStore((s) => s.getLowStockItems);
 
-  const orders = useOrderStore((s) => s.orders);
-  const deliveries = useDeliveryStore((s) => s.deliveries);
-  const kitchenId = activeKitchen?.id ?? '';
-  const lowStockItems = kitchenId ? getLowStockItems(kitchenId) : [];
+  // Load kitchens from API (hydrates kitchen-store on success)
+  useKitchens();
+
+  const { data: stockLevels = [] } = useStockLevels();
+  const { data: orders = [] } = useOrders();
+  const { data: deliveries = [] } = useDeliveries();
+
+  const lowStockItems = stockLevels.filter((s) => s.is_low_stock);
   const lowStockCount = lowStockItems.length;
 
   const pendingOrderCount = orders.filter(
-    (o) => o.kitchenId === kitchenId && (o.status === 'submitted' || o.status === 'confirmed'),
+    (o) => o.status === 'submitted' || o.status === 'confirmed',
   ).length;
-  const todayDeliveryCount = deliveries.filter(
-    (d) => d.kitchenId === kitchenId && d.status !== 'completed',
+
+  const activeDeliveryCount = deliveries.filter(
+    (d) => d.status !== 'delivered',
   ).length;
 
   const sync = useSyncStatus();
@@ -105,7 +109,7 @@ export default function DashboardScreen() {
           <StatCard
             icon={<Package size={18} color="#1DB954" strokeWidth={2} />}
             label="Deliveries"
-            value={String(todayDeliveryCount)}
+            value={String(activeDeliveryCount)}
             valueColor="text-success"
             onPress={() => router.push('/(app)/receiving')}
           />
@@ -123,13 +127,15 @@ export default function DashboardScreen() {
           </View>
         ) : (
           lowStockItems.map((item) => {
-            const days = calcDaysOfCover(item.quantityOnHand, item.dailyUseRate);
+            const stock = parseFloat(item.current_stock);
+            const dailyUse = item.expected_daily_use ? parseFloat(item.expected_daily_use) : 0;
+            const days = calcDaysOfCover(stock, dailyUse);
             return (
-              <View key={item.id} className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
+              <View key={item.ingredient_id} className="bg-surface-800 rounded-xl p-4 flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-white font-medium">{item.ingredientName}</Text>
+                  <Text className="text-white font-medium">{item.ingredient_name}</Text>
                   <Text className="text-surface-400 text-sm mt-0.5">
-                    {item.quantityOnHand} {item.unit} remaining
+                    {item.current_stock} {item.unit} remaining
                   </Text>
                 </View>
                 <StockIndicator daysOfCover={days} />
@@ -138,7 +144,7 @@ export default function DashboardScreen() {
           })
         )}
 
-        {/* Procurement reminder — show only when there are low-stock items */}
+        {/* Procurement reminder */}
         {lowStockCount > 0 && (
           <View className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
             <View className="flex-row items-center gap-2 mb-2">

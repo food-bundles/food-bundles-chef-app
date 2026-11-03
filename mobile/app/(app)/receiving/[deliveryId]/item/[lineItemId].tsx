@@ -14,20 +14,23 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Camera, RefreshCw, CheckCircle, XCircle, AlertTriangle, Bot } from 'lucide-react-native';
+import { Camera, CheckCircle, XCircle, AlertTriangle, Bot } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { useDeliveryStore } from '@/store/delivery-store';
-import { mockQualityAdapter } from '@/services/ai/quality-adapter';
+import { useDeliveryDetail } from '@/features/receiving/useDeliveries';
+import { usePendingDecisions } from '@/features/receiving/pendingDecisions';
+import { assessQuality } from '@/api/ai-api';
+import { ApiError } from '@/api/errors';
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { MAX_PHOTO_SIZE_BYTES } from '@/constants';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
-import type { QualityAssessment, QualityResult, AcceptanceDecision } from '@/types';
+import type { QualityAssessmentResponseDto, QualityResult, QualityDimensionResult } from '@/api/ai-api';
+import type { ReceivingDecision } from '@/api/receiving-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
 
-type Step = 'camera' | 'assessment' | 'entry' | 'confirm';
+type Step = 'camera' | 'assessment' | 'entry';
 
 const QUALITY_VARIANT: Record<QualityResult, BadgeVariant> = {
   pass: 'success',
@@ -35,35 +38,24 @@ const QUALITY_VARIANT: Record<QualityResult, BadgeVariant> = {
   fail: 'danger',
 };
 
-const DIMENSION_LABELS: Record<keyof Omit<QualityAssessment, 'score' | 'notes' | 'estimatedQuantity'>, string> = {
-  freshness: 'Freshness',
-  ripeness: 'Ripeness',
-  damage: 'Damage',
-  spoilage: 'Spoilage',
-  sizeGrade: 'Size / Grade',
-  foreignMatter: 'Foreign Matter',
-};
-
 export default function LineItemReceiveScreen() {
   const { deliveryId, lineItemId } = useLocalSearchParams<{ deliveryId: string; lineItemId: string }>();
-  const delivery = useDeliveryStore((s) => s.deliveries.find((d) => d.id === deliveryId));
-  const lineItem = delivery?.lineItems.find((li) => li.id === lineItemId);
-  const updateLineItem = useDeliveryStore((s) => s.updateLineItem);
+  const { data: order } = useDeliveryDetail(deliveryId ?? '');
+  const line = order?.lines.find((l) => l.id === lineItemId);
+  const setDecision = usePendingDecisions((s) => s.setDecision);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>();
-  const [step, setStep] = useState<Step>(lineItem?.photoUri ? 'entry' : 'camera');
-  const [assessment, setAssessment] = useState<QualityAssessment | undefined>();
+  const [step, setStep] = useState<Step>('camera');
+  const [assessment, setAssessment] = useState<QualityAssessmentResponseDto | undefined>();
   const [assessing, setAssessing] = useState(false);
   const [assessError, setAssessError] = useState<string | undefined>();
 
-  // Manual entry fields
-  const [acceptedQty, setAcceptedQty] = useState(lineItem?.acceptedQuantity?.toString() ?? '');
-  const [actualPriceStr, setActualPriceStr] = useState(lineItem?.actualPrice?.amount.toString() ?? '');
-  const [discrepancyReason, setDiscrepancyReason] = useState(lineItem?.discrepancyReason ?? '');
+  const [acceptedQty, setAcceptedQty] = useState('');
+  const [discrepancyReason, setDiscrepancyReason] = useState('');
 
-  if (!lineItem || !delivery) {
+  if (!line || !order) {
     return (
       <AppScreen>
         <AppHeader title="Receive Item" showBack />
@@ -75,7 +67,8 @@ export default function LineItemReceiveScreen() {
   }
 
   const acceptedQtyNum = parseFloat(acceptedQty) || 0;
-  const short = acceptedQtyNum > 0 && isShortDelivery(lineItem.orderedQuantity, acceptedQtyNum);
+  const orderedQtyNum = parseFloat(line.quantity_ordered);
+  const short = acceptedQtyNum > 0 && isShortDelivery(orderedQtyNum, acceptedQtyNum);
 
   const handleCapture = async () => {
     if (!cameraRef) return;
@@ -83,17 +76,13 @@ export default function LineItemReceiveScreen() {
       const photo = await cameraRef.takePictureAsync({ quality: 0.8 });
       if (!photo?.uri) return;
 
-      // Compress to under 1 MB
-      let uri = photo.uri;
       const compressed = await ImageManipulator.manipulateAsync(
-        uri,
+        photo.uri,
         [{ resize: { width: 1024 } }],
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
       );
 
-      // Check size
-      const response = await fetch(compressed.uri);
-      const blob = await response.blob();
+      const blob = await (await fetch(compressed.uri)).blob();
       if (blob.size > MAX_PHOTO_SIZE_BYTES) {
         Alert.alert('Image too large', 'Could not compress image below 1 MB. Please try again with better lighting.');
         return;
@@ -101,7 +90,7 @@ export default function LineItemReceiveScreen() {
 
       setPhotoUri(compressed.uri);
       setStep('assessment');
-      runAssessment(compressed.uri);
+      void runAssessment(compressed.uri);
     } catch {
       Alert.alert('Camera error', 'Could not capture photo. Please try again.');
     }
@@ -111,40 +100,43 @@ export default function LineItemReceiveScreen() {
     setAssessing(true);
     setAssessError(undefined);
     try {
-      const result = await mockQualityAdapter.assessPhoto(uri, lineItem.productName);
+      const result = await assessQuality(
+        order.kitchen_id,
+        uri,
+        line.product_name,
+        line.unit,
+      );
       setAssessment(result);
-      // Pre-fill quantity if AI provided an estimate
-      if (result.estimatedQuantity !== null && acceptedQty === '') {
-        setAcceptedQty(result.estimatedQuantity.toString());
+      // Pre-fill quantity if AI provided an estimate and it's still blank
+      const est = result.quantity_estimate?.estimated_quantity;
+      if (est !== null && est !== undefined && acceptedQty === '') {
+        setAcceptedQty(est);
       }
-    } catch {
-      setAssessError('AI assessment unavailable. Please enter values manually.');
+    } catch (err) {
+      const is503 = err instanceof ApiError && err.status === 503;
+      setAssessError(
+        is503
+          ? 'AI assessment is unavailable. Please enter values manually.'
+          : 'Assessment failed. Please enter values manually.',
+      );
     } finally {
       setAssessing(false);
     }
   };
 
   const handleSkipCamera = () => setStep('entry');
-
   const handleRetakePhoto = () => {
     setPhotoUri(undefined);
     setAssessment(undefined);
     setStep('camera');
   };
-
   const handleProceedToEntry = () => setStep('entry');
 
-  const handleConfirm = (decision: AcceptanceDecision) => {
-    const actualPriceNum = parseFloat(actualPriceStr);
-    updateLineItem(deliveryId!, lineItemId!, {
-      acceptedQuantity: acceptedQtyNum,
-      actualPrice: !isNaN(actualPriceNum) && actualPriceNum > 0
-        ? { amount: actualPriceNum, currency: 'RWF', source: 'chef-entered' }
-        : undefined,
-      qualityAssessment: assessment,
+  const handleConfirm = (decision: ReceivingDecision) => {
+    setDecision(line.id, {
+      quantity_received: acceptedQtyNum.toString(),
       decision,
-      discrepancyReason: discrepancyReason.trim() || undefined,
-      photoUri,
+      rejection_reason: discrepancyReason.trim() || undefined,
     });
     router.back();
   };
@@ -185,7 +177,7 @@ export default function LineItemReceiveScreen() {
 
     return (
       <AppScreen edges={['bottom']}>
-        <AppHeader title={lineItem.productName} showBack />
+        <AppHeader title={line.product_name} showBack />
         <View style={{ flex: 1, backgroundColor: '#000' }}>
           <CameraView
             ref={setCameraRef}
@@ -220,7 +212,7 @@ export default function LineItemReceiveScreen() {
   if (step === 'assessment') {
     return (
       <AppScreen>
-        <AppHeader title={lineItem.productName} showBack />
+        <AppHeader title={line.product_name} showBack />
         <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}>
           {photoUri && (
             <View style={{ borderRadius: radius.lg, overflow: 'hidden' }}>
@@ -258,44 +250,28 @@ export default function LineItemReceiveScreen() {
                 </Text>
               </View>
 
-              {/* Score */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.surface[300] }}>Overall Score</Text>
-                <Text style={{
-                  color: assessment.score >= 70 ? colors.success : assessment.score >= 40 ? colors.warning : colors.danger,
-                  fontWeight: fontWeight.bold,
-                  fontSize: fontSize.xl,
-                }}>
-                  {assessment.score}/100
-                </Text>
-              </View>
-
-              {/* Dimensions */}
-              {(Object.entries(DIMENSION_LABELS) as [keyof typeof DIMENSION_LABELS, string][]).map(([key, label]) => (
-                <View key={key} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.surface[300], fontSize: fontSize.sm }}>{label}</Text>
+              {assessment.dimensions.map((dim: QualityDimensionResult) => (
+                <View key={dim.dimension} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ color: colors.surface[300], fontSize: fontSize.sm, textTransform: 'capitalize' }}>
+                    {dim.dimension.replace(/_/g, ' ')}
+                  </Text>
                   <StatusBadge
-                    label={assessment[key].charAt(0).toUpperCase() + assessment[key].slice(1)}
-                    variant={QUALITY_VARIANT[assessment[key]]}
+                    label={dim.result.charAt(0).toUpperCase() + dim.result.slice(1)}
+                    variant={QUALITY_VARIANT[dim.result]}
                   />
                 </View>
               ))}
 
-              {/* Estimated quantity */}
               <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.surface[700], paddingTop: spacing.sm }}>
                 <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
                   AI estimated quantity:{' '}
                   <Text style={{ color: colors.surface[300] }}>
-                    {assessment.estimatedQuantity !== null
-                      ? `~${assessment.estimatedQuantity} ${lineItem.unit} (advisory — enter actual below)`
+                    {assessment.quantity_estimate?.estimated_quantity !== null && assessment.quantity_estimate?.estimated_quantity !== undefined
+                      ? `~${assessment.quantity_estimate.estimated_quantity} ${line.unit} (advisory — enter actual below)`
                       : 'Not visible in image — enter manually'}
                   </Text>
                 </Text>
               </View>
-
-              {assessment.notes && (
-                <Text style={{ color: colors.warning, fontSize: fontSize.xs }}>{assessment.notes}</Text>
-              )}
             </View>
           )}
 
@@ -315,7 +291,7 @@ export default function LineItemReceiveScreen() {
   // ── Manual entry + confirmation ──
   return (
     <AppScreen>
-      <AppHeader title={lineItem.productName} showBack />
+      <AppHeader title={line.product_name} showBack />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
@@ -327,18 +303,16 @@ export default function LineItemReceiveScreen() {
               Ordered
             </Text>
             <Text style={{ color: colors.white, fontWeight: fontWeight.semibold }}>
-              {lineItem.orderedQuantity} {lineItem.unit}
+              {line.quantity_ordered} {line.unit}
             </Text>
-            {lineItem.referencePrice && (
-              <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
-                Ref price: {lineItem.referencePrice.amount.toLocaleString()} RWF/{lineItem.unit} ({lineItem.referencePrice.referenceDate})
-              </Text>
-            )}
+            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
+              Ref price: {line.unit_price} RWF/{line.unit}
+            </Text>
           </View>
 
           <AppTextField
             label="Accepted Quantity (actual)"
-            placeholder={`e.g. ${lineItem.orderedQuantity}`}
+            placeholder={`e.g. ${line.quantity_ordered}`}
             value={acceptedQty}
             onChangeText={setAcceptedQty}
             keyboardType="decimal-pad"
@@ -354,14 +328,6 @@ export default function LineItemReceiveScreen() {
           )}
 
           <AppTextField
-            label="Actual Price (RWF / unit)"
-            placeholder="Chef-entered actual price"
-            value={actualPriceStr}
-            onChangeText={setActualPriceStr}
-            keyboardType="decimal-pad"
-          />
-
-          <AppTextField
             label="Discrepancy Reason (optional)"
             placeholder="e.g. Two bags had visible mold"
             value={discrepancyReason}
@@ -370,7 +336,6 @@ export default function LineItemReceiveScreen() {
             numberOfLines={2}
           />
 
-          {/* Acceptance decision buttons */}
           <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             Decision
           </Text>
@@ -419,4 +384,3 @@ export default function LineItemReceiveScreen() {
     </AppScreen>
   );
 }
-

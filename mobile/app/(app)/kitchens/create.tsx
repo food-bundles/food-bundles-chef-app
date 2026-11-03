@@ -11,15 +11,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
-import { useKitchenStore } from '@/store/kitchen-store';
-import { useSessionStore } from '@/store/session-store';
+import { useCreateKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
 import { spacing, colors, fontSize } from '@/lib/theme';
 
 export default function CreateKitchenScreen() {
-  const addKitchen = useKitchenStore((s) => s.addKitchen);
-  const setActiveKitchen = useKitchenStore((s) => s.setActiveKitchen);
-  const chef = useSessionStore((s) => s.chef);
+  const createKitchen = useCreateKitchen();
 
   const {
     control,
@@ -35,21 +32,12 @@ export default function CreateKitchenScreen() {
     },
   });
 
-  const onSubmit = (values: KitchenFormValues) => {
-    const kitchen = {
-      id: `kitchen-${Date.now()}`,
-      chefId: chef?.id ?? 'unknown',
+  const onSubmit = async (values: KitchenFormValues) => {
+    await createKitchen.mutateAsync({
       name: values.name,
-      address: values.address || undefined,
-      cuisineType: values.cuisineType || undefined,
-      seatingCapacity: values.seatingCapacity
-        ? parseInt(values.seatingCapacity, 10)
-        : undefined,
-      isArchived: false,
-      createdAt: new Date().toISOString(),
-    };
-    addKitchen(kitchen);
-    setActiveKitchen(kitchen);
+      address: values.address || null,
+      location: values.cuisineType || null,
+    });
     router.back();
   };
 
@@ -141,8 +129,14 @@ export default function CreateKitchenScreen() {
           <AppButton
             label="Create Kitchen"
             onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
+            loading={isSubmitting || createKitchen.isPending}
           />
+
+          {createKitchen.isError && (
+            <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
+              Failed to create kitchen. Please try again.
+            </Text>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </AppScreen>

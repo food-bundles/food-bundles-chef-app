@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Package,
   User,
+  Bot,
 } from 'lucide-react-native';
 
 const ICON_SIZE = 22;
@@ -69,6 +70,16 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: 'Stock tab',
           tabBarIcon: ({ color }) => (
             <Package size={ICON_SIZE} color={color} strokeWidth={1.75} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="agent"
+        options={{
+          title: 'Assistant',
+          tabBarAccessibilityLabel: 'AI Assistant tab',
+          tabBarIcon: ({ color }) => (
+            <Bot size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
         }}
       />

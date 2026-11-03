@@ -18,6 +18,7 @@ from app.modules.inventory.repository import InventoryRepository
 from app.modules.kitchens.models import Kitchen
 from app.modules.orders.models import OrderLine
 from app.modules.orders.repository import OrderLineRepository, OrderRepository
+from app.modules.orders.schemas import OrderSubmitResponse
 from app.modules.receiving.models import DeliveryReceiving
 from app.modules.receiving.schemas import BulkReceivingRequest, ReceivingResponse
 from app.shared.enums import OrderStatus, ReceivingDecision
@@ -29,6 +30,29 @@ class ReceivingService:
         self._line_repo = OrderLineRepository(db)
         self._inv_repo = InventoryRepository(db)
         self._db = db
+
+    async def start_delivery(
+        self,
+        kitchen: Kitchen,
+        order_id: uuid.UUID,
+    ) -> OrderSubmitResponse:
+        """Transition a confirmed order to OUT_FOR_DELIVERY (chef started receiving)."""
+        order = await self._order_repo.get_by_id_and_kitchen(order_id, kitchen.id)
+        if order is None:
+            raise NotFoundError("Order not found in this kitchen.")
+        if order.status != OrderStatus.CONFIRMED:
+            raise ConflictError(
+                f"Cannot start delivery for order in status '{order.status}'. "
+                "Order must be CONFIRMED."
+            )
+        order.status = OrderStatus.OUT_FOR_DELIVERY
+        await self._db.flush()
+        return OrderSubmitResponse(
+            order_id=order.id,
+            external_order_id=order.external_order_id,
+            status=OrderStatus(order.status),
+            message="Delivery started.",
+        )
 
     async def receive_delivery(
         self,

@@ -102,6 +102,24 @@ class OrderService:
             message="Order confirmed.",
         )
 
+    async def cancel_order(
+        self, kitchen: Kitchen, order_id: uuid.UUID
+    ) -> OrderSubmitResponse:
+        order = await self._require_owned(kitchen, order_id)
+        if order.status not in (OrderStatus.DRAFT, OrderStatus.SUBMITTED):
+            raise ConflictError(
+                f"Order cannot be cancelled from status '{order.status}'. "
+                "Only draft or submitted orders may be cancelled."
+            )
+        order.status = OrderStatus.CANCELLED
+        order = await self._repo.update(order)
+        return OrderSubmitResponse(
+            order_id=order.id,
+            external_order_id=order.external_order_id,
+            status=OrderStatus(order.status),
+            message="Order cancelled.",
+        )
+
     async def get_order(
         self, kitchen: Kitchen, order_id: uuid.UUID
     ) -> OrderWithLinesResponse:

@@ -2,6 +2,8 @@ import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { requestOtp } from '@/api/auth-api';
+import { ApiError } from '@/api/errors';
 
 export default function PhoneNumberScreen() {
   const insets = useSafeAreaInsets();
@@ -18,10 +20,27 @@ export default function PhoneNumberScreen() {
     }
     setError(null);
     setLoading(true);
-    // Simulated OTP send — no real SMS sent
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    router.push({ pathname: '/(auth)/verify-otp', params: { phone } });
+    try {
+      await requestOtp({ phone_number: phone });
+      router.push({ pathname: '/(auth)/verify-otp', params: { phone } });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        switch (err.kind) {
+          case 'rate_limit':
+            setError('Too many attempts. Please wait a moment and try again.');
+            break;
+          case 'transport':
+            setError('No connection. Check your internet and try again.');
+            break;
+          default:
+            setError('Could not send code. Please try again.');
+        }
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,8 +63,7 @@ export default function PhoneNumberScreen() {
 
         <Text className="text-2xl font-bold text-white mb-2">Enter your phone</Text>
         <Text className="text-surface-400 mb-8">
-          We'll send you a one-time code to verify your number.{'\n'}
-          <Text className="text-surface-500 text-xs">(Demo: no real SMS is sent)</Text>
+          We'll send you a one-time code to verify your number.
         </Text>
 
         <View className="mb-2">
