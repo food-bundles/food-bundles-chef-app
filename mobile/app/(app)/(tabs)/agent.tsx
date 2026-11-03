@@ -324,7 +324,7 @@ export default function AgentScreen() {
             accessibilityRole="button"
             accessibilityLabel="Send message"
             style={[
-              { backgroundColor: colors.brand[700], borderRadius: radius.md, padding: spacing.sm },
+              { backgroundColor: '#22C55E', borderRadius: radius.md, padding: spacing.sm },
               (!inputText.trim() || agentTurnMutation.isPending) && { opacity: 0.5 },
             ]}
           >
@@ -482,16 +482,16 @@ function ChatEntryRow({
                 accessibilityRole="button"
                 accessibilityLabel="Confirm proposed action"
                 style={[
-                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.brand[700], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
+                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: '#22C55E', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
                   isConfirming && { opacity: 0.6 },
                 ]}
               >
                 {isConfirming ? (
-                  <ActivityIndicator size="small" color={colors.white} />
+                  <ActivityIndicator size="small" color="#000000" />
                 ) : (
                   <>
-                    <CheckCircle size={16} color={colors.white} />
-                    <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Confirm</Text>
+                    <CheckCircle size={16} color="#000000" />
+                    <Text style={{ color: '#000000', fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Confirm</Text>
                   </>
                 )}
               </Pressable>

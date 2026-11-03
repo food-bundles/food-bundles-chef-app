@@ -13,7 +13,9 @@ Flow:
 from __future__ import annotations
 
 import json
+import re
 import uuid
+from datetime import date
 from typing import Any
 
 import structlog
@@ -40,57 +42,61 @@ from app.shared.enums import OrderStatus
 logger = structlog.get_logger(__name__)
 
 _SYSTEM_PROMPT_TEMPLATE = """You are the Food Bundles kitchen assistant for chef {chef_name}.
-You help chefs manage their kitchen operations: recording sales, managing inventory,
-creating and cancelling orders, and receiving deliveries.
+You act on behalf of the chef — you plan actions and they confirm once. Be decisive and helpful.
 
-KITCHEN CONTEXT (current state):
+KITCHEN CONTEXT:
 {kitchen_context}
 
-YOUR RULES:
-1. You NEVER write to the database yourself. You only plan actions.
-2. Always confirm with the chef before acting — return a confirmation proposal.
-3. If any required value is missing or ambiguous, ask ONE clarifying question.
-4. For undo requests, propose a reversal action (e.g. cancel an order you just created).
-5. Be concise. Speak like a helpful kitchen colleague, not a corporate chatbot.
-6. All quantities must be numbers. All dates must be ISO format (YYYY-MM-DD).
-7. If the chef's request matches NOTHING you can do, say so clearly.
+RULES:
+1. You NEVER write to the database — you only propose actions. The chef confirms once.
+2. ACT on the first message if you have enough information. Do NOT ask for things you already know.
+3. Only ask a clarifying question when a critical piece of information is genuinely absent (e.g. the chef says "order bananas" with no quantity at all). Ask at most ONE question.
+4. If quantities, items, or action are clear from the conversation — propose immediately without asking again.
+5. When the chef says "yes", "yeah", "proceed", "go ahead", "confirm", "do it" — treat that as confirmation of the last proposal and proceed with the action.
+6. Be concise. Talk like a kitchen colleague, not a corporate assistant. No filler phrases.
+7. Quantities must be numbers. Dates must be ISO format (YYYY-MM-DD). Today is {today}.
 
-AVAILABLE ACTIONS:
-- record_sale: Record portions sold for a menu item today
-- record_inventory: Adjust stock quantity for an ingredient
-- create_order: Create a purchase order with line items
-- submit_order: Submit a draft order to the supplier
-- cancel_order: Cancel a draft or submitted order
-- start_delivery: Mark a confirmed order as out for delivery
-- receive_delivery: Record receipt of delivered items with quantities and decisions
-- undo: Reverse the last confirmed action
+AVAILABLE ACTIONS AND THEIR PARAMS:
 
-RESPONSE FORMAT:
-You must respond with a JSON object (no markdown, no code fences) with this structure:
+record_sale — record portions sold for a menu item
+  params: {{ "menu_item_id": "<id from context>", "portions_sold": <number>, "date": "<YYYY-MM-DD>" }}
 
-If you need clarification:
-{{
-  "type": "clarification",
-  "reply_text": "What I understood and what I need to know",
-  "question": "The specific question",
-  "options": ["option1", "option2"]  // optional multiple-choice
-}}
+record_inventory — adjust stock quantity
+  params: {{ "ingredient_id": "<id from context>", "quantity": "<number as string>", "entry_type": "adjustment|delivery|waste", "notes": "<optional string or null>" }}
 
-If you have enough info to propose an action:
-{{
-  "type": "proposal",
-  "reply_text": "Here's what I'll do",
-  "action_type": "<one of the AVAILABLE ACTIONS above>",
-  "summary": "Human-readable one-liner, e.g. Accept 48 kg tomatoes from Order #1042",
-  "params": {{ ... }},  // action-specific parameters
-  "reversible": true
-}}
+create_order — create a purchase order
+  params: {{ "delivery_date": "<YYYY-MM-DD or null>", "notes": "<string or null>",
+    "lines": [
+      {{ "catalog_product_id": "manual", "product_name": "<item name>", "unit": "<kg|pieces|litres|etc>", "quantity_ordered": "<number>", "unit_price": "0", "ingredient_id": null }}
+    ]
+  }}
+  IMPORTANT: Always use "manual" for catalog_product_id and "0" for unit_price. Use the product name the chef gave you. Never refuse to create an order because a product is not in the catalog.
 
-If you cannot help:
-{{
-  "type": "none",
-  "reply_text": "I can't do that, but here's what I can do..."
-}}
+submit_order — submit a draft order to supplier
+  params: {{ "order_id": "<id from context>" }}
+
+cancel_order — cancel a draft or submitted order
+  params: {{ "order_id": "<id from context>" }}
+
+start_delivery — mark a confirmed order as out for delivery
+  params: {{ "order_id": "<id from context>" }}
+
+receive_delivery — record received items
+  params: {{ "order_id": "<id from context>", "lines": [{{ "order_line_id": "<id>", "quantity_received": "<number>", "decision": "accepted|partially-accepted|rejected", "rejection_reason": null }}] }}
+
+undo — reverse last action
+  params: {{}}
+
+RESPONSE FORMAT — respond with ONLY a raw JSON object, no markdown, no code fences, no text before or after:
+
+Propose an action (use this whenever you have enough information):
+{{"type":"proposal","reply_text":"<friendly 1-2 sentence explanation>","action_type":"<action>","summary":"<short human-readable summary>","params":{{...}},"reversible":true}}
+
+Ask for missing critical info (only when truly needed):
+{{"type":"clarification","reply_text":"<what you understood>","question":"<single specific question>","options":["<opt1>","<opt2>"]}}
+
+Cannot help:
+{{"type":"none","reply_text":"<brief explanation of what you can and cannot do>"}}
 """
 
 
@@ -101,13 +107,26 @@ async def _build_kitchen_context(
     """Fetch current stock, open orders and menu items for the system prompt."""
     lines: list[str] = [f"Kitchen: {kitchen.name}"]
 
+    # Ingredients with IDs (needed for record_inventory params)
+    ing_repo = IngredientRepository(db)
+    try:
+        ingredients = await ing_repo.list_for_kitchen(kitchen.id)
+        if ingredients:
+            lines.append("\nIngredients (use id for record_inventory):")
+            for ing in ingredients[:30]:
+                lines.append(f"  - {ing.name} id={ing.id} unit={ing.unit}")
+        else:
+            lines.append("\nNo ingredients configured yet.")
+    except Exception:
+        lines.append("\nIngredient data unavailable.")
+
     # Stock levels
     inv_service = InventoryService(db)
     try:
         stock_levels = await inv_service.get_stock_levels(kitchen)
         if stock_levels:
             lines.append("\nCurrent stock:")
-            for s in stock_levels[:20]:  # cap to avoid massive prompts
+            for s in stock_levels[:20]:
                 lines.append(
                     f"  - {s.ingredient_name}: {s.current_stock} {s.unit} "
                     f"({s.days_cover} days cover)"
@@ -174,12 +193,32 @@ def _build_messages(
     return result
 
 
+def _extract_json(raw: str) -> str:
+    """Pull the first {...} block from a string that may have preamble or markdown fences."""
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    if fenced:
+        return fenced.group(1)
+    # Find first { ... } that spans to the matching closing brace
+    start = raw.find("{")
+    if start == -1:
+        return raw
+    depth = 0
+    for i, ch in enumerate(raw[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[start : i + 1]
+    return raw[start:]
+
+
 def _parse_llm_response(raw: str, last_action: ActionProposal | None) -> AgentResponse:
     """Parse Muse Spark's JSON response into AgentResponse."""
     try:
-        data: dict[str, Any] = json.loads(raw.strip())
+        data: dict[str, Any] = json.loads(_extract_json(raw))
     except json.JSONDecodeError:
-        # Claude returned non-JSON — treat as plain text reply with no action
+        # Model returned non-JSON plain text — show it directly
         return AgentResponse(
             reply_text=raw.strip(),
             proposal=None,
@@ -254,6 +293,7 @@ class AgentService:
         system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(
             chef_name=chef_name,
             kitchen_context=kitchen_context,
+            today=date.today().isoformat(),
         )
 
         messages = _build_messages(request)
