@@ -67,12 +67,30 @@ export default function AgentScreen() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recordingRef = useRef<any>(null);
 
-  // Build conversation history for the API (only message entries)
+  // Build conversation history for the API — includes all entry types so the
+  // model knows what it already proposed, what was confirmed, and what was cancelled.
   const buildHistory = useCallback(
     (extra?: AgentMessage): AgentMessage[] => {
-      const msgs: AgentMessage[] = entries
-        .filter((e): e is Extract<ChatEntry, { type: 'message' }> => e.type === 'message')
-        .map((e) => ({ role: e.role, content: e.content }));
+      const msgs: AgentMessage[] = [];
+      for (const e of entries) {
+        if (e.type === 'message') {
+          msgs.push({ role: e.role, content: e.content });
+        } else if (e.type === 'clarification') {
+          // The question the assistant asked
+          msgs.push({ role: 'agent', content: `${e.replyText} ${e.question.question}` });
+        } else if (e.type === 'proposal') {
+          // What the assistant proposed
+          msgs.push({ role: 'agent', content: `${e.replyText} [Proposed: ${e.proposal.summary}]` });
+          // What happened to it
+          if (e.confirmed) {
+            msgs.push({ role: 'chef', content: `Confirmed. Action executed: ${e.proposal.summary}` });
+          } else if (e.cancelled) {
+            msgs.push({ role: 'chef', content: `Cancelled that action.` });
+          }
+        } else if (e.type === 'error') {
+          msgs.push({ role: 'agent', content: `Error: ${e.content}` });
+        }
+      }
       if (extra) msgs.push(extra);
       return msgs;
     },
@@ -140,17 +158,23 @@ export default function AgentScreen() {
     try {
       await confirmMutation.mutateAsync(entry.proposal);
       setLastAction(entry.proposal);
-      // Mark proposal as confirmed in entries
-      setEntries((prev) =>
-        prev.map((e) => (e.id === entry.id && e.type === 'proposal' ? { ...e, confirmed: true } : e)),
-      );
-      // Add success message
-      appendEntry({
-        type: 'message',
-        role: 'agent',
-        content: `Done — ${entry.proposal.summary}. You can say "undo" to reverse this.`,
-        id: nextId(),
+      // Mark confirmed and add success message in one atomic update so the
+      // next buildHistory() call sees both changes.
+      setEntries((prev) => {
+        const updated = prev.map((e) =>
+          e.id === entry.id && e.type === 'proposal' ? { ...e, confirmed: true } : e,
+        );
+        return [
+          ...updated,
+          {
+            type: 'message' as const,
+            role: 'agent' as const,
+            content: `Done — ${entry.proposal.summary}. You can say "undo" to reverse this.`,
+            id: nextId(),
+          },
+        ];
       });
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch {
       appendEntry({
         type: 'error',
@@ -161,15 +185,21 @@ export default function AgentScreen() {
   };
 
   const handleCancel = (entryId: string) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === entryId && e.type === 'proposal' ? { ...e, cancelled: true } : e)),
-    );
-    appendEntry({
-      type: 'message',
-      role: 'agent',
-      content: 'Cancelled. What else would you like to do?',
-      id: nextId(),
+    setEntries((prev) => {
+      const updated = prev.map((e) =>
+        e.id === entryId && e.type === 'proposal' ? { ...e, cancelled: true } : e,
+      );
+      return [
+        ...updated,
+        {
+          type: 'message' as const,
+          role: 'agent' as const,
+          content: 'Cancelled. What else would you like to do?',
+          id: nextId(),
+        },
+      ];
     });
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   const handleOptionSelect = (option: string) => {
