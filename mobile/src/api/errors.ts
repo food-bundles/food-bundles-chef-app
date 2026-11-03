@@ -53,12 +53,18 @@ export async function responseToApiError(response: Response): Promise<ApiError> 
     // body not JSON — proceed with empty
   }
 
-  const errorCode = typeof body['error_code'] === 'string' ? body['error_code'] : undefined;
+  // Backend wraps errors as { error: { code, message } }
+  const errObj =
+    body['error'] != null && typeof body['error'] === 'object'
+      ? (body['error'] as Record<string, unknown>)
+      : body;
+
+  const errorCode = typeof errObj['code'] === 'string' ? errObj['code'] : undefined;
   const detail =
-    typeof body['detail'] === 'string'
-      ? body['detail']
-      : typeof body['message'] === 'string'
-        ? body['message']
+    typeof errObj['message'] === 'string'
+      ? errObj['message']
+      : typeof body['detail'] === 'string'
+        ? body['detail']
         : `HTTP ${response.status}`;
 
   const retryAfterSeconds = parseRetryAfter(response.headers.get('Retry-After'));

@@ -48,7 +48,6 @@ class Settings(BaseSettings):
     OTP_EXPIRY_SECONDS: int = 300
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
-    MOCK_OTP_CODE: str = ""  # dev only; empty = random
 
     # SMS
     SMS_API_KEY: str = ""

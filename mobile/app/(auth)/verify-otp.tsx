@@ -38,9 +38,15 @@ export default function VerifyOtpScreen() {
     setLoading(true);
     try {
       const tokens = await verifyOtp({ phone_number: phone ?? '', code: otp });
-      // Fetch the full chef profile so session-store has name + phone.
-      // http-client now has the access token via TokenProvider, but we inject
-      // it manually here for the first post-login call.
+      // Persist tokens first so http-client can inject the Authorization header
+      // for the immediately following GET /auth/me call.
+      await signIn({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        chef: { id: '', phoneNumber: phone ?? '', name: null },
+      });
+      // Now fetch the full profile — tokens are in SecureStore so http-client
+      // will send the Bearer header correctly.
       const profile = await getMe();
       await signIn({
         accessToken: tokens.access_token,
@@ -56,19 +62,28 @@ export default function VerifyOtpScreen() {
       router.replace('/(app)/(tabs)');
     } catch (err) {
       if (err instanceof ApiError) {
-        switch (err.kind) {
-          case 'auth':
-          case 'validation':
-            setError('Invalid code. Please check and try again.');
-            break;
-          case 'rate_limit':
-            setError('Too many attempts. Please wait a moment.');
-            break;
-          case 'transport':
-            setError('No connection. Check your internet and try again.');
-            break;
-          default:
-            setError('Could not verify. Please try again.');
+        // Check backend error_code first for precise OTP errors
+        if (err.errorCode === 'OTP_EXPIRED') {
+          setError('Incorrect code. Please check and try again.');
+        } else if (err.errorCode === 'OTP_MAX_ATTEMPTS') {
+          setError('Too many failed attempts. Please request a new code.');
+        } else if (err.errorCode === 'OTP_RESEND_COOLDOWN') {
+          setError('Too many attempts. Please wait a moment.');
+        } else {
+          switch (err.kind) {
+            case 'auth':
+            case 'validation':
+              setError('Invalid code. Please check and try again.');
+              break;
+            case 'rate_limit':
+              setError('Too many attempts. Please wait a moment.');
+              break;
+            case 'transport':
+              setError('No connection. Check your internet and try again.');
+              break;
+            default:
+              setError('Could not verify. Please try again.');
+          }
         }
       } else {
         setError('Something went wrong. Please try again.');
