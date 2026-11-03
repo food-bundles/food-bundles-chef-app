@@ -12,7 +12,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"app/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"app/**/*.{ts,tsx}\"",
     "test": "jest --passWithNoTests",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "node scripts/patch-css-interop.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
