@@ -68,6 +68,10 @@
     "typescript": "~6.0.3"
   },
   "overrides": {
-    "react-test-renderer": "19.3.0"
+    "react-test-renderer": "19.3.0",
+    "lucide-react-native": {
+      "react": "19.3.0"
+    },
+    "react-dom": "19.3.0"
   }
 }
