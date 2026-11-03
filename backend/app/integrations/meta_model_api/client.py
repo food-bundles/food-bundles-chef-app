@@ -93,12 +93,14 @@ class MetaModelAPIClient:
         self,
         system_prompt: str,
         messages: list[dict[str, str]],
-        max_tokens: int = 1024,
+        max_tokens: int = 4096,
     ) -> str:
         """Send a chat completion request to Muse Spark and return the text content.
 
         Re-verify /v1/chat/completions path and response schema before production use.
         Never logs prompt content (AI_LOG_CONTENT=False).
+        muse-spark-1.3 uses reasoning tokens internally; needs a large max_tokens
+        budget so output tokens remain after reasoning completes.
         """
         full_messages = [{"role": "system", "content": system_prompt}] + messages
         payload = {
@@ -108,7 +110,15 @@ class MetaModelAPIClient:
         }
         response = await self.post_json("/chat/completions", payload)
         try:
-            return response["choices"][0]["message"]["content"]
+            content = response["choices"][0]["message"]["content"]
+            if content is None:
+                reasoning = response.get("usage", {}).get("completion_tokens_details", {}).get("reasoning_tokens", 0)
+                raise MetaModelAPIError(
+                    0,
+                    f"Muse Spark returned null content (all {reasoning} tokens used for reasoning). "
+                    "Increase max_tokens or simplify the prompt."
+                )
+            return content
         except (KeyError, IndexError) as exc:
             raise MetaModelAPIError(0, f"Unexpected Muse Spark response shape: {exc}") from exc
 

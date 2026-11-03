@@ -46,7 +46,7 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.white : colors.brand[500]}
+          color={variant === 'primary' ? colors.black : colors.brand[500]}
         />
       ) : (
         <Text style={[styles.label, styles[`${variant}Label`]]}>{label}</Text>
@@ -58,20 +58,35 @@ export function AppButton({
 const styles = StyleSheet.create({
   base: {
     minHeight: MIN_TOUCH_SIZE,
-    borderRadius: 50,
+    borderRadius: 12,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    width: '80%',
+    alignSelf: 'center' as const,
   },
-  primary: { backgroundColor: colors.brand[700] },
+  primary: {
+    backgroundColor: '#22C55E',
+    borderWidth: 2,
+    borderColor: colors.white,
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
   secondary: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.brand[600],
+    borderWidth: 2,
+    borderColor: colors.brand[500],
   },
-  danger: { backgroundColor: colors.danger },
+  danger: {
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
   ghost: { backgroundColor: 'transparent' },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.75 },
@@ -79,8 +94,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.bold,
   },
-  primaryLabel: { color: colors.white },
-  secondaryLabel: { color: colors.brand[600] },
+  primaryLabel: { color: colors.black },
+  secondaryLabel: { color: colors.brand[500] },
   dangerLabel: { color: colors.white },
   ghostLabel: { color: colors.brand[500] },
 });

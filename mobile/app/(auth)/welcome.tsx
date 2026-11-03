@@ -60,7 +60,7 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/(auth)/phone-number')}
           accessibilityRole="button"
           accessibilityLabel="Get started"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1, width: '80%' })}
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <View style={styles.btn}>
             <Text style={styles.btnText}>Get Started  →</Text>
@@ -189,15 +189,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#1A3522',
     gap: 12,
-    alignItems: 'center',
   },
   btn: {
+    width: '80%',
+    alignSelf: 'center',
     backgroundColor: '#22C55E',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#FFFFFF',
     paddingVertical: 18,
-    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#22C55E',

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,37 +39,25 @@ export default function VerifyOtpScreen() {
     setLoading(true);
     try {
       const tokens = await verifyOtp({ phone_number: phone ?? '', code: otp });
-      // Persist tokens first so http-client can inject the Authorization header
-      // for the immediately following GET /auth/me call.
       await signIn({
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         chef: { id: '', phoneNumber: phone ?? '', name: null },
       });
-      // Now fetch the full profile — tokens are in SecureStore so http-client
-      // will send the Bearer header correctly.
       const profile = await getMe();
       await signIn({
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
-        chef: {
-          id: profile.id,
-          phoneNumber: profile.phone_number,
-          name: profile.name,
-        },
+        chef: { id: profile.id, phoneNumber: profile.phone_number, name: profile.name },
       });
-      // Fire-and-forget: push token registration must not delay navigation
       void tryRegisterPushToken();
-      // Decide destination: new chefs with no kitchen go to create, others to tabs
       let destination: string = '/(app)/(tabs)';
       try {
         const kitchens = await listKitchens();
         if (kitchens.filter((k) => !k.archived_at).length === 0) {
           destination = '/(app)/kitchens/create';
         }
-      } catch {
-        // If kitchen fetch fails, default to tabs — (app)/_layout guards further
-      }
+      } catch { /* default to tabs */ }
       router.replace(destination as Parameters<typeof router.replace>[0]);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -77,22 +65,13 @@ export default function VerifyOtpScreen() {
           setError('Incorrect code. Please check and try again.');
         } else if (err.errorCode === 'OTP_MAX_ATTEMPTS') {
           setError('Too many failed attempts. Please request a new code.');
-        } else if (err.errorCode === 'OTP_RESEND_COOLDOWN') {
-          setError('Too many attempts. Please wait a moment.');
         } else {
           switch (err.kind) {
             case 'auth':
-            case 'validation':
-              setError('Invalid code. Please check and try again.');
-              break;
-            case 'rate_limit':
-              setError('Too many attempts. Please wait a moment.');
-              break;
-            case 'transport':
-              setError('No connection. Check your internet and try again.');
-              break;
-            default:
-              setError('Could not verify. Please try again.');
+            case 'validation': setError('Invalid code. Please check and try again.'); break;
+            case 'rate_limit': setError('Too many attempts. Please wait a moment.'); break;
+            case 'transport': setError('No connection. Check your internet and try again.'); break;
+            default: setError('Could not verify. Please try again.');
           }
         }
       } else {
@@ -105,32 +84,31 @@ export default function VerifyOtpScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#0E2A18' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <View
-        style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom }}
-      >
+      {/* Content */}
+      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+
+        {/* Back */}
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          style={{ marginBottom: 32, width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: '#1A3D22', borderRadius: 20 }}
+          style={styles.backBtn}
         >
-          <Text style={{ color: '#A7C4A0', fontSize: 18, lineHeight: 20 }}>←</Text>
+          <Text style={styles.backArrow}>←</Text>
         </Pressable>
 
-        <Text style={{ color: '#22C55E', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-          Verify
-        </Text>
-        <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
-          Enter the code
-        </Text>
-        <Text style={{ color: '#A7C4A0', fontSize: 15, marginBottom: 32, lineHeight: 22 }}>
-          Sent to <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>{phone}</Text>
+        {/* Heading */}
+        <Text style={styles.eyebrow}>Verify</Text>
+        <Text style={styles.heading}>Enter the code</Text>
+        <Text style={styles.sub}>
+          Sent to <Text style={styles.subPhone}>{phone}</Text>
         </Text>
 
+        {/* OTP input */}
         <TextInput
           value={otp}
           onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
@@ -141,49 +119,145 @@ export default function VerifyOtpScreen() {
           autoFocus
           textAlign="center"
           accessibilityLabel="One-time code"
-          style={{
-            backgroundColor: '#163A20',
-            color: '#FFFFFF',
-            fontSize: 32,
-            fontWeight: '700',
-            borderRadius: 14,
-            paddingHorizontal: 18,
-            paddingVertical: 20,
-            borderWidth: 1.5,
-            borderColor: error ? '#EF4444' : isValid ? '#22C55E' : '#2A5230',
-            letterSpacing: 8,
-            marginBottom: 8,
-          }}
+          style={[
+            styles.input,
+            error ? styles.inputError : isValid ? styles.inputValid : null,
+          ]}
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        {error ? (
-          <Text style={{ color: '#EF4444', fontSize: 13, marginBottom: 16, marginTop: 4 }}>{error}</Text>
-        ) : null}
+      </View>
 
-        <View style={{ flex: 1 }} />
-
+      {/* CTA — fixed above keyboard */}
+      <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
         <Pressable
           onPress={handleVerify}
           disabled={!isValid || loading}
           accessibilityRole="button"
           accessibilityLabel="Verify code"
-          style={({ pressed }) => ({
-            borderRadius: 50,
-            paddingVertical: 18,
-            alignItems: 'center',
-            backgroundColor: isValid && !loading ? '#22C55E' : '#1A3D22',
-            opacity: pressed ? 0.85 : 1,
-          })}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
-          <Text style={{
-            fontWeight: '800',
-            fontSize: 16,
-            color: isValid && !loading ? '#0E2A18' : '#3A5A3A',
-          }}>
-            {loading ? 'Verifying…' : 'Verify & Continue ›'}
-          </Text>
+          <View style={[styles.btn, (!isValid || loading) && styles.btnDisabled]}>
+            <Text style={[styles.btnText, (!isValid || loading) && styles.btnTextDisabled]}>
+              {loading ? 'Verifying…' : 'Verify & Continue  →'}
+            </Text>
+          </View>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#091A0D',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  backBtn: {
+    marginBottom: 32,
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#112B18',
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: '#1E4028',
+  },
+  backArrow: {
+    color: '#4ADE80',
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  eyebrow: {
+    color: '#22C55E',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  heading: {
+    color: '#FFFFFF',
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 10,
+    letterSpacing: -0.5,
+  },
+  sub: {
+    color: '#6B9966',
+    fontSize: 15,
+    marginBottom: 36,
+    lineHeight: 22,
+  },
+  subPhone: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  input: {
+    backgroundColor: '#0E2516',
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '700',
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    borderWidth: 1.5,
+    borderColor: '#1C3D24',
+    letterSpacing: 10,
+  },
+  inputValid: {
+    borderColor: '#22C55E',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 13,
+    marginTop: 10,
+  },
+
+  // CTA
+  cta: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    backgroundColor: '#091A0D',
+    borderTopWidth: 1,
+    borderTopColor: '#1A3522',
+  },
+  btn: {
+    width: '80%',
+    alignSelf: 'center',
+    backgroundColor: '#22C55E',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    paddingVertical: 18,
+    alignItems: 'center',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  btnDisabled: {
+    backgroundColor: '#112B18',
+    borderColor: '#1E4028',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  btnText: {
+    color: '#000000',
+    fontWeight: '800',
+    fontSize: 17,
+    letterSpacing: 0.3,
+  },
+  btnTextDisabled: {
+    color: '#2E5229',
+  },
+});
