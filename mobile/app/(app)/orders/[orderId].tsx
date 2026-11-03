@@ -1,42 +1,11 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Package } from 'lucide-react-native';
 import { useOrderDetail, useCancelOrder } from '@/features/orders/useOrders';
+import { useCatalog } from '@/features/purchasing/useCatalog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  vegetables: '🥦', fruits: '🍎', meat: '🥩', poultry: '🍗', seafood: '🐟',
-  dairy: '🧀', eggs: '🥚', grains: '🌾', legumes: '🫘', spices: '🌶️',
-  herbs: '🌿', oils: '🫙', sauces: '🥫', beverages: '🧃', bakery: '🍞',
-  frozen: '🧊', cleaning: '🧹',
-};
-
-function getProductEmoji(productName: string): string {
-  const lower = productName.toLowerCase();
-  for (const [key, emoji] of Object.entries(CATEGORY_EMOJI)) {
-    if (lower.includes(key)) return emoji;
-  }
-  if (lower.includes('tomato') || lower.includes('nyanya')) return '🍅';
-  if (lower.includes('onion') || lower.includes('iyayi')) return '🧅';
-  if (lower.includes('potato') || lower.includes('ibijumba')) return '🥔';
-  if (lower.includes('carrot')) return '🥕';
-  if (lower.includes('rice') || lower.includes('iresi')) return '🍚';
-  if (lower.includes('bean') || lower.includes('ibishyimbo')) return '🫘';
-  if (lower.includes('beef') || lower.includes('inka')) return '🥩';
-  if (lower.includes('chicken') || lower.includes('inkoko')) return '🍗';
-  if (lower.includes('fish') || lower.includes('inzoga')) return '🐟';
-  if (lower.includes('milk') || lower.includes('amata')) return '🥛';
-  if (lower.includes('egg') || lower.includes('amagi')) return '🥚';
-  if (lower.includes('oil') || lower.includes('amavuta')) return '🫙';
-  if (lower.includes('salt') || lower.includes('munyu')) return '🧂';
-  if (lower.includes('sugar') || lower.includes('shukari')) return '🍬';
-  if (lower.includes('coffee') || lower.includes('ikawa')) return '☕';
-  if (lower.includes('tea') || lower.includes('icyayi')) return '🍵';
-  if (lower.includes('water') || lower.includes('amazi')) return '💧';
-  if (lower.includes('flour') || lower.includes('ubunga')) return '🌾';
-  return '📦';
-}
+import { ProductIcon } from '@/components/ui/ProductIcon';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
   delivered: 'success',
@@ -52,6 +21,11 @@ export default function OrderDetailScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { data: order, isLoading, error } = useOrderDetail(orderId ?? '');
   const cancelMutation = useCancelOrder();
+  const { data: catalog = [] } = useCatalog();
+  // Build a map from catalog_product_id → image_url for quick lookup
+  const catalogImageMap = Object.fromEntries(
+    catalog.filter((p) => p.image_url).map((p) => [p.id, p.image_url] as [string, string])
+  );
 
   const totalValue = order?.lines.reduce(
     (sum, l) => sum + parseFloat(l.quantity_ordered) * parseFloat(l.unit_price),
@@ -142,12 +116,14 @@ export default function OrderDetailScreen() {
               const qty = parseFloat(line.quantity_ordered);
               const price = parseFloat(line.unit_price);
               const lineTotal = qty * price;
-              const emoji = getProductEmoji(line.product_name);
+              const imageUrl = catalogImageMap[line.catalog_product_id] ?? null;
               return (
                 <View key={line.id} className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3">
-                  <View className="w-12 h-12 rounded-xl bg-surface-100 dark:bg-surface-700 items-center justify-center">
-                    <Text style={{ fontSize: 26 }}>{emoji}</Text>
-                  </View>
+                  <ProductIcon
+                    imageUrl={imageUrl}
+                    productName={line.product_name}
+                    size="md"
+                  />
                   <View className="flex-1">
                     <Text className="text-surface-900 dark:text-white font-medium">{line.product_name}</Text>
                     <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5">

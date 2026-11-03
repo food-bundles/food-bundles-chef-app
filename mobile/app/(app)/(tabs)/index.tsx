@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, Pressable, Image } from 'react-native';
+import { ScrollView, View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive } from 'lucide-react-native';
@@ -9,23 +9,9 @@ import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { useKitchens } from '@/features/kitchens/useKitchens';
 import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
 import { SectionHeader, StockIndicator, SyncStatusBadge } from '@/components/ui';
+import { ProductIcon } from '@/components/ui/ProductIcon';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  vegetables: '🥦', fruits: '🍎', meat: '🥩', poultry: '🍗', seafood: '🐟',
-  dairy: '🧀', eggs: '🥚', grains: '🌾', legumes: '🫘', spices: '🌶️',
-  herbs: '🌿', oils: '🫙', sauces: '🥫', beverages: '🧃', bakery: '🍞',
-  frozen: '🧊', cleaning: '🧹', packaging: '📦',
-};
-
-function getCategoryEmoji(category: string): string {
-  const key = category.toLowerCase().replace(/[^a-z]/g, '');
-  for (const [k, emoji] of Object.entries(CATEGORY_EMOJI)) {
-    if (key.includes(k) || k.includes(key)) return emoji;
-  }
-  return '📦';
-}
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -315,7 +301,6 @@ export default function DashboardScreen() {
 
 function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
   const price = product.reference_price != null ? parseFloat(product.reference_price) : null;
-  const emoji = getCategoryEmoji(product.category);
   return (
     <Pressable
       onPress={() => router.push('/(app)/(tabs)/purchasing')}
@@ -323,13 +308,12 @@ function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
       accessibilityLabel={`${product.name} — go to catalog`}
       className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 flex-row items-center gap-3 active:opacity-70"
     >
-      <View className="w-10 h-10 rounded-xl bg-surface-100 dark:bg-surface-700 items-center justify-center overflow-hidden">
-        {product.image_url ? (
-          <Image source={{ uri: product.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-        ) : (
-          <Text style={{ fontSize: 22 }}>{emoji}</Text>
-        )}
-      </View>
+      <ProductIcon
+        imageUrl={product.image_url}
+        category={product.category}
+        productName={product.name}
+        size="sm"
+      />
       <View className="flex-1">
         <Text className="text-surface-900 dark:text-white font-medium text-sm">{product.name}</Text>
         <Text className="text-surface-600 dark:text-surface-400 text-xs capitalize">{product.category}</Text>

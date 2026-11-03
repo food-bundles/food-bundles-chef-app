@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ShoppingCart, ChevronRight } from 'lucide-react-native';
+import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
 import { useOrders, useCreateOrder, useSubmitOrder } from '@/features/orders/useOrders';
@@ -300,34 +301,6 @@ function NeedsRow({ item }: { item: PurchaseSuggestionDto }) {
   );
 }
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  vegetables: '🥦',
-  fruits: '🍎',
-  meat: '🥩',
-  poultry: '🍗',
-  seafood: '🐟',
-  dairy: '🧀',
-  eggs: '🥚',
-  grains: '🌾',
-  legumes: '🫘',
-  spices: '🌶️',
-  herbs: '🌿',
-  oils: '🫙',
-  sauces: '🥫',
-  beverages: '🧃',
-  bakery: '🍞',
-  frozen: '🧊',
-  cleaning: '🧹',
-  packaging: '📦',
-};
-
-function getCategoryEmoji(category: string): string {
-  const key = category.toLowerCase().replace(/[^a-z]/g, '');
-  for (const [k, emoji] of Object.entries(CATEGORY_EMOJI)) {
-    if (key.includes(k) || k.includes(key)) return emoji;
-  }
-  return '📦';
-}
 
 function CatalogRow({
   product,
@@ -339,17 +312,15 @@ function CatalogRow({
   onQtyChange: (q: number) => void;
 }) {
   const price = product.reference_price != null ? parseFloat(product.reference_price) : null;
-  const emoji = getCategoryEmoji(product.category);
   return (
     <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4">
       <View className="flex-row items-start mb-3 gap-3">
-        <View className="w-12 h-12 rounded-xl bg-surface-100 dark:bg-surface-700 items-center justify-center overflow-hidden">
-          {product.image_url ? (
-            <Image source={{ uri: product.image_url }} className="w-12 h-12" resizeMode="cover" />
-          ) : (
-            <Text style={{ fontSize: 26 }}>{emoji}</Text>
-          )}
-        </View>
+        <ProductIcon
+          imageUrl={product.image_url}
+          category={product.category}
+          productName={product.name}
+          size="md"
+        />
         <View className="flex-1">
           <Text className="text-surface-900 dark:text-white font-medium">{product.name}</Text>
           <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5 capitalize">{product.category}</Text>
