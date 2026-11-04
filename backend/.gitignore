@@ -52,5 +52,11 @@ pip.ini
 # Local Docker dev overrides (never commit)
 docker-compose.override.yml
 
+# Redis dump
+dump.rdb
+
+# Local utility scripts
+scripts/
+
 .claude/
 CLAUDE.md
