@@ -12,6 +12,8 @@ build/
 android/app/build/
 android/build/
 ios/build/
+/ios
+/android
 *.ipa
 *.apk
 *.aab
@@ -22,6 +24,7 @@ ios/build/
 *.p12
 *.p8
 *.pem
+*.key
 *.mobileprovision
 *.provisionprofile
 GoogleService-Info.plist
@@ -30,6 +33,7 @@ google-services.json
 # Environment files — allow only safe examples
 .env
 .env.local
+.env*.local
 .env.development
 .env.staging
 .env.production
@@ -47,6 +51,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*.orig.*
 
 # Metro bundler
 .metro-health-check*
@@ -56,10 +61,14 @@ Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
+# Kotlin
+.kotlin/
+
+# Claude/AI tooling
 .claude/
 CLAUDE.md
 ./mobile/docs/

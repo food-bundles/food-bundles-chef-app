@@ -19,6 +19,8 @@ i18n.use(initReactI18next).init({
   interpolation: {
     escapeValue: false,
   },
+  // Hermes JS engine in Expo Go may lack Intl.PluralRules — use v3 compat format
+  compatibilityJSON: 'v3',
 });
 
 export default i18n;

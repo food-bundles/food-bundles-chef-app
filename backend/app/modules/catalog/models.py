@@ -31,6 +31,7 @@ class CatalogProduct(Base):
     # Reference price in kitchen's currency (RWF). Null = price not yet known.
     reference_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     description: Mapped[str | None] = mapped_column(Text)
+    image_url: Mapped[str | None] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useColorScheme } from 'react-native';
 import { colors, spacing, fontSize, fontWeight } from '@/lib/theme';
 
 export interface SectionHeaderProps {
@@ -8,9 +8,10 @@ export interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderProps) {
+  const isDark = useColorScheme() === 'dark';
   return (
     <View style={styles.row}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: isDark ? colors.surface[400] : colors.surface[600] }]}>{title}</Text>
       {actionLabel && onAction ? (
         <Pressable
           onPress={onAction}
@@ -34,7 +35,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   title: {
-    color: colors.surface[400],
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
     letterSpacing: 0.8,

@@ -55,7 +55,7 @@ class AuthenticationService:
             if datetime.now(UTC) < cooldown_boundary:
                 raise OtpResendCooldownError()
 
-        code = settings.MOCK_OTP_CODE if settings.MOCK_OTP_CODE else generate_otp()
+        code = generate_otp()
         hashed = hash_password(code)
 
         challenge = OtpChallenge(

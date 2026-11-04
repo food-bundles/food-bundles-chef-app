@@ -1,28 +1,27 @@
-"""Meta hosted quality assessment adapter using Muse Spark + SAM 3.1.
+"""Meta Muse Spark quality assessment adapter — uses multimodal chat API.
 
-IMPORTANT: Re-verify before use:
-  - Muse Spark model ID for multimodal structured output: settings.META_MUSE_SPARK_MODEL
-  - SAM 3.1 segmentation endpoint: settings.META_SAM_MODEL
-  - Request/response schema against https://dev.meta.ai/docs/models
-  - Pricing and per-request image size limits
-  - Data terms: Standard mode preferred for sensitive delivery workloads
+Sends the delivery photo as a base64 image_url in the chat messages array.
+Muse Spark returns a JSON object with quality dimensions and an optional
+quantity estimate. SAM 3.1 segmentation is not used here — Muse Spark's
+vision capability covers both quality dims and visible-quantity estimation.
 
-Constraints (from skill):
-  - SAM segmentation never assesses freshness or spoilage
-  - If crate not fully visible, quantity_estimate.estimated_quantity = None
-  - Muse Image output is never delivery evidence
-  - Chef measurement and decision always wins
+Constraints:
+- Chef measurement and decision always wins over AI output
+- Muse Image output is never delivery evidence
+- If crate not fully visible, quantity_estimate.estimated_quantity = None
+- No raw image content is logged (AI_LOG_CONTENT must be False)
 """
 from __future__ import annotations
 
-import io
+import base64
+import json
 import time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import structlog
 
 from app.core.config import settings
-from app.integrations.meta_model_api.client import MetaModelAPIClient
+from app.integrations.meta_model_api.client import MetaModelAPIClient, MetaModelAPIError
 from app.modules.ai.schemas.quality_assessment import (
     QualityAssessmentRequest,
     QualityAssessmentResponse,
@@ -33,125 +32,137 @@ from app.modules.ai.schemas.quality_assessment import (
 
 logger = structlog.get_logger(__name__)
 
-# Re-verify these prompt templates against actual Muse Spark capabilities
-_QUALITY_SYSTEM_PROMPT = (
-    "You are a food quality assessment assistant. "
-    "Assess only the visible quality dimensions: "
-    "freshness, ripeness, damage, spoilage, size_grade, foreign_matter. "
-    "Return structured JSON only. Do not include PII or supplier names."
-)
+_QUALITY_SYSTEM_PROMPT = """You are a food delivery quality assessor.
+Inspect the image of the food item and return ONLY a raw JSON object with no markdown or code fences.
+
+JSON format:
+{
+  "freshness": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "ripeness": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "damage": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "spoilage": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "size_grade": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "foreign_matter": {"result": "pass|watch|fail", "confidence": 0.0-1.0, "notes": "optional"},
+  "quantity_visible": true|false,
+  "estimated_quantity": <number or null>
+}
+
+Rules:
+- Use "pass" for good, "watch" for borderline, "fail" for clearly bad
+- estimated_quantity: only set if the full container/crate is visible. null otherwise
+- This is advisory only — the chef makes the final decision
+"""
 
 
 class MetaQualityAssessmentAdapter:
-    """Muse Spark (visual quality dims) + SAM 3.1 (quantity, no freshness).
-
-    UNVERIFIED STUB — re-verify endpoint paths, payload schema and model IDs
-    against official Meta docs before enabling in production.
-    """
+    """Muse Spark multimodal quality assessment via /chat/completions with base64 image."""
 
     def __init__(self) -> None:
         self._client = MetaModelAPIClient()
 
-    async def assess(
-        self, request: QualityAssessmentRequest
-    ) -> QualityAssessmentResponse:
+    async def assess(self, request: QualityAssessmentRequest) -> QualityAssessmentResponse:
         t0 = time.monotonic()
 
         if len(request.image_bytes) > settings.AI_MAX_IMAGE_SIZE_BYTES:
             raise ValueError(
-                f"Image exceeds {settings.AI_MAX_IMAGE_SIZE_BYTES} bytes limit. "
+                f"Image exceeds {settings.AI_MAX_IMAGE_SIZE_BYTES} bytes. "
                 "Resize to ≤ 1 MB before sending."
             )
 
-        # STUB: actual Muse Spark multimodal payload — re-verify schema
-        quality_resp = await self._client.post_multipart(
-            path="/v1/chat/completions",  # re-verify
-            fields={
-                "model": settings.META_MUSE_SPARK_MODEL,
-                "messages": (
-                    '[{"role":"system","content":"'
-                    + _QUALITY_SYSTEM_PROMPT
-                    + '"},{"role":"user","content":"Assess this delivery item: '
-                    + request.product_name
-                    + '"}]'
-                ),
-                "response_format": '{"type":"json_object"}',
-            },
-            files={
-                "image": ("item.jpg", io.BytesIO(request.image_bytes), "image/jpeg"),
-            },
-        )
+        b64 = base64.b64encode(request.image_bytes).decode("utf-8")
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
+                    },
+                    {
+                        "type": "text",
+                        "text": f"Assess this delivery item: {request.product_name} (expected unit: {request.expected_unit})",
+                    },
+                ],
+            }
+        ]
 
-        # STUB: SAM segmentation for quantity — re-verify endpoint and schema
-        sam_resp = await self._client.post_multipart(
-            path="/v1/segment",  # re-verify
-            fields={"model": settings.META_SAM_MODEL},
-            files={
-                "image": ("item.jpg", io.BytesIO(request.image_bytes), "image/jpeg"),
-            },
-        )
+        payload = {
+            "model": settings.META_MUSE_SPARK_MODEL,
+            "messages": [{"role": "system", "content": _QUALITY_SYSTEM_PROMPT}] + messages,
+            "max_tokens": 1024,
+        }
 
+        response = await self._client.post_json("/chat/completions", payload)
         latency_ms = int((time.monotonic() - t0) * 1000)
 
-        dimensions = _parse_quality_dimensions(quality_resp)
-        quantity = _parse_quantity_estimate(sam_resp, request.expected_unit)
+        raw_content = response.get("choices", [{}])[0].get("message", {}).get("content") or ""
+        dimensions, quantity = _parse_response(raw_content, request.expected_unit)
 
+        usage = response.get("usage", {})
         return QualityAssessmentResponse(
             dimensions=dimensions,
             quantity_estimate=quantity,
             provider="meta",
             model_id=settings.META_MUSE_SPARK_MODEL,
+            input_tokens=usage.get("prompt_tokens"),
+            output_tokens=usage.get("completion_tokens"),
             latency_ms=latency_ms,
-            # Safe telemetry: token counts only, no content
-            usage_metadata={
-                "prompt_tokens": quality_resp.get("usage", {}).get("prompt_tokens"),
-                "completion_tokens": quality_resp.get("usage", {}).get("completion_tokens"),
-            } if not settings.AI_LOG_CONTENT else None,
+            usage_metadata=None,
         )
 
 
-def _parse_quality_dimensions(response: dict) -> list[QualityDimensionResult]:
-    """Parse Muse Spark structured output. Re-verify schema against actual API."""
+def _parse_response(
+    raw: str, unit: str
+) -> tuple[list[QualityDimensionResult], QuantityEstimate]:
+    """Extract JSON from the model response, tolerating preamble or fences."""
+    import re
+    # strip fences
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    if fenced:
+        raw = fenced.group(1)
+    else:
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start != -1 and end > start:
+            raw = raw[start:end]
+
     try:
-        content = response["choices"][0]["message"]["content"]
-        import json
-        data = json.loads(content)
-        results = []
-        for dim in QualityDimension:
-            if str(dim) in data:
-                item = data[str(dim)]
-                results.append(QualityDimensionResult(
-                    dimension=dim,
-                    result=item.get("result", "watch"),
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        logger.warning("quality_assessment_parse_failed", raw_length=len(raw))
+        return [], QuantityEstimate(
+            estimated_quantity=None, unit=unit, confidence=0.0, crate_fully_visible=False
+        )
+
+    dim_names = [d.value for d in QualityDimension]
+    dimensions: list[QualityDimensionResult] = []
+    for name in dim_names:
+        item = data.get(name)
+        if isinstance(item, dict):
+            result = str(item.get("result", "watch"))
+            if result not in ("pass", "watch", "fail"):
+                result = "watch"
+            dimensions.append(
+                QualityDimensionResult(
+                    dimension=QualityDimension(name),
+                    result=result,
                     confidence=float(item.get("confidence", 0.5)),
-                    notes=item.get("notes"),
-                ))
-        return results
-    except Exception:
-        logger.exception("quality_parse_failed")
-        return []
+                    notes=item.get("notes") or None,
+                )
+            )
 
-
-def _parse_quantity_estimate(response: dict, unit: str) -> QuantityEstimate:
-    """Parse SAM segmentation output.
-
-    SAM does NOT assess freshness or spoilage.
-    If crate not fully visible, estimated_quantity is None.
-    """
+    qty_visible = bool(data.get("quantity_visible", False))
+    raw_qty = data.get("estimated_quantity")
     try:
-        fully_visible = response.get("fully_visible", False)
-        raw_qty = response.get("estimated_quantity")
-        return QuantityEstimate(
-            estimated_quantity=Decimal(str(raw_qty)) if raw_qty is not None and fully_visible else None,
-            unit=unit,
-            confidence=float(response.get("confidence", 0.5)),
-            crate_fully_visible=fully_visible,
-        )
-    except Exception:
-        logger.exception("quantity_parse_failed")
-        return QuantityEstimate(
-            estimated_quantity=None,
-            unit=unit,
-            confidence=0.0,
-            crate_fully_visible=False,
-        )
+        estimated = Decimal(str(raw_qty)) if raw_qty is not None and qty_visible else None
+    except InvalidOperation:
+        estimated = None
+
+    quantity = QuantityEstimate(
+        estimated_quantity=estimated,
+        unit=unit,
+        confidence=0.7 if estimated is not None else 0.0,
+        crate_fully_visible=qty_visible,
+    )
+
+    return dimensions, quantity

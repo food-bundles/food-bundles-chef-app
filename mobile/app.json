@@ -42,6 +42,12 @@
           "icon": "./assets/notification-icon.png",
           "color": "#1DB954"
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Food Bundles Chef to access your microphone for voice input to the kitchen assistant."
+        }
       ]
     ],
     "experiments": {

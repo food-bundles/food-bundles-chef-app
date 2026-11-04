@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { colors, radius, fontSize, fontWeight, spacing } from '@/lib/theme';
 
 export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -8,20 +8,25 @@ export interface StatusBadgeProps {
   variant?: BadgeVariant;
 }
 
-const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
+const SEMANTIC_VARIANTS: Record<Exclude<BadgeVariant, 'neutral'>, { bg: string; text: string }> = {
   success: { bg: `${colors.success}1A`, text: colors.success },
   warning: { bg: `${colors.warning}1A`, text: colors.warning },
   danger: { bg: `${colors.danger}1A`, text: colors.danger },
   info: { bg: `${colors.info}1A`, text: colors.info },
-  neutral: { bg: colors.surface[700], text: colors.surface[400] },
 };
 
 /** Small status pill badge. Does not rely on color alone — label is always visible. */
 export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
-  const vs = VARIANT_STYLES[variant];
+  const isDark = useColorScheme() === 'dark';
+  const bg = variant === 'neutral'
+    ? (isDark ? colors.surface[700] : colors.surface[200])
+    : SEMANTIC_VARIANTS[variant].bg;
+  const text = variant === 'neutral'
+    ? (isDark ? colors.surface[400] : colors.surface[600])
+    : SEMANTIC_VARIANTS[variant].text;
   return (
-    <View style={[styles.badge, { backgroundColor: vs.bg }]} accessibilityRole="text">
-      <Text style={[styles.label, { color: vs.text }]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: bg }]} accessibilityRole="text">
+      <Text style={[styles.label, { color: text }]}>{label}</Text>
     </View>
   );
 }

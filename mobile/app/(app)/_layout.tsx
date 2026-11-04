@@ -1,18 +1,16 @@
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useSessionStore } from '@/store/session-store';
-import { useKitchenStore } from '@/store/kitchen-store';
+import { useKitchens } from '@/features/kitchens/useKitchens';
 
 export default function AppLayout() {
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
-  const kitchens = useKitchenStore((s) => s.kitchens);
+
+  // Keep kitchens in sync with the store while app screens are mounted.
+  useKitchens();
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/welcome" />;
-  }
-
-  // New chef with no kitchens — go straight to create
-  if (kitchens.filter((k) => !k.isArchived).length === 0) {
-    return <Redirect href="/(app)/kitchens/create" />;
   }
 
   return (
@@ -26,6 +24,8 @@ export default function AppLayout() {
       <Stack.Screen name="receiving/[deliveryId]" />
       <Stack.Screen name="receiving/[deliveryId]/item/[lineItemId]" />
       <Stack.Screen name="settings/index" />
+      <Stack.Screen name="menu/create-item" />
+      <Stack.Screen name="orders/[orderId]" />
     </Stack>
   );
 }

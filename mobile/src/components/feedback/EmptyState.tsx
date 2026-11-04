@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { colors, fontSize, fontWeight, spacing } from '@/lib/theme';
 
@@ -11,9 +11,10 @@ export interface EmptyStateProps {
 
 /** Accessible empty state component with optional CTA */
 export function EmptyState({ title, description, actionLabel, onAction }: EmptyStateProps) {
+  const isDark = useColorScheme() === 'dark';
   return (
     <View style={styles.container} accessibilityRole="text">
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: isDark ? colors.surface[300] : colors.surface[700] }]}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
       {actionLabel && onAction ? (
         <View style={styles.action}>
@@ -33,7 +34,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['2xl'],
   },
   title: {
-    color: colors.surface[300],
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
     textAlign: 'center',

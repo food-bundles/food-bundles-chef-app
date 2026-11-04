@@ -48,7 +48,6 @@ class Settings(BaseSettings):
     OTP_EXPIRY_SECONDS: int = 300
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
-    MOCK_OTP_CODE: str = ""  # dev only; empty = random
 
     # SMS
     SMS_API_KEY: str = ""
@@ -71,6 +70,7 @@ class Settings(BaseSettings):
 
     # AI controls — all capabilities off by default (AI004)
     AI_ENABLED: bool = False
+    AI_AGENT_ENABLED: bool = False
     AI_DEFAULT_TIMEOUT_SECONDS: int = 20
     AI_MAX_RETRIES: int = 1
     AI_MAX_IMAGE_SIZE_BYTES: int = 1_048_576  # 1 MB

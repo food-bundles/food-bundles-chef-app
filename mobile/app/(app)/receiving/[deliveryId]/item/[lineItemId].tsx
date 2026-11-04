@@ -10,24 +10,29 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
+  TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Camera, RefreshCw, CheckCircle, XCircle, AlertTriangle, Bot } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Camera, ImageIcon, CheckCircle, XCircle, AlertTriangle, Bot, Pencil, ArrowRight, RotateCcw } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
-import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { useDeliveryStore } from '@/store/delivery-store';
-import { mockQualityAdapter } from '@/services/ai/quality-adapter';
+import { useDeliveryDetail } from '@/features/receiving/useDeliveries';
+import { usePendingDecisions } from '@/features/receiving/pendingDecisions';
+import { assessQuality } from '@/api/ai-api';
+import { ApiError } from '@/api/errors';
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { MAX_PHOTO_SIZE_BYTES } from '@/constants';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
-import type { QualityAssessment, QualityResult, AcceptanceDecision } from '@/types';
+import type { QualityAssessmentResponseDto, QualityResult, QualityDimensionResult } from '@/api/ai-api';
+import type { ReceivingDecision } from '@/api/receiving-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
 
-type Step = 'camera' | 'assessment' | 'entry' | 'confirm';
+type Step = 'camera' | 'annotate' | 'assessment' | 'entry';
 
 const QUALITY_VARIANT: Record<QualityResult, BadgeVariant> = {
   pass: 'success',
@@ -35,35 +40,26 @@ const QUALITY_VARIANT: Record<QualityResult, BadgeVariant> = {
   fail: 'danger',
 };
 
-const DIMENSION_LABELS: Record<keyof Omit<QualityAssessment, 'score' | 'notes' | 'estimatedQuantity'>, string> = {
-  freshness: 'Freshness',
-  ripeness: 'Ripeness',
-  damage: 'Damage',
-  spoilage: 'Spoilage',
-  sizeGrade: 'Size / Grade',
-  foreignMatter: 'Foreign Matter',
-};
-
 export default function LineItemReceiveScreen() {
   const { deliveryId, lineItemId } = useLocalSearchParams<{ deliveryId: string; lineItemId: string }>();
-  const delivery = useDeliveryStore((s) => s.deliveries.find((d) => d.id === deliveryId));
-  const lineItem = delivery?.lineItems.find((li) => li.id === lineItemId);
-  const updateLineItem = useDeliveryStore((s) => s.updateLineItem);
+  const { data: order } = useDeliveryDetail(deliveryId ?? '');
+  const line = order?.lines.find((l) => l.id === lineItemId);
+  const setDecision = usePendingDecisions((s) => s.setDecision);
+  const { width: screenWidth } = useWindowDimensions();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>();
-  const [step, setStep] = useState<Step>(lineItem?.photoUri ? 'entry' : 'camera');
-  const [assessment, setAssessment] = useState<QualityAssessment | undefined>();
+  const [annotation, setAnnotation] = useState('');
+  const [step, setStep] = useState<Step>('camera');
+  const [assessment, setAssessment] = useState<QualityAssessmentResponseDto | undefined>();
   const [assessing, setAssessing] = useState(false);
   const [assessError, setAssessError] = useState<string | undefined>();
 
-  // Manual entry fields
-  const [acceptedQty, setAcceptedQty] = useState(lineItem?.acceptedQuantity?.toString() ?? '');
-  const [actualPriceStr, setActualPriceStr] = useState(lineItem?.actualPrice?.amount.toString() ?? '');
-  const [discrepancyReason, setDiscrepancyReason] = useState(lineItem?.discrepancyReason ?? '');
+  const [acceptedQty, setAcceptedQty] = useState('');
+  const [discrepancyReason, setDiscrepancyReason] = useState('');
 
-  if (!lineItem || !delivery) {
+  if (!line || !order) {
     return (
       <AppScreen>
         <AppHeader title="Receive Item" showBack />
@@ -75,7 +71,8 @@ export default function LineItemReceiveScreen() {
   }
 
   const acceptedQtyNum = parseFloat(acceptedQty) || 0;
-  const short = acceptedQtyNum > 0 && isShortDelivery(lineItem.orderedQuantity, acceptedQtyNum);
+  const orderedQtyNum = parseFloat(line.quantity_ordered);
+  const short = acceptedQtyNum > 0 && isShortDelivery(orderedQtyNum, acceptedQtyNum);
 
   const handleCapture = async () => {
     if (!cameraRef) return;
@@ -83,68 +80,110 @@ export default function LineItemReceiveScreen() {
       const photo = await cameraRef.takePictureAsync({ quality: 0.8 });
       if (!photo?.uri) return;
 
-      // Compress to under 1 MB
-      let uri = photo.uri;
       const compressed = await ImageManipulator.manipulateAsync(
-        uri,
+        photo.uri,
         [{ resize: { width: 1024 } }],
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
       );
 
-      // Check size
-      const response = await fetch(compressed.uri);
-      const blob = await response.blob();
+      const blob = await (await fetch(compressed.uri)).blob();
       if (blob.size > MAX_PHOTO_SIZE_BYTES) {
-        Alert.alert('Image too large', 'Could not compress image below 1 MB. Please try again with better lighting.');
+        Alert.alert('Image too large', 'Could not compress image below 1 MB. Please try again.');
         return;
       }
 
       setPhotoUri(compressed.uri);
-      setStep('assessment');
-      runAssessment(compressed.uri);
+      setAnnotation('');
+      setStep('annotate');
     } catch {
       Alert.alert('Camera error', 'Could not capture photo. Please try again.');
     }
   };
 
-  const runAssessment = async (uri: string) => {
+  const handlePickFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Gallery access is needed to upload a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const blob = await (await fetch(compressed.uri)).blob();
+      if (blob.size > MAX_PHOTO_SIZE_BYTES) {
+        Alert.alert('Image too large', 'Could not compress image below 1 MB. Please choose a smaller photo.');
+        return;
+      }
+      setPhotoUri(compressed.uri);
+      setAnnotation('');
+      setStep('annotate');
+    } catch {
+      Alert.alert('Upload error', 'Could not load the selected photo. Please try again.');
+    }
+  };
+
+  const handleProceedFromAnnotation = async () => {
+    if (!photoUri) return;
+    setStep('assessment');
+    void runAssessment(photoUri, annotation.trim());
+  };
+
+  const runAssessment = async (uri: string, note: string) => {
     setAssessing(true);
     setAssessError(undefined);
     try {
-      const result = await mockQualityAdapter.assessPhoto(uri, lineItem.productName);
+      // Pass annotation as extra context in product_name so the AI sees the chef's note
+      const productContext = note
+        ? `${line.product_name} — Chef note: ${note}`
+        : line.product_name;
+      const result = await assessQuality(
+        order.kitchen_id,
+        uri,
+        productContext,
+        line.unit,
+      );
       setAssessment(result);
-      // Pre-fill quantity if AI provided an estimate
-      if (result.estimatedQuantity !== null && acceptedQty === '') {
-        setAcceptedQty(result.estimatedQuantity.toString());
+      const est = result.quantity_estimate?.estimated_quantity;
+      if (est !== null && est !== undefined && acceptedQty === '') {
+        setAcceptedQty(est);
       }
-    } catch {
-      setAssessError('AI assessment unavailable. Please enter values manually.');
+    } catch (err) {
+      const is503 = err instanceof ApiError && err.status === 503;
+      setAssessError(
+        is503
+          ? 'AI assessment is unavailable. Please enter values manually.'
+          : 'Assessment failed. Please enter values manually.',
+      );
     } finally {
       setAssessing(false);
     }
   };
 
   const handleSkipCamera = () => setStep('entry');
-
   const handleRetakePhoto = () => {
     setPhotoUri(undefined);
+    setAnnotation('');
     setAssessment(undefined);
+    setAssessError(undefined);
     setStep('camera');
   };
-
   const handleProceedToEntry = () => setStep('entry');
 
-  const handleConfirm = (decision: AcceptanceDecision) => {
-    const actualPriceNum = parseFloat(actualPriceStr);
-    updateLineItem(deliveryId!, lineItemId!, {
-      acceptedQuantity: acceptedQtyNum,
-      actualPrice: !isNaN(actualPriceNum) && actualPriceNum > 0
-        ? { amount: actualPriceNum, currency: 'RWF', source: 'chef-entered' }
-        : undefined,
-      qualityAssessment: assessment,
+  const handleConfirm = (decision: ReceivingDecision) => {
+    setDecision(line.id, {
+      quantity_received: acceptedQtyNum.toString(),
       decision,
-      discrepancyReason: discrepancyReason.trim() || undefined,
-      photoUri,
+      rejection_reason: discrepancyReason.trim() || undefined,
     });
     router.back();
   };
@@ -185,7 +224,7 @@ export default function LineItemReceiveScreen() {
 
     return (
       <AppScreen edges={['bottom']}>
-        <AppHeader title={lineItem.productName} showBack />
+        <AppHeader title={line.product_name} showBack />
         <View style={{ flex: 1, backgroundColor: '#000' }}>
           <CameraView
             ref={setCameraRef}
@@ -193,25 +232,161 @@ export default function LineItemReceiveScreen() {
             facing="back"
           />
           <View style={{ padding: spacing.xl, gap: spacing.sm }}>
-            <Pressable
-              onPress={handleCapture}
-              accessibilityRole="button"
-              accessibilityLabel="Take photo"
-              style={{
-                backgroundColor: colors.white,
-                height: 64,
-                width: 64,
-                borderRadius: 32,
-                alignSelf: 'center',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Camera size={28} color={colors.surface[950]} />
-            </Pressable>
+            {/* Shutter + gallery row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xl }}>
+              {/* Gallery picker */}
+              <Pressable
+                onPress={handlePickFromGallery}
+                accessibilityRole="button"
+                accessibilityLabel="Choose from gallery"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  height: 48,
+                  width: 48,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ImageIcon size={22} color={colors.white} />
+              </Pressable>
+
+              {/* Shutter */}
+              <Pressable
+                onPress={handleCapture}
+                accessibilityRole="button"
+                accessibilityLabel="Take photo"
+                style={{
+                  backgroundColor: colors.white,
+                  height: 64,
+                  width: 64,
+                  borderRadius: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Camera size={28} color={colors.surface[950]} />
+              </Pressable>
+
+              {/* Spacer to balance layout */}
+              <View style={{ width: 48 }} />
+            </View>
+
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: fontSize.xs, textAlign: 'center' }}>
+              Take a photo or choose from gallery
+            </Text>
             <AppButton label="Skip Photo — Enter Manually" onPress={handleSkipCamera} variant="ghost" />
           </View>
         </View>
+      </AppScreen>
+    );
+  }
+
+  // ── Annotation step ──
+  if (step === 'annotate') {
+    const imgWidth = screenWidth - spacing.md * 2;
+    const imgHeight = imgWidth * (3 / 4);
+
+    return (
+      <AppScreen>
+        <AppHeader
+          title="Add Note to Photo"
+          showBack
+          right={
+            <Pressable onPress={handleRetakePhoto} accessibilityRole="button" accessibilityLabel="Retake photo" hitSlop={8}>
+              <RotateCcw size={18} color={colors.surface[400]} />
+            </Pressable>
+          }
+        />
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Photo with annotation overlay */}
+            <View style={{ width: imgWidth, height: imgHeight, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface[900] }}>
+              {photoUri && (
+                <Image
+                  source={{ uri: photoUri }}
+                  style={{ position: 'absolute', width: imgWidth, height: imgHeight }}
+                  resizeMode="cover"
+                  accessibilityLabel="Captured delivery photo"
+                />
+              )}
+              {/* Annotation text rendered on top of photo */}
+              {annotation.trim() ? (
+                <View style={styles.annotationOverlay}>
+                  <Text style={styles.annotationOverlayText}>{annotation.trim()}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Annotation input */}
+            <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.md, overflow: 'hidden' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, gap: spacing.xs }}>
+                <Pencil size={14} color={colors.surface[400]} />
+                <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  Add a note (optional)
+                </Text>
+              </View>
+              <TextInput
+                value={annotation}
+                onChangeText={setAnnotation}
+                placeholder="e.g. 2 bags damaged, rest OK"
+                placeholderTextColor={colors.surface[600]}
+                multiline
+                numberOfLines={3}
+                style={{
+                  color: colors.white,
+                  fontSize: fontSize.base,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  minHeight: 72,
+                  textAlignVertical: 'top',
+                }}
+                accessibilityLabel="Annotation note"
+              />
+            </View>
+
+            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, textAlign: 'center' }}>
+              Your note will be shown on the photo and sent to AI as extra context.
+            </Text>
+
+            <View style={{ gap: spacing.sm }}>
+              <Pressable
+                onPress={handleProceedFromAnnotation}
+                accessibilityRole="button"
+                accessibilityLabel="Run AI assessment"
+                style={{ backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
+              >
+                <Bot size={18} color={colors.white} />
+                <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
+                  Assess with AI
+                </Text>
+                <ArrowRight size={16} color={colors.white} />
+              </Pressable>
+
+              <Pressable
+                onPress={handleProceedToEntry}
+                accessibilityRole="button"
+                accessibilityLabel="Skip AI, enter manually"
+                style={{ borderRadius: radius.md, padding: spacing.md, alignItems: 'center' }}
+              >
+                <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>Skip AI — Enter Manually</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleRetakePhoto}
+                accessibilityRole="button"
+                accessibilityLabel="Retake photo"
+                style={{ borderRadius: radius.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                <RotateCcw size={14} color={colors.surface[500]} />
+                <Text style={{ color: colors.surface[500], fontSize: fontSize.sm }}>Retake Photo</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </AppScreen>
     );
   }
@@ -220,7 +395,7 @@ export default function LineItemReceiveScreen() {
   if (step === 'assessment') {
     return (
       <AppScreen>
-        <AppHeader title={lineItem.productName} showBack />
+        <AppHeader title={line.product_name} showBack />
         <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}>
           {photoUri && (
             <View style={{ borderRadius: radius.lg, overflow: 'hidden' }}>
@@ -229,6 +404,11 @@ export default function LineItemReceiveScreen() {
                 style={{ width: '100%', aspectRatio: 4 / 3 }}
                 accessibilityLabel="Captured delivery photo"
               />
+              {annotation.trim() ? (
+                <View style={styles.annotationOverlay}>
+                  <Text style={styles.annotationOverlayText}>{annotation.trim()}</Text>
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -258,44 +438,28 @@ export default function LineItemReceiveScreen() {
                 </Text>
               </View>
 
-              {/* Score */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.surface[300] }}>Overall Score</Text>
-                <Text style={{
-                  color: assessment.score >= 70 ? colors.success : assessment.score >= 40 ? colors.warning : colors.danger,
-                  fontWeight: fontWeight.bold,
-                  fontSize: fontSize.xl,
-                }}>
-                  {assessment.score}/100
-                </Text>
-              </View>
-
-              {/* Dimensions */}
-              {(Object.entries(DIMENSION_LABELS) as [keyof typeof DIMENSION_LABELS, string][]).map(([key, label]) => (
-                <View key={key} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.surface[300], fontSize: fontSize.sm }}>{label}</Text>
+              {assessment.dimensions.map((dim: QualityDimensionResult) => (
+                <View key={dim.dimension} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ color: colors.surface[300], fontSize: fontSize.sm, textTransform: 'capitalize' }}>
+                    {dim.dimension.replace(/_/g, ' ')}
+                  </Text>
                   <StatusBadge
-                    label={assessment[key].charAt(0).toUpperCase() + assessment[key].slice(1)}
-                    variant={QUALITY_VARIANT[assessment[key]]}
+                    label={dim.result.charAt(0).toUpperCase() + dim.result.slice(1)}
+                    variant={QUALITY_VARIANT[dim.result]}
                   />
                 </View>
               ))}
 
-              {/* Estimated quantity */}
               <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.surface[700], paddingTop: spacing.sm }}>
                 <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
                   AI estimated quantity:{' '}
                   <Text style={{ color: colors.surface[300] }}>
-                    {assessment.estimatedQuantity !== null
-                      ? `~${assessment.estimatedQuantity} ${lineItem.unit} (advisory — enter actual below)`
+                    {assessment.quantity_estimate?.estimated_quantity !== null && assessment.quantity_estimate?.estimated_quantity !== undefined
+                      ? `~${assessment.quantity_estimate.estimated_quantity} ${line.unit} (advisory — enter actual below)`
                       : 'Not visible in image — enter manually'}
                   </Text>
                 </Text>
               </View>
-
-              {assessment.notes && (
-                <Text style={{ color: colors.warning, fontSize: fontSize.xs }}>{assessment.notes}</Text>
-              )}
             </View>
           )}
 
@@ -315,34 +479,63 @@ export default function LineItemReceiveScreen() {
   // ── Manual entry + confirmation ──
   return (
     <AppScreen>
-      <AppHeader title={lineItem.productName} showBack />
+      <AppHeader title={line.product_name} showBack />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Photo + annotation recap */}
+          {photoUri && (
+            <View style={{ borderRadius: radius.md, overflow: 'hidden' }}>
+              <Image
+                source={{ uri: photoUri }}
+                style={{ width: '100%', aspectRatio: 16 / 9 }}
+                resizeMode="cover"
+                accessibilityLabel="Delivery photo"
+              />
+              {annotation.trim() ? (
+                <View style={styles.annotationOverlay}>
+                  <Text style={styles.annotationOverlayText}>{annotation.trim()}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+
           {/* Order reference */}
           <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.md, padding: spacing.md }}>
             <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
               Ordered
             </Text>
             <Text style={{ color: colors.white, fontWeight: fontWeight.semibold }}>
-              {lineItem.orderedQuantity} {lineItem.unit}
+              {line.quantity_ordered} {line.unit}
             </Text>
-            {lineItem.referencePrice && (
-              <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
-                Ref price: {lineItem.referencePrice.amount.toLocaleString()} RWF/{lineItem.unit} ({lineItem.referencePrice.referenceDate})
-              </Text>
-            )}
+            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
+              Ref price: {line.unit_price} RWF/{line.unit}
+            </Text>
           </View>
 
-          <AppTextField
-            label="Accepted Quantity (actual)"
-            placeholder={`e.g. ${lineItem.orderedQuantity}`}
-            value={acceptedQty}
-            onChangeText={setAcceptedQty}
-            keyboardType="decimal-pad"
-          />
+          <View>
+            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
+              Accepted Quantity (actual)
+            </Text>
+            <TextInput
+              value={acceptedQty}
+              onChangeText={setAcceptedQty}
+              placeholder={`e.g. ${line.quantity_ordered}`}
+              placeholderTextColor={colors.surface[600]}
+              keyboardType="decimal-pad"
+              style={{
+                backgroundColor: colors.surface[800],
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                color: colors.white,
+                fontSize: fontSize.base,
+              }}
+              accessibilityLabel="Accepted quantity"
+            />
+          </View>
 
           {short && (
             <View style={{ backgroundColor: `${colors.warning}1A`, borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', gap: spacing.sm }}>
@@ -353,24 +546,31 @@ export default function LineItemReceiveScreen() {
             </View>
           )}
 
-          <AppTextField
-            label="Actual Price (RWF / unit)"
-            placeholder="Chef-entered actual price"
-            value={actualPriceStr}
-            onChangeText={setActualPriceStr}
-            keyboardType="decimal-pad"
-          />
+          <View>
+            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
+              Discrepancy Reason (optional)
+            </Text>
+            <TextInput
+              value={discrepancyReason}
+              onChangeText={setDiscrepancyReason}
+              placeholder="e.g. Two bags had visible mold"
+              placeholderTextColor={colors.surface[600]}
+              multiline
+              numberOfLines={2}
+              style={{
+                backgroundColor: colors.surface[800],
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                color: colors.white,
+                fontSize: fontSize.base,
+                minHeight: 60,
+                textAlignVertical: 'top',
+              }}
+              accessibilityLabel="Discrepancy reason"
+            />
+          </View>
 
-          <AppTextField
-            label="Discrepancy Reason (optional)"
-            placeholder="e.g. Two bags had visible mold"
-            value={discrepancyReason}
-            onChangeText={setDiscrepancyReason}
-            multiline
-            numberOfLines={2}
-          />
-
-          {/* Acceptance decision buttons */}
           <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             Decision
           </Text>
@@ -420,3 +620,20 @@ export default function LineItemReceiveScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  annotationOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  annotationOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+});

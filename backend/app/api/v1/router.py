@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.ai.router import router as ai_router
 from app.modules.authentication.router import router as auth_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.ingredients.router import router as ingredients_router
@@ -28,3 +29,4 @@ router.include_router(purchasing_router)
 router.include_router(orders_router)
 router.include_router(receiving_router)
 router.include_router(sync_router)
+router.include_router(ai_router)

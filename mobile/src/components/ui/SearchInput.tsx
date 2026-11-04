@@ -1,4 +1,4 @@
-import { View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, TextInput, Pressable, StyleSheet, useColorScheme } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 import { colors, radius, spacing, fontSize, MIN_TOUCH_SIZE } from '@/lib/theme';
 
@@ -15,15 +15,16 @@ export function SearchInput({
   placeholder = 'Search…',
   accessibilityLabel = 'Search',
 }: SearchInputProps) {
+  const isDark = useColorScheme() === 'dark';
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDark ? colors.surface[800] : colors.surface[200] }]}>
       <Search size={16} color={colors.surface[500]} style={styles.icon} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: isDark ? colors.white : colors.surface[900] }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.surface[600]}
+        placeholderTextColor={isDark ? colors.surface[600] : colors.surface[500]}
         accessibilityLabel={accessibilityLabel}
         returnKeyType="search"
         clearButtonMode="never"
@@ -47,7 +48,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface[800],
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     height: MIN_TOUCH_SIZE,
@@ -56,7 +56,6 @@ const styles = StyleSheet.create({
   icon: { flexShrink: 0 },
   input: {
     flex: 1,
-    color: colors.white,
     fontSize: fontSize.base,
     paddingVertical: 0,
   },

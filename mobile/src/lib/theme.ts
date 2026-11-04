@@ -76,3 +76,26 @@ export const fontWeight = {
 /** Minimum touch target size per accessibility guidelines */
 export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 export const MIN_TOUCH_SIZE = 44;
+
+/** Semantic color sets for StyleSheet-based components */
+export const lightColors = {
+  bg: colors.surface[50],
+  bgCard: colors.surface[100],
+  bgInput: colors.surface[200],
+  textPrimary: colors.surface[900],
+  textSecondary: colors.surface[600],
+  textMuted: colors.surface[500],
+  border: colors.surface[200],
+  borderInner: colors.surface[200],
+};
+
+export const darkColors = {
+  bg: colors.surface[900],
+  bgCard: colors.surface[800],
+  bgInput: colors.surface[800],
+  textPrimary: '#FFFFFF',
+  textSecondary: colors.surface[300],
+  textMuted: colors.surface[500],
+  border: colors.surface[700],
+  borderInner: colors.surface[700],
+};

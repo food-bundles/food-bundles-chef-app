@@ -43,8 +43,8 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-800 flex-row items-center gap-3">
+    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
+      <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center gap-3">
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
@@ -53,7 +53,7 @@ export default function SettingsScreen() {
         >
           <ChevronLeft size={24} color="#9CA3AF" strokeWidth={2} />
         </Pressable>
-        <Text className="text-white text-lg font-bold">Settings</Text>
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Settings</Text>
       </View>
 
       <ScrollView
@@ -62,13 +62,13 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Notifications section */}
-        <Text className="text-surface-400 text-xs font-semibold uppercase tracking-wider px-1">
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1">
           Notifications
         </Text>
 
-        <View className="bg-surface-800 rounded-xl overflow-hidden">
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
           {/* Permission row */}
-          <View className="px-4 py-4 flex-row items-center justify-between border-b border-surface-700">
+          <View className="px-4 py-4 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-700">
             <View className="flex-row items-center gap-3 flex-1">
               {permStatus === 'granted' ? (
                 <Bell size={20} color="#1DB954" strokeWidth={2} />
@@ -76,8 +76,8 @@ export default function SettingsScreen() {
                 <BellOff size={20} color="#9CA3AF" strokeWidth={2} />
               )}
               <View className="flex-1">
-                <Text className="text-white font-medium">Push Notifications</Text>
-                <Text className="text-surface-400 text-sm mt-0.5">
+                <Text className="text-surface-900 dark:text-white font-medium">Push Notifications</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
                   {permStatus === 'granted'
                     ? 'Enabled'
                     : permStatus === 'denied'
@@ -102,8 +102,8 @@ export default function SettingsScreen() {
           {/* Daily reminder row */}
           <View className="px-4 py-4 flex-row items-center justify-between">
             <View className="flex-1 mr-3">
-              <Text className="text-white font-medium">Daily Stock Reminder</Text>
-              <Text className="text-surface-400 text-sm mt-0.5">
+              <Text className="text-surface-900 dark:text-white font-medium">Daily Stock Reminder</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
                 Reminder at 7:00 AM to review low-stock ingredients
               </Text>
             </View>
@@ -123,20 +123,20 @@ export default function SettingsScreen() {
         {permStatus === 'denied' && (
           <View className="bg-warning/10 border border-warning/30 rounded-xl p-4">
             <Text className="text-warning text-sm font-medium mb-1">Notifications blocked</Text>
-            <Text className="text-surface-300 text-sm">
+            <Text className="text-surface-700 dark:text-surface-300 text-sm">
               Open your device Settings → Food Bundles Chef → Notifications and enable them there.
             </Text>
           </View>
         )}
 
         {/* App info section */}
-        <Text className="text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
           App
         </Text>
-        <View className="bg-surface-800 rounded-xl px-4 py-4">
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl px-4 py-4">
           <View className="flex-row justify-between">
-            <Text className="text-surface-400 text-sm">Version</Text>
-            <Text className="text-white text-sm">1.0.0 (Phase 08)</Text>
+            <Text className="text-surface-600 dark:text-surface-400 text-sm">Version</Text>
+            <Text className="text-surface-900 dark:text-white text-sm">1.0.0 (Phase 08)</Text>
           </View>
         </View>
       </ScrollView>
