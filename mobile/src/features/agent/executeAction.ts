@@ -6,11 +6,14 @@
  */
 import { recordSale } from '@/api/sales-api';
 import { recordInventoryEntry } from '@/api/inventory-api';
+import { createIngredient } from '@/api/ingredients-api';
 import { createOrder, submitOrder, cancelOrder } from '@/api/orders-api';
+import { ApiError } from '@/api/errors';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
 import type { ActionProposal, ActionType } from '@/api/agent-api';
 import type { SaleRecordCreateBody } from '@/api/sales-api';
 import type { InventoryEntryCreateBody } from '@/api/inventory-api';
+import type { IngredientCreateBody } from '@/api/ingredients-api';
 import type { OrderCreateBody } from '@/api/orders-api';
 import type { BulkReceivingBody } from '@/api/receiving-api';
 
@@ -42,6 +45,15 @@ export async function executeAction(
       return;
     }
 
+    case 'create_ingredient': {
+      const body: IngredientCreateBody = {
+        name: p.name as string,
+        unit: p.unit as string,
+      };
+      await createIngredient(kitchenId, body);
+      return;
+    }
+
     case 'create_order': {
       const lines = (p.lines as Array<Record<string, unknown>>).map((l) => ({
         catalog_product_id: l.catalog_product_id as string,
@@ -61,7 +73,13 @@ export async function executeAction(
     }
 
     case 'submit_order': {
-      await submitOrder(kitchenId, p.order_id as string);
+      try {
+        await submitOrder(kitchenId, p.order_id as string);
+      } catch (err: unknown) {
+        // Order already confirmed — treat as success
+        if (err instanceof ApiError && err.kind === 'conflict') return;
+        throw err;
+      }
       return;
     }
 
@@ -88,11 +106,25 @@ export async function executeAction(
     }
 
     case 'undo': {
-      // Undo is expressed as a reversal action proposal by the agent.
-      // The agent returns a new proposal (e.g. cancel_order) for undo —
-      // this case should not be hit directly; it falls through to the agent
-      // returning a new proposal with the reversal action.
-      throw new Error('Undo actions are planned by the agent and confirmed separately.');
+      // The agent proposes undo with params: { action_type, resource_id }.
+      // We map the original action_type to its reversal call.
+      const originalType = p.action_type as string;
+      const resourceId = p.resource_id as string | undefined;
+
+      if ((originalType === 'create_order' || originalType === 'submit_order') && resourceId) {
+        await cancelOrder(kitchenId, resourceId);
+        return;
+      }
+      if (originalType === 'cancel_order' && resourceId) {
+        // No "uncancel" endpoint — nothing to do, treat as success
+        return;
+      }
+      if (originalType === 'submit_order' && resourceId) {
+        await cancelOrder(kitchenId, resourceId);
+        return;
+      }
+      // For other action types, the agent should re-plan — surface a clear error
+      throw new Error(`Cannot undo action type "${originalType}" — no reversal available.`);
     }
 
     default: {

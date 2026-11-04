@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Modal,
+  Image,
   useColorScheme,
 } from 'react-native';
 // expo-av is a native module — unavailable in Expo Go, works in dev/production builds
@@ -21,7 +23,11 @@ try {
   // running in Expo Go — voice input will be disabled
 }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, ChevronDown } from 'lucide-react-native';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as DocumentPicker from 'expo-document-picker';
+import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, ChevronDown, Paperclip, Camera, Images, FileUp, X } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useAgentTurn, useConfirmAction } from '@/features/agent/useAgent';
 import { transcribeAudio } from '@/api/ai-api';
@@ -32,7 +38,7 @@ import type { AgentMessage, AgentResponse, ActionProposal, ClarifyingQuestion } 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type ChatEntry =
-  | { type: 'message'; role: 'chef' | 'agent'; content: string; id: string }
+  | { type: 'message'; role: 'chef' | 'agent'; content: string; id: string; imageUri?: string }
   | { type: 'proposal'; proposal: ActionProposal; replyText: string; id: string; confirmed?: boolean; cancelled?: boolean }
   | { type: 'clarification'; question: ClarifyingQuestion; replyText: string; id: string }
   | { type: 'error'; content: string; id: string };
@@ -63,6 +69,8 @@ export default function AgentScreen() {
   const [lastAction, setLastAction] = useState<ActionProposal | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [showAttachSheet, setShowAttachSheet] = useState(false);
   const listRef = useRef<FlatList>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recordingRef = useRef<any>(null);
@@ -102,16 +110,98 @@ export default function AgentScreen() {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim() || !activeKitchen) return;
-    setInputText('');
+  const handleAttachCamera = async () => {
+    setShowAttachSheet(false);
+    // expo-camera permissions handled by CameraView inline — use ImagePicker camera here
+    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+    if (!granted) {
+      Alert.alert('Permission required', 'Camera access is needed to take a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    await _processPickedImage(result.assets[0].uri);
+  };
 
-    const userEntry: ChatEntry = { type: 'message', role: 'chef', content: text.trim(), id: nextId() };
+  const handleAttachPhotos = async () => {
+    setShowAttachSheet(false);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Gallery access is needed to upload a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    await _processPickedImage(result.assets[0].uri);
+  };
+
+  const handleAttachFiles = async () => {
+    setShowAttachSheet(false);
+    const result = await DocumentPicker.getDocumentAsync({ type: 'image/*', copyToCacheDirectory: true });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    await _processPickedImage(result.assets[0].uri);
+  };
+
+  const _processPickedImage = async (uri: string) => {
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      setAttachedImage(compressed.uri);
+    } catch {
+      Alert.alert('Error', 'Could not load the selected image.');
+    }
+  };
+
+  const sendMessage = async (text: string) => {
+    const hasText = text.trim();
+    const hasImage = !!attachedImage;
+    if (!hasText && !hasImage) return;
+    if (!activeKitchen) return;
+    setInputText('');
+    const imageUri = attachedImage;
+    setAttachedImage(null);
+
+    // Build display content
+    const displayContent = hasText ? text.trim() : '📎 [Image attached]';
+
+    const userEntry: ChatEntry = {
+      type: 'message',
+      role: 'chef',
+      content: displayContent,
+      id: nextId(),
+      imageUri: imageUri ?? undefined,
+    };
     setEntries((prev) => [...prev, userEntry]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
 
+    // Encode attached image to base64 so Muse Spark can see it
+    let imageBase64: string | null = null;
+    if (imageUri) {
+      try {
+        imageBase64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } catch {
+        // If encoding fails, still send the text — vision just won't work
+      }
+    }
+
+    const agentContent = hasImage && hasText
+      ? `${text.trim()} [Chef attached a photo]`
+      : hasImage
+      ? 'Chef attached a photo for context — please describe what you see.'
+      : text.trim();
+
     try {
-      const history = buildHistory({ role: 'chef', content: text.trim() });
+      const chefMessage: AgentMessage = {
+        role: 'chef',
+        content: agentContent,
+        image_data: imageBase64 ?? undefined,
+      };
+      const history = buildHistory(chefMessage);
       const response = await agentTurnMutation.mutateAsync({
         messages: history,
         last_confirmed_action: lastAction,
@@ -307,65 +397,160 @@ export default function AgentScreen() {
 
       {/* Input bar */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: borderColor, flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
-          <TextInput
-            style={{
-              flex: 1,
-              backgroundColor: bgCard,
-              borderRadius: radius.md,
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm,
-              color: textPrimary,
-              fontSize: fontSize.base,
-              maxHeight: 100,
-            }}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask me anything…"
-            placeholderTextColor={colors.surface[500]}
-            multiline
-            returnKeyType="send"
-            onSubmitEditing={() => void sendMessage(inputText)}
-            blurOnSubmit={false}
-            accessibilityLabel="Message input"
-          />
-          <Pressable
-            onPress={() => void handleVoiceInput()}
-            disabled={isTranscribing}
-            accessibilityRole="button"
-            accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
-            style={[
-              { borderRadius: radius.md, padding: spacing.sm },
-              isRecording
-                ? { backgroundColor: colors.danger }
-                : { backgroundColor: bgCard },
-              isTranscribing && { opacity: 0.5 },
-            ]}
-          >
-            {isTranscribing ? (
-              <ActivityIndicator size="small" color={colors.surface[400]} />
-            ) : (
-              <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
-            )}
-          </Pressable>
-          <Pressable
-            onPress={() => void sendMessage(inputText)}
-            disabled={!inputText.trim() || agentTurnMutation.isPending}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-            style={[
-              { backgroundColor: '#22C55E', borderRadius: radius.md, padding: spacing.sm },
-              (!inputText.trim() || agentTurnMutation.isPending) && { opacity: 0.5 },
-            ]}
-          >
-            {agentTurnMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Send size={20} color={colors.white} />
-            )}
-          </Pressable>
+        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: borderColor, gap: 8 }}>
+          {/* Attached image preview */}
+          {attachedImage && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ position: 'relative' }}>
+                <Image
+                  source={{ uri: attachedImage }}
+                  style={{ width: 56, height: 56, borderRadius: 8 }}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  onPress={() => setAttachedImage(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove image"
+                  style={{ position: 'absolute', top: -6, right: -6, backgroundColor: colors.surface[700], borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={12} color={colors.white} />
+                </Pressable>
+              </View>
+              <Text style={{ color: textSecondary, fontSize: fontSize.xs, flex: 1 }}>Image attached — add a message or send directly</Text>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
+            {/* Attach button */}
+            <Pressable
+              onPress={() => setShowAttachSheet(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Attach image"
+              style={{ borderRadius: radius.md, padding: spacing.sm, backgroundColor: bgCard }}
+            >
+              <Paperclip size={20} color={attachedImage ? colors.brand[400] : colors.surface[400]} />
+            </Pressable>
+
+            <TextInput
+              style={{
+                flex: 1,
+                backgroundColor: bgCard,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                color: textPrimary,
+                fontSize: fontSize.base,
+                maxHeight: 100,
+              }}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Ask me anything…"
+              placeholderTextColor={colors.surface[500]}
+              multiline
+              returnKeyType="send"
+              onSubmitEditing={() => void sendMessage(inputText)}
+              blurOnSubmit={false}
+              accessibilityLabel="Message input"
+            />
+            <Pressable
+              onPress={() => void handleVoiceInput()}
+              disabled={isTranscribing}
+              accessibilityRole="button"
+              accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
+              style={[
+                { borderRadius: radius.md, padding: spacing.sm },
+                isRecording ? { backgroundColor: colors.danger } : { backgroundColor: bgCard },
+                isTranscribing && { opacity: 0.5 },
+              ]}
+            >
+              {isTranscribing ? (
+                <ActivityIndicator size="small" color={colors.surface[400]} />
+              ) : (
+                <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => void sendMessage(inputText)}
+              disabled={(!inputText.trim() && !attachedImage) || agentTurnMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+              style={[
+                { backgroundColor: '#22C55E', borderRadius: radius.md, padding: spacing.sm },
+                ((!inputText.trim() && !attachedImage) || agentTurnMutation.isPending) && { opacity: 0.5 },
+              ]}
+            >
+              {agentTurnMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Send size={20} color={colors.white} />
+              )}
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Attachment bottom sheet */}
+      <Modal
+        visible={showAttachSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAttachSheet(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setShowAttachSheet(false)}
+        >
+          <Pressable onPress={() => {/* stop propagation */}}>
+            <View style={{
+              backgroundColor: isDark ? colors.surface[900] : colors.surface[50],
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingTop: 12,
+              paddingBottom: insets.bottom + 24,
+              paddingHorizontal: spacing.md,
+            }}>
+              {/* Handle */}
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.surface[600], alignSelf: 'center', marginBottom: 20 }} />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <Text style={{ color: textPrimary, fontSize: fontSize.lg, fontWeight: fontWeight.bold }}>Add context</Text>
+                <Pressable onPress={() => setShowAttachSheet(false)} accessibilityRole="button" accessibilityLabel="Close">
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.surface[700] : colors.surface[200], alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={16} color={textSecondary} />
+                  </View>
+                </Pressable>
+              </View>
+
+              {/* 3-column options */}
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: 'Camera', icon: Camera, onPress: handleAttachCamera },
+                  { label: 'Photos', icon: Images, onPress: handleAttachPhotos },
+                  { label: 'Files', icon: FileUp, onPress: handleAttachFiles },
+                ].map(({ label, icon: Icon, onPress }) => (
+                  <Pressable
+                    key={label}
+                    onPress={onPress}
+                    accessibilityRole="button"
+                    accessibilityLabel={label}
+                    style={{
+                      flex: 1,
+                      backgroundColor: isDark ? colors.surface[800] : colors.surface[100],
+                      borderRadius: 16,
+                      paddingVertical: 20,
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <Icon size={28} color={textPrimary} strokeWidth={1.5} />
+                    <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -411,8 +596,23 @@ function ChatEntryRow({
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           maxWidth: '85%',
+          gap: 8,
+          overflow: 'hidden',
         }}>
-          <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
+          {entry.imageUri && (
+            <Image
+              source={{ uri: entry.imageUri }}
+              style={{ width: 180, height: 135, borderRadius: 8 }}
+              resizeMode="cover"
+              accessibilityLabel="Attached image"
+            />
+          )}
+          {(entry.content && entry.content !== '📎 [Image attached]') && (
+            <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
+          )}
+          {(!entry.content || entry.content === '📎 [Image attached]') && !entry.imageUri && (
+            <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
+          )}
         </View>
       </View>
     );

@@ -2,7 +2,7 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-nati
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Package } from 'lucide-react-native';
-import { useOrderDetail, useCancelOrder } from '@/features/orders/useOrders';
+import { useOrderDetail, useCancelOrder, useSubmitOrder } from '@/features/orders/useOrders';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ProductIcon } from '@/components/ui/ProductIcon';
@@ -21,6 +21,7 @@ export default function OrderDetailScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { data: order, isLoading, error } = useOrderDetail(orderId ?? '');
   const cancelMutation = useCancelOrder();
+  const submitMutation = useSubmitOrder();
   const { data: catalog = [] } = useCatalog();
   // Build a map from catalog_product_id → image_url for quick lookup
   const catalogImageMap = Object.fromEntries(
@@ -32,6 +33,7 @@ export default function OrderDetailScreen() {
     0,
   ) ?? 0;
 
+  const canSubmit = order?.status === 'draft';
   const canCancel = order && (order.status === 'draft' || order.status === 'submitted');
 
   return (
@@ -136,6 +138,24 @@ export default function OrderDetailScreen() {
                 </View>
               );
             })
+          )}
+
+          {/* Submit draft to confirmed */}
+          {canSubmit && (
+            <Pressable
+              onPress={async () => {
+                await submitMutation.mutateAsync(order.id);
+                router.back();
+              }}
+              disabled={submitMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Submit order"
+              className="mt-2 bg-brand-500 rounded-xl p-4 items-center active:opacity-80"
+            >
+              <Text className="text-white font-semibold text-sm">
+                {submitMutation.isPending ? 'Submitting…' : 'Submit Order → Ready for Delivery'}
+              </Text>
+            </Pressable>
           )}
 
           {/* Cancel action */}

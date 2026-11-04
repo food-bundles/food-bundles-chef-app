@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ShoppingCart, ChevronRight } from 'lucide-react-native';
+import { ShoppingCart, ChevronRight, Truck } from 'lucide-react-native';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
@@ -85,13 +85,12 @@ export default function PurchasingScreen() {
       unit_price: c.product.reference_price ?? '0',
       ingredient_id: null,
     }));
-    const created = await createOrder.mutateAsync({ lines });
-    await submitOrderMutation.mutateAsync(created.id);
+    await createOrder.mutateAsync({ lines });
     setCart([]);
     setTab('orders');
   };
 
-  const isPlacingOrder = createOrder.isPending || submitOrderMutation.isPending;
+  const isPlacingOrder = createOrder.isPending;
 
   return (
     <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
@@ -231,6 +230,20 @@ export default function PurchasingScreen() {
         ) : (
           <FlatList
             data={apiOrders}
+            ListHeaderComponent={
+              <Pressable
+                onPress={() => router.push('/(app)/receiving' as never)}
+                accessibilityRole="button"
+                accessibilityLabel="Go to receiving"
+                className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-4 flex-row items-center justify-between mb-2 active:opacity-70"
+              >
+                <View className="flex-row items-center gap-2">
+                  <Truck size={16} color="#0E8438" strokeWidth={2} />
+                  <Text className="text-brand-400 font-semibold text-sm">Delivery Receiving</Text>
+                </View>
+                <ChevronRight size={16} color="#0E8438" strokeWidth={2} />
+              </Pressable>
+            }
             keyExtractor={(o) => o.id}
             contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
             renderItem={({ item: order }) => (

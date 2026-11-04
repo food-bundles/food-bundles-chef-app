@@ -53,6 +53,7 @@ export function useSubmitOrder() {
     mutationFn: (orderId: string) => submitOrder(kitchenId, orderId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.orders.list(chefId, kitchenId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.deliveries.list(chefId, kitchenId) });
     },
   });
 }

@@ -37,7 +37,7 @@ class OrderService:
             chef_id=chef.id,
             delivery_date=data.delivery_date,
             notes=data.notes,
-            status=OrderStatus.DRAFT,
+            status=OrderStatus.CONFIRMED,
         )
         order = await self._repo.create(order)
 
@@ -74,17 +74,19 @@ class OrderService:
         self, kitchen: Kitchen, order_id: uuid.UUID
     ) -> OrderSubmitResponse:
         order = await self._require_owned(kitchen, order_id)
-        if order.status != OrderStatus.DRAFT:
+        if order.status not in (OrderStatus.DRAFT, OrderStatus.SUBMITTED):
             raise ConflictError(f"Order cannot be submitted from status '{order.status}'.")
 
-        order.status = OrderStatus.SUBMITTED
+        # Skip the intermediate SUBMITTED state — go straight to CONFIRMED so
+        # the chef can start receiving immediately without a separate confirm step.
+        order.status = OrderStatus.CONFIRMED
         order = await self._repo.update(order)
 
         return OrderSubmitResponse(
             order_id=order.id,
             external_order_id=order.external_order_id,
             status=OrderStatus(order.status),
-            message="Order submitted to Food Bundles.",
+            message="Order confirmed and ready for delivery.",
         )
 
     async def confirm_order(

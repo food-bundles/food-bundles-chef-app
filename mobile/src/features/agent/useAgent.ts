@@ -42,6 +42,11 @@ export function useConfirmAction() {
         void qc.invalidateQueries({ queryKey: queryKeys.purchasing.suggestions(chefId, kitchenId) });
       }
 
+      if (type === 'create_ingredient') {
+        void qc.invalidateQueries({ queryKey: queryKeys.catalog.ingredients(chefId, kitchenId) });
+        void qc.invalidateQueries({ queryKey: queryKeys.inventory.stock(chefId, kitchenId) });
+      }
+
       if (type === 'create_order' || type === 'submit_order' || type === 'cancel_order') {
         void qc.invalidateQueries({ queryKey: queryKeys.orders.list(chefId, kitchenId) });
         void qc.invalidateQueries({ queryKey: queryKeys.deliveries.list(chefId, kitchenId) });

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -9,13 +10,16 @@ import {
   Bot,
 } from 'lucide-react-native';
 
-const ICON_SIZE = 22;
+const ICON_SIZE = 20;
 const ACTIVE_COLOR = '#0E8438';
 const INACTIVE_COLOR = '#8C897E';
 
 export default function TabsLayout() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const insets = useSafeAreaInsets();
+  // Tab bar height: icon (20) + label (10) + gap (4) + bottom inset + 10px padding
+  const tabBarHeight = 44 + insets.bottom;
 
   return (
     <Tabs
@@ -25,14 +29,19 @@ export default function TabsLayout() {
           backgroundColor: isDark ? '#1A1916' : '#FFFFFF',
           borderTopColor: isDark ? '#32302C' : '#EAE9E4',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom + 4,
+          paddingTop: 4,
         },
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: '600',
+          marginTop: 0,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 0,
         },
       }}
     >

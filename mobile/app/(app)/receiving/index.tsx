@@ -10,12 +10,14 @@ import type { BadgeVariant } from '@/components/ui/StatusBadge';
 import type { OrderStatus } from '@/api/orders-api';
 
 const STATUS_VARIANT: Partial<Record<OrderStatus, BadgeVariant>> = {
+  submitted: 'warning',
   confirmed: 'warning',
   out_for_delivery: 'info',
   delivered: 'success',
 };
 
 const STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
+  submitted: 'Awaiting Delivery',
   confirmed: 'Pending',
   out_for_delivery: 'In Transit',
   delivered: 'Delivered',

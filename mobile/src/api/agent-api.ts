@@ -7,11 +7,13 @@ export type AgentRole = 'chef' | 'agent';
 export interface AgentMessage {
   role: AgentRole;
   content: string;
+  image_data?: string | null; // base64 JPEG for multimodal chef messages
 }
 
 export type ActionType =
   | 'record_sale'
   | 'record_inventory'
+  | 'create_ingredient'
   | 'create_order'
   | 'submit_order'
   | 'cancel_order'

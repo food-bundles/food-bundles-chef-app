@@ -18,12 +18,14 @@ import type { BadgeVariant } from '@/components/ui/StatusBadge';
 import type { ReceivingDecision } from '@/api/receiving-api';
 
 const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  submitted: 'warning',
   confirmed: 'warning',
   out_for_delivery: 'info',
   delivered: 'success',
 };
 
 const STATUS_LABEL: Record<string, string> = {
+  submitted: 'Awaiting Delivery',
   confirmed: 'Pending',
   out_for_delivery: 'In Transit',
   delivered: 'Delivered',
@@ -66,7 +68,7 @@ export default function DeliveryDetailScreen() {
 
   const lines = order.lines ?? [];
   const allDecided = lines.length > 0 && lines.every((l) => decisions[l.id] !== undefined);
-  const canStart = order.status === 'confirmed';
+  const canStart = order.status === 'submitted' || order.status === 'confirmed';
   const canComplete = order.status === 'out_for_delivery' && allDecided;
   const isCompleted = order.status === 'delivered';
 

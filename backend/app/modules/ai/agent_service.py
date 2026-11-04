@@ -54,6 +54,7 @@ RULES:
 4. If quantities, items, or action are clear from the conversation — propose immediately without asking again.
 5. When the chef says "yes", "yeah", "proceed", "go ahead", "confirm", "do it" — treat that as confirmation of the last proposal and proceed with the action.
 8. If the conversation history shows "Action executed: <something>" — that action is DONE. Do not re-propose it. Acknowledge it and ask what's next.
+9. If the chef wants to adjust stock for an ingredient that is NOT listed in the kitchen context, propose create_ingredient first. After it is confirmed, propose record_inventory using the new ingredient's id.
 6. Be concise. Talk like a kitchen colleague, not a corporate assistant. No filler phrases.
 7. Quantities must be numbers. Dates must be ISO format (YYYY-MM-DD). Today is {today}.
 
@@ -64,6 +65,9 @@ record_sale — record portions sold for a menu item
 
 record_inventory — adjust stock quantity
   params: {{ "ingredient_id": "<id from context>", "quantity": "<number as string>", "entry_type": "adjustment|delivery|waste", "notes": "<optional string or null>" }}
+
+create_ingredient — add a new ingredient to this kitchen (use this FIRST if no matching ingredient exists before record_inventory)
+  params: {{ "name": "<ingredient name>", "unit": "<kg|pieces|litres|bunches|etc>" }}
 
 create_order — create a purchase order
   params: {{ "delivery_date": "<YYYY-MM-DD or null>", "notes": "<string or null>",
@@ -162,7 +166,8 @@ async def _build_kitchen_context(
                 )
         else:
             lines.append("\nNo open orders.")
-    except Exception:
+    except Exception as exc:
+        logger.warning("agent_context_orders_failed", error=str(exc))
         lines.append("\nOrder data unavailable.")
 
     # Menu items
@@ -185,12 +190,28 @@ async def _build_kitchen_context(
 
 def _build_messages(
     agent_request: AgentRequest,
-) -> list[dict[str, str]]:
-    """Convert AgentMessage list to messages format for Muse Spark."""
+) -> list[dict]:
+    """Convert AgentMessage list to messages format for Muse Spark.
+
+    When a chef message carries image_data (base64 JPEG), the content
+    is sent as a multimodal array: image_url first, then the text.
+    """
     result = []
     for msg in agent_request.messages:
         role = "user" if msg.role.value == "chef" else "assistant"
-        result.append({"role": role, "content": msg.content})
+        if msg.image_data and msg.role.value == "chef":
+            content = [
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{msg.image_data}",
+                    },
+                },
+                {"type": "text", "text": msg.content},
+            ]
+        else:
+            content = msg.content
+        result.append({"role": role, "content": content})
     return result
 
 

@@ -20,6 +20,7 @@ class AgentRole(StrEnum):
 class AgentMessage(BaseModel):
     role: AgentRole
     content: str
+    image_data: str | None = None  # base64 JPEG for multimodal chef messages
 
 
 # ── Action types the agent may propose ────────────────────────────────────────
@@ -27,6 +28,7 @@ class AgentMessage(BaseModel):
 class ActionType(StrEnum):
     RECORD_SALE = "record_sale"
     RECORD_INVENTORY = "record_inventory"
+    CREATE_INGREDIENT = "create_ingredient"
     CREATE_ORDER = "create_order"
     SUBMIT_ORDER = "submit_order"
     CANCEL_ORDER = "cancel_order"

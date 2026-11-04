@@ -40,10 +40,10 @@ class ReceivingService:
         order = await self._order_repo.get_by_id_and_kitchen(order_id, kitchen.id)
         if order is None:
             raise NotFoundError("Order not found in this kitchen.")
-        if order.status != OrderStatus.CONFIRMED:
+        if order.status not in (OrderStatus.SUBMITTED, OrderStatus.CONFIRMED):
             raise ConflictError(
                 f"Cannot start delivery for order in status '{order.status}'. "
-                "Order must be CONFIRMED."
+                "Order must be SUBMITTED or CONFIRMED."
             )
         order.status = OrderStatus.OUT_FOR_DELIVERY
         await self._db.flush()

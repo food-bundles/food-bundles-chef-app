@@ -13,8 +13,9 @@ function useReceivingContext() {
   return { chefId, kitchenId: activeKitchen?.id ?? '' };
 }
 
-// Delivery-relevant order statuses
-const DELIVERY_STATUSES = new Set(['confirmed', 'out_for_delivery', 'delivered']);
+// Delivery-relevant order statuses — submitted is included so a chef can
+// start receiving even when a supplier skips the "confirmed" step.
+const DELIVERY_STATUSES = new Set(['submitted', 'confirmed', 'out_for_delivery', 'delivered']);
 
 /** Returns orders that are confirmed, out for delivery, or recently delivered. */
 export function useDeliveries() {
@@ -28,7 +29,8 @@ export function useDeliveries() {
       return all.filter((o) => DELIVERY_STATUSES.has(o.status));
     },
     enabled,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
 
