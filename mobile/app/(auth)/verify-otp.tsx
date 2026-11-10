@@ -2,25 +2,13 @@ import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Style
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
-import { verifyOtp, getMe, registerPushToken } from '@/api/auth-api';
+import { verifyOtp, getMe } from '@/api/auth-api';
 import { listKitchens } from '@/api/kitchens-api';
 import { ApiError } from '@/api/errors';
 import { useSessionStore } from '@/store/session-store';
 
 async function tryRegisterPushToken(): Promise<void> {
-  try {
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    const finalStatus =
-      existing === 'granted'
-        ? existing
-        : (await Notifications.requestPermissionsAsync()).status;
-    if (finalStatus !== 'granted') return;
-    const { data: token } = await Notifications.getExpoPushTokenAsync();
-    await registerPushToken({ token });
-  } catch {
-    // Push token registration is best-effort — never block login on failure
-  }
+  // Push token registration disabled until Firebase is configured
 }
 
 export default function VerifyOtpScreen() {

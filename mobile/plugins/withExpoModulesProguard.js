@@ -1,30 +1,56 @@
-const { withAppBuildGradle } = require("@expo/config-plugins");
+const { withDangerousMod } = require("@expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
 
 const PROGUARD_RULES = `
-# Fix R8 missing classes for expo-av / expo-modules-core
--keep class expo.modules.core.interfaces.services.KeepAwakeManager { *; }
--keep class expo.modules.kotlin.types.AnyTypeProvider { *; }
--keep class expo.modules.kotlin.types.LazyKType { *; }
+# ── Expo modules ────────────────────────────────────────────────────────────────
 -keep class expo.modules.** { *; }
 -dontwarn expo.modules.**
+
+# ── AndroidX WorkManager (used by expo-notifications, expo-background-fetch) ───
+-keep class androidx.work.** { *; }
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.InputMerger
+-keep public class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+-keep class androidx.work.impl.WorkDatabase
+-keep class androidx.work.impl.WorkDatabase_Impl
+-keep class * extends androidx.work.impl.WorkDatabase
+-dontwarn androidx.work.**
+
+# ── React Native / Hermes ────────────────────────────────────────────────────────
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-dontwarn com.facebook.react.**
+-dontwarn com.facebook.hermes.**
+
+# ── Reanimated / Worklets ────────────────────────────────────────────────────────
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.swmansion.worklets.** { *; }
+-dontwarn com.swmansion.**
+
+# ── Keep classes instantiated via reflection ─────────────────────────────────────
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 `;
 
 module.exports = function withExpoModulesProguard(config) {
-  return withAppBuildGradle(config, (mod) => {
-    if (!mod.modResults.contents.includes("KeepAwakeManager")) {
-      const fs = require("fs");
-      const path = require("path");
+  return withDangerousMod(config, [
+    "android",
+    (mod) => {
       const proguardPath = path.join(
-        mod.modRequest.projectRoot,
-        "android/app/proguard-rules.pro"
+        mod.modRequest.platformProjectRoot,
+        "app/proguard-rules.pro"
       );
       if (fs.existsSync(proguardPath)) {
         const existing = fs.readFileSync(proguardPath, "utf8");
-        if (!existing.includes("KeepAwakeManager")) {
+        if (!existing.includes("androidx.work.impl.WorkDatabase")) {
           fs.writeFileSync(proguardPath, existing + PROGUARD_RULES);
         }
       }
-    }
-    return mod;
-  });
+      return mod;
+    },
+  ]);
 };
