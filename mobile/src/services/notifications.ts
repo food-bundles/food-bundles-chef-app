@@ -1,16 +1,22 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-/** Configure how notifications appear when the app is in the foreground */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+/**
+ * Call once at app startup (after native modules are ready) to configure
+ * foreground notification display. Deferred from module-load time to avoid
+ * crashing on Android when Firebase is not yet initialised.
+ */
+export function initNotificationHandler(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export type NotificationPermissionStatus = 'granted' | 'denied' | 'undetermined';
 

@@ -13,10 +13,12 @@ import { getDatabase } from '@/data/sqlite/database';
 import { useDataHydration } from '@/hooks/useDataHydration';
 import { setTokenProvider } from '@/api/http-client';
 import { sessionTokenProvider, useSessionStore } from '@/store/session-store';
+import { initNotificationHandler } from '@/services/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
 setTokenProvider(sessionTokenProvider);
+initNotificationHandler();
 
 const queryClient = new QueryClient({
   defaultOptions: {
