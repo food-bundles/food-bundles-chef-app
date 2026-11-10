@@ -10,21 +10,27 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F2027"
+      "backgroundColor": "#1DB954"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.foodbundles.chefapp"
     },
+    "newArchEnabled": true,
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0F2027"
+        "backgroundColor": "#1DB954"
       },
       "package": "com.foodbundles.chefapp",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "plugins": [
@@ -48,6 +54,23 @@
         {
           "microphonePermission": "Allow Food Bundles Chef to access your microphone for voice input to the kitchen assistant."
         }
+      ],
+      "expo-splash-screen",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Food Bundles Chef to access your photos to set a kitchen photo.",
+          "cameraPermission": "Allow Food Bundles Chef to take a kitchen photo."
+        }
+      ],
+      "./plugins/withExpoModulesProguard",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Food Bundles Chef to access your location to tag delivery locations and track routes.",
+          "locationWhenInUsePermission": "Allow Food Bundles Chef to access your location to tag delivery locations."
+        }
       ]
     ],
     "experiments": {
@@ -60,8 +83,10 @@
         }
       },
       "eas": {
-        "projectId": "81f290af-bccb-41c7-b9b8-c0af5542ac5b"
-      }
-    }
+        "projectId": "1a55caec-1c71-4c8b-a86b-dee49eaa9828"
+      },
+      "apiBaseUrl": "http://72.60.18.7:8001/api/v1"
+    },
+    "owner": "umurava"
   }
 }

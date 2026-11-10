@@ -64,8 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    width: '80%',
-    alignSelf: 'center' as const,
+    width: '100%',
   },
   primary: {
     backgroundColor: '#22C55E',

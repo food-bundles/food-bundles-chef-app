@@ -54,7 +54,6 @@ export default function CreateMenuItemScreen() {
     setSaving(true);
     setError(null);
     try {
-      // Ensure at least one active menu exists
       const menus = await listMenus(activeKitchen.id);
       let menuId = menus.find((m) => m.is_active)?.id;
       if (!menuId) {
@@ -142,11 +141,13 @@ export default function CreateMenuItemScreen() {
             )}
           />
 
-          <AppButton
-            label="Add to Menu"
-            onPress={handleSubmit(onSubmit)}
-            loading={saving}
-          />
+          <View style={{ marginTop: spacing.sm }}>
+            <AppButton
+              label="Save Menu Item"
+              onPress={handleSubmit(onSubmit)}
+              loading={saving}
+            />
+          </View>
 
           {error && (
             <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>

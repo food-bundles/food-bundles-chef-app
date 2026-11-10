@@ -7,6 +7,7 @@ import {
   listMenuItems,
   createMenuItem,
   updateMenuItem,
+  deleteMenuItem,
 } from '@/api/menus-api';
 import type { MenuItemCreateBody, MenuItemUpdateBody, MenuItemDto } from '@/api/menus-api';
 
@@ -42,6 +43,39 @@ export function useCreateMenuItem(menuId: string) {
   return useMutation({
     mutationFn: (body: MenuItemCreateBody) =>
       createMenuItem(kitchenId, menuId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
+    },
+  });
+}
+
+export function useUpdateMenuItem() {
+  const { chefId, kitchenId } = useMenuContext();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      menuId,
+      itemId,
+      body,
+    }: {
+      menuId: string;
+      itemId: string;
+      body: MenuItemUpdateBody;
+    }) => updateMenuItem(kitchenId, menuId, itemId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
+    },
+  });
+}
+
+export function useDeleteMenuItem() {
+  const { chefId, kitchenId } = useMenuContext();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ menuId, itemId }: { menuId: string; itemId: string }) =>
+      deleteMenuItem(kitchenId, menuId, itemId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
     },

@@ -142,7 +142,7 @@ export default function DashboardScreen() {
               <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Dishes &amp; recipes</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.push('/(app)/receiving')}
+              onPress={() => router.push('/(app)/receiving/quick')}
               accessibilityRole="button"
               accessibilityLabel="Receive a delivery"
               className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
@@ -223,7 +223,7 @@ export default function DashboardScreen() {
               <Text className="text-surface-500 text-lg">›</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.push('/(app)/receiving')}
+              onPress={() => router.push('/(app)/receiving/quick')}
               accessibilityRole="button"
               accessibilityLabel="Receive a delivery"
               className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
