@@ -11,15 +11,26 @@ export default function PhoneNumberScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isValid = phone.replace(/\D/g, '').length >= 9;
+  // Normalise to E.164: strip spaces/dashes, prepend +250 for local Rwandan numbers
+  function toE164(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.startsWith('250')) return `+${digits}`;
+    if (digits.startsWith('0')) return `+250${digits.slice(1)}`;
+    if (raw.startsWith('+')) return raw.replace(/\s/g, '');
+    return `+250${digits}`;
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  const isValid = digits.length >= 9;
 
   const handleContinue = async () => {
     if (!isValid) { setError('Please enter a valid phone number.'); return; }
     setError(null);
     setLoading(true);
+    const normalized = toE164(phone);
     try {
-      await requestOtp({ phone_number: phone });
-      router.push({ pathname: '/(auth)/verify-otp', params: { phone } });
+      await requestOtp({ phone_number: normalized });
+      router.push({ pathname: '/(auth)/verify-otp', params: { phone: normalized } });
     } catch (err) {
       if (err instanceof ApiError) {
         switch (err.kind) {
