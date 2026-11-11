@@ -1,26 +1,14 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
-import { verifyOtp, getMe, registerPushToken } from '@/api/auth-api';
+import { verifyOtp, getMe } from '@/api/auth-api';
 import { listKitchens } from '@/api/kitchens-api';
 import { ApiError } from '@/api/errors';
 import { useSessionStore } from '@/store/session-store';
 
 async function tryRegisterPushToken(): Promise<void> {
-  try {
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    const finalStatus =
-      existing === 'granted'
-        ? existing
-        : (await Notifications.requestPermissionsAsync()).status;
-    if (finalStatus !== 'granted') return;
-    const { data: token } = await Notifications.getExpoPushTokenAsync();
-    await registerPushToken({ token });
-  } catch {
-    // Push token registration is best-effort — never block login on failure
-  }
+  // Push token registration disabled until Firebase is configured
 }
 
 export default function VerifyOtpScreen() {
@@ -85,11 +73,16 @@ export default function VerifyOtpScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* Content */}
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Back */}
         <Pressable
@@ -113,7 +106,7 @@ export default function VerifyOtpScreen() {
           value={otp}
           onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
           placeholder="— — — — — —"
-          placeholderTextColor="#3A5A3A"
+          placeholderTextColor="#6B9966"
           keyboardType="number-pad"
           maxLength={6}
           autoFocus
@@ -126,9 +119,9 @@ export default function VerifyOtpScreen() {
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      </View>
+      </ScrollView>
 
-      {/* CTA — fixed above keyboard */}
+      {/* CTA — sits above keyboard when it rises */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
         <Pressable
           onPress={handleVerify}
@@ -153,9 +146,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#091A0D',
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    paddingBottom: 16,
   },
   backBtn: {
     marginBottom: 32,

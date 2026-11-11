@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, ActivityIndicator, useColorScheme } from 'react-native';
 import { router } from 'expo-router';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { useRecordSale } from '@/features/sales/useSales';
@@ -73,7 +73,7 @@ export default function SalesEntryScreen() {
   return (
     <AppScreen>
       <AppHeader title="Sales Entry" showBack />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
         >

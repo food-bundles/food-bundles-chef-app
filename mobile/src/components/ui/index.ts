@@ -1,4 +1,6 @@
 export { AppButton } from './AppButton';
+export { FoodBundlesCard } from './FoodBundlesCard';
+export type { FoodBundlesCardProps } from './FoodBundlesCard';
 export { AppCard } from './AppCard';
 export { AppTextField } from './AppTextField';
 export { AppScreen, AppHeader } from './AppScreen';

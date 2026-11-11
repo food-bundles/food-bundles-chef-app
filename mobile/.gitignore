@@ -9,9 +9,8 @@ expo-env.d.ts
 
 # Build output
 build/
-android/app/build/
-android/build/
-ios/build/
+android/
+ios/
 *.ipa
 *.apk
 *.aab

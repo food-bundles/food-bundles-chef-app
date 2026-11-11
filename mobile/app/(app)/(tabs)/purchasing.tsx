@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ShoppingCart, ChevronRight, Truck } from 'lucide-react-native';
+import { ShoppingCart, ChevronRight, Truck, Package } from 'lucide-react-native';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
@@ -193,7 +193,15 @@ export default function PurchasingScreen() {
               );
             }}
             ListEmptyComponent={
-              <EmptyState title="No products found" description="Try a different search term." />
+              <EmptyState
+                Icon={Package}
+                title={catalogQuery ? 'No products found' : 'No catalog yet'}
+                description={
+                  catalogQuery
+                    ? 'Try a different search term.'
+                    : 'The Food Bundles catalog will appear here once products are available. Check back soon.'
+                }
+              />
             }
           />
           )}

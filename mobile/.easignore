@@ -3,9 +3,8 @@ node_modules/
 dist/
 build/
 web-build/
-android/app/build/
-android/build/
-ios/build/
+android/
+ios/
 .metro-health-check*
 *.tsbuildinfo
 coverage/

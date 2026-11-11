@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, ClipboardList } from 'lucide-react-native';
-import { useMenuItems, useToggleMenuItemActive } from '@/features/menu/useMenuItems';
+import { Plus, ClipboardList, Pencil, Trash2 } from 'lucide-react-native';
+import { useMenuItems, useToggleMenuItemActive, useDeleteMenuItem } from '@/features/menu/useMenuItems';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -15,6 +15,7 @@ export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const { data: allItems = [], isLoading } = useMenuItems();
   const toggleActiveMutation = useToggleMenuItemActive();
+  const deleteMutation = useDeleteMenuItem();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
 
@@ -91,6 +92,32 @@ export default function MenuScreen() {
                   isActive: item.is_active,
                 })
               }
+              onEdit={() =>
+                router.push({
+                  pathname: '/(app)/menu/edit-item',
+                  params: {
+                    itemId: item.id,
+                    menuId: item.menu_id,
+                    name: item.name,
+                    selling_price: item.selling_price,
+                    description: item.description ?? '',
+                  },
+                } as never)
+              }
+              onDelete={() => {
+                Alert.alert(
+                  'Delete Item',
+                  `Remove "${item.name}" from the menu?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: () => deleteMutation.mutate({ menuId: item.menu_id, itemId: item.id }),
+                    },
+                  ]
+                );
+              }}
             />
           )}
           ListEmptyComponent={
@@ -129,40 +156,69 @@ export default function MenuScreen() {
 function MenuItemRow({
   item,
   onToggle,
+  onEdit,
+  onDelete,
 }: {
   item: MenuItemDto;
   onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const priceRwf = parseFloat(item.selling_price);
   return (
-    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between">
-      <View className="flex-1 mr-3">
-        <View className="flex-row items-center gap-2">
-          <Text className={`font-semibold ${item.is_active ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
-            {item.name}
+    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 gap-3">
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 mr-3">
+          <View className="flex-row items-center gap-2 flex-wrap">
+            <Text className={`font-semibold ${item.is_active ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
+              {item.name}
+            </Text>
+            {!item.is_active && <StatusBadge label="Off" variant="neutral" />}
+          </View>
+          {item.description ? (
+            <Text className="text-surface-500 text-xs mt-0.5" numberOfLines={2}>
+              {item.description}
+            </Text>
+          ) : null}
+          <Text className="text-brand-500 text-sm font-semibold mt-1">
+            {isNaN(priceRwf) ? item.selling_price : priceRwf.toLocaleString()} RWF
           </Text>
-          {!item.is_active && <StatusBadge label="Off" variant="neutral" />}
         </View>
-        {item.description ? (
-          <Text className="text-surface-500 text-xs mt-0.5" numberOfLines={1}>
-            {item.description}
-          </Text>
-        ) : null}
-        <Text className="text-surface-600 dark:text-surface-400 text-sm mt-1">
-          {isNaN(priceRwf) ? item.selling_price : priceRwf.toLocaleString()} RWF
-        </Text>
+        {/* Active toggle */}
+        <Pressable
+          onPress={onToggle}
+          accessibilityRole="switch"
+          accessibilityLabel={item.is_active ? 'Deactivate' : 'Activate'}
+          accessibilityState={{ checked: item.is_active }}
+          className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-300 dark:bg-surface-700'}`}
+        >
+          <View
+            className={`w-5 h-5 rounded-full bg-white shadow-sm mx-1 ${item.is_active ? 'self-end' : 'self-start'}`}
+          />
+        </Pressable>
       </View>
-      <Pressable
-        onPress={onToggle}
-        accessibilityRole="switch"
-        accessibilityLabel={item.is_active ? 'Deactivate' : 'Activate'}
-        accessibilityState={{ checked: item.is_active }}
-        className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-300 dark:bg-surface-700'}`}
-      >
-        <View
-          className={`w-5 h-5 rounded-full bg-white shadow-sm mx-1 ${item.is_active ? 'self-end' : 'self-start'}`}
-        />
-      </Pressable>
+
+      {/* Edit / Delete row */}
+      <View className="flex-row gap-2 border-t border-surface-100 dark:border-surface-700 pt-2">
+        <Pressable
+          onPress={onEdit}
+          accessibilityRole="button"
+          accessibilityLabel="Edit item"
+          className="flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-100 dark:bg-surface-700 active:opacity-70"
+        >
+          <Pencil size={14} color="#6B7280" strokeWidth={2} />
+          <Text className="text-surface-600 dark:text-surface-300 text-xs font-medium">Edit</Text>
+        </Pressable>
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Delete item"
+          className="flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 active:opacity-70"
+        >
+          <Trash2 size={14} color="#EF4444" strokeWidth={2} />
+          <Text className="text-red-500 text-xs font-medium">Delete</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

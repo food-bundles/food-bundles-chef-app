@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,15 +11,26 @@ export default function PhoneNumberScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isValid = phone.replace(/\D/g, '').length >= 9;
+  // Normalise to E.164: strip spaces/dashes, prepend +250 for local Rwandan numbers
+  function toE164(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.startsWith('250')) return `+${digits}`;
+    if (digits.startsWith('0')) return `+250${digits.slice(1)}`;
+    if (raw.startsWith('+')) return raw.replace(/\s/g, '');
+    return `+250${digits}`;
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  const isValid = digits.length >= 9;
 
   const handleContinue = async () => {
     if (!isValid) { setError('Please enter a valid phone number.'); return; }
     setError(null);
     setLoading(true);
+    const normalized = toE164(phone);
     try {
-      await requestOtp({ phone_number: phone });
-      router.push({ pathname: '/(auth)/verify-otp', params: { phone } });
+      await requestOtp({ phone_number: normalized });
+      router.push({ pathname: '/(auth)/verify-otp', params: { phone: normalized } });
     } catch (err) {
       if (err instanceof ApiError) {
         switch (err.kind) {
@@ -38,11 +49,16 @@ export default function PhoneNumberScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* Content */}
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Back */}
         <Pressable
@@ -65,7 +81,7 @@ export default function PhoneNumberScreen() {
           value={phone}
           onChangeText={(v) => { setPhone(v); setError(null); }}
           placeholder="+250 7XX XXX XXX"
-          placeholderTextColor="#3A5A3A"
+          placeholderTextColor="#6B9966"
           keyboardType="phone-pad"
           autoFocus
           accessibilityLabel="Phone number"
@@ -73,9 +89,9 @@ export default function PhoneNumberScreen() {
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      </View>
+      </ScrollView>
 
-      {/* CTA — fixed above keyboard */}
+      {/* CTA — sits above keyboard when it rises */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
         <Pressable
           onPress={handleContinue}
@@ -100,9 +116,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#091A0D',
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    paddingBottom: 16,
   },
   backBtn: {
     marginBottom: 32,

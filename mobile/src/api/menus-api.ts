@@ -182,6 +182,16 @@ export function deleteRecipeLine(
   );
 }
 
+export function deleteMenuItem(
+  kitchenId: string,
+  menuId: string,
+  itemId: string
+): Promise<void> {
+  return request<void>(`/kitchens/${kitchenId}/menus/${menuId}/items/${itemId}`, {
+    method: 'DELETE',
+  });
+}
+
 export function getRecipeCost(kitchenId: string, menuItemId: string): Promise<RecipeCostDto> {
   return request<RecipeCostDto>(
     `/kitchens/${kitchenId}/menu-items/${menuItemId}/recipe/cost`

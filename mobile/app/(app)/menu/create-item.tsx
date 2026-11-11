@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -54,7 +53,6 @@ export default function CreateMenuItemScreen() {
     setSaving(true);
     setError(null);
     try {
-      // Ensure at least one active menu exists
       const menus = await listMenus(activeKitchen.id);
       let menuId = menus.find((m) => m.is_active)?.id;
       if (!menuId) {
@@ -82,7 +80,7 @@ export default function CreateMenuItemScreen() {
       <AppHeader title="New Menu Item" showBack />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
@@ -142,11 +140,13 @@ export default function CreateMenuItemScreen() {
             )}
           />
 
-          <AppButton
-            label="Add to Menu"
-            onPress={handleSubmit(onSubmit)}
-            loading={saving}
-          />
+          <View style={{ marginTop: spacing.sm }}>
+            <AppButton
+              label="Save Menu Item"
+              onPress={handleSubmit(onSubmit)}
+              loading={saving}
+            />
+          </View>
 
           {error && (
             <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
