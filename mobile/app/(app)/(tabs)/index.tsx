@@ -8,7 +8,7 @@ import { useOrders } from '@/features/orders/useOrders';
 import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { useKitchens } from '@/features/kitchens/useKitchens';
 import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
-import { SectionHeader, StockIndicator, SyncStatusBadge } from '@/components/ui';
+import { SectionHeader, StockIndicator, SyncStatusBadge, FoodBundlesCard } from '@/components/ui';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
@@ -99,28 +99,49 @@ export default function DashboardScreen() {
         )}
 
         {/* Summary row */}
-        <View className="flex-row gap-3">
-          <StatCard
-            icon={<TrendingDown size={18} color="#EF4444" strokeWidth={2} />}
-            label="Low Stock"
-            value={String(lowStockCount)}
-            valueColor="text-danger"
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable
             onPress={() => router.push('/(app)/(tabs)/stock')}
-          />
-          <StatCard
-            icon={<ShoppingCart size={18} color="#F59E0B" strokeWidth={2} />}
-            label="Pending Orders"
-            value={String(pendingOrderCount)}
-            valueColor="text-warning"
+            accessibilityRole="button"
+            accessibilityLabel="Low stock items"
+            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+          >
+            <FoodBundlesCard fromColor="#B91C1C" toColor="#7F1D1D">
+              <StatCardContent
+                icon={<TrendingDown size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                label="Low Stock"
+                value={String(lowStockCount)}
+              />
+            </FoodBundlesCard>
+          </Pressable>
+          <Pressable
             onPress={() => router.push('/(app)/(tabs)/purchasing')}
-          />
-          <StatCard
-            icon={<Package size={18} color="#1DB954" strokeWidth={2} />}
-            label="Deliveries"
-            value={String(activeDeliveryCount)}
-            valueColor="text-success"
+            accessibilityRole="button"
+            accessibilityLabel="Pending orders"
+            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+          >
+            <FoodBundlesCard fromColor="#B45309" toColor="#78350F">
+              <StatCardContent
+                icon={<ShoppingCart size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                label="Pending Orders"
+                value={String(pendingOrderCount)}
+              />
+            </FoodBundlesCard>
+          </Pressable>
+          <Pressable
             onPress={() => router.push('/(app)/receiving')}
-          />
+            accessibilityRole="button"
+            accessibilityLabel="Active deliveries"
+            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+          >
+            <FoodBundlesCard fromColor="#047857" toColor="#064E3B">
+              <StatCardContent
+                icon={<Package size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                label="Deliveries"
+                value={String(activeDeliveryCount)}
+              />
+            </FoodBundlesCard>
+          </Pressable>
         </View>
 
         {/* Quick actions — always visible */}
@@ -327,29 +348,16 @@ function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  valueColor,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  valueColor: string;
-  onPress?: () => void;
-}) {
+function StatCardContent({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole={onPress ? 'button' : 'none'}
-      accessibilityLabel={label}
-      className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center active:opacity-70"
-    >
-      {icon}
-      <Text className={`text-2xl font-bold mt-2 ${valueColor}`}>{value}</Text>
-      <Text className="text-surface-600 dark:text-surface-400 text-xs mt-1 text-center">{label}</Text>
-    </Pressable>
+    <View style={{ gap: 2 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {icon}
+        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          {label}
+        </Text>
+      </View>
+      <Text style={{ color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>{value}</Text>
+    </View>
   );
 }

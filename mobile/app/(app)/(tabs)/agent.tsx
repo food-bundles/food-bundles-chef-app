@@ -15,7 +15,8 @@ import {
   useColorScheme,
 } from 'react-native';
 // Voice input disabled — expo-av removed pending JSI ABI fix for RN 0.88 New Architecture
-const Audio: null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Audio = null as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';

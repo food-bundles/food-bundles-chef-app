@@ -7,7 +7,6 @@ import {
   Image,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   StyleSheet,
   TextInput,
@@ -17,7 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ImageIcon, CheckCircle, XCircle, AlertTriangle, Bot, Pencil, ArrowRight, RotateCcw } from 'lucide-react-native';
+import { Camera, ImageIcon, CheckCircle, XCircle, AlertTriangle, Bot, Pencil, RotateCcw } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { AppButton } from '@/components/ui/AppButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -298,7 +297,7 @@ export default function LineItemReceiveScreen() {
             </Pressable>
           }
         />
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <ScrollView
             contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
             keyboardShouldPersistTaps="handled"
@@ -353,37 +352,21 @@ export default function LineItemReceiveScreen() {
             </Text>
 
             <View style={{ gap: spacing.sm }}>
-              <Pressable
+              <AppButton
+                label="Assess with AI"
                 onPress={handleProceedFromAnnotation}
-                accessibilityRole="button"
                 accessibilityLabel="Run AI assessment"
-                style={{ backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-              >
-                <Bot size={18} color={colors.white} />
-                <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
-                  Assess with AI
-                </Text>
-                <ArrowRight size={16} color={colors.white} />
-              </Pressable>
-
-              <Pressable
+              />
+              <AppButton
+                label="Skip AI — Enter Manually"
                 onPress={handleProceedToEntry}
-                accessibilityRole="button"
-                accessibilityLabel="Skip AI, enter manually"
-                style={{ borderRadius: radius.md, padding: spacing.md, alignItems: 'center' }}
-              >
-                <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>Skip AI — Enter Manually</Text>
-              </Pressable>
-
-              <Pressable
+                variant="ghost"
+              />
+              <AppButton
+                label="Retake Photo"
                 onPress={handleRetakePhoto}
-                accessibilityRole="button"
-                accessibilityLabel="Retake photo"
-                style={{ borderRadius: radius.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                <RotateCcw size={14} color={colors.surface[500]} />
-                <Text style={{ color: colors.surface[500], fontSize: fontSize.sm }}>Retake Photo</Text>
-              </Pressable>
+                variant="secondary"
+              />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -480,7 +463,7 @@ export default function LineItemReceiveScreen() {
   return (
     <AppScreen>
       <AppHeader title={line.product_name} showBack />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
           keyboardShouldPersistTaps="handled"

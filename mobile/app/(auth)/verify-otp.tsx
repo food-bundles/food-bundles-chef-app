@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,11 +73,16 @@ export default function VerifyOtpScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* Content */}
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Back */}
         <Pressable
@@ -101,7 +106,7 @@ export default function VerifyOtpScreen() {
           value={otp}
           onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
           placeholder="— — — — — —"
-          placeholderTextColor="#3A5A3A"
+          placeholderTextColor="#6B9966"
           keyboardType="number-pad"
           maxLength={6}
           autoFocus
@@ -114,9 +119,9 @@ export default function VerifyOtpScreen() {
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      </View>
+      </ScrollView>
 
-      {/* CTA — fixed above keyboard */}
+      {/* CTA — sits above keyboard when it rises */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
         <Pressable
           onPress={handleVerify}
@@ -141,9 +146,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#091A0D',
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    paddingBottom: 16,
   },
   backBtn: {
     marginBottom: 32,

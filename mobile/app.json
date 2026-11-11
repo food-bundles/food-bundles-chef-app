@@ -23,6 +23,7 @@
         "backgroundColor": "#1DB954"
       },
       "package": "com.foodbundles.chefapp",
+      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

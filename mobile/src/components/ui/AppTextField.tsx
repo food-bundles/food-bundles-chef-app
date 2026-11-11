@@ -54,7 +54,7 @@ export function AppTextField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={isDark ? colors.surface[600] : colors.surface[500]}
+        placeholderTextColor={isDark ? colors.surface[500] : colors.surface[400]}
         keyboardType={keyboardType}
         autoFocus={autoFocus}
         autoCapitalize={autoCapitalize}

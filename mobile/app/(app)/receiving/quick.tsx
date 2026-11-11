@@ -8,7 +8,6 @@ import {
   Image,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   FlatList,
 } from 'react-native';
@@ -20,7 +19,6 @@ import {
   Clock,
   Plus,
   Trash2,
-  CheckCircle,
   RotateCcw,
   ChevronDown,
   X,
@@ -271,7 +269,7 @@ export default function QuickReceiveScreen() {
   return (
     <AppScreen>
       <AppHeader title="Log Delivery" showBack />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
@@ -367,23 +365,12 @@ export default function QuickReceiveScreen() {
           </Pressable>
 
           {/* Submit */}
-          <Pressable
+          <AppButton
+            label={submitting ? 'Logging Delivery…' : 'Log Delivery'}
             onPress={handleSubmit}
+            loading={submitting}
             disabled={submitting || lines.length === 0}
-            style={[
-              { backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.sm },
-              (submitting || lines.length === 0) && { opacity: 0.5 },
-            ]}
-          >
-            {submitting ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <CheckCircle size={18} color={colors.white} />
-            )}
-            <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
-              {submitting ? 'Logging Delivery…' : 'Log Delivery'}
-            </Text>
-          </Pressable>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 

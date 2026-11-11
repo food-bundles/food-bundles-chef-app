@@ -46,12 +46,12 @@ function calcDistance(coords: Coord[]) {
     const prev = coords[i - 1];
     const curr = coords[i];
     const R = 6371000;
-    const dLat = ((curr.latitude - prev.latitude) * Math.PI) / 180;
-    const dLon = ((curr.longitude - prev.longitude) * Math.PI) / 180;
+    const dLat = (((curr!).latitude - (prev!).latitude) * Math.PI) / 180;
+    const dLon = (((curr!).longitude - (prev!).longitude) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos((prev.latitude * Math.PI) / 180) *
-        Math.cos((curr.latitude * Math.PI) / 180) *
+      Math.cos(((prev!).latitude * Math.PI) / 180) *
+        Math.cos(((curr!).latitude * Math.PI) / 180) *
         Math.sin(dLon / 2) ** 2;
     total += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
@@ -206,7 +206,7 @@ export default function DeliveryMapScreen() {
       {/* Map */}
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         provider={PROVIDER_DEFAULT}
         showsUserLocation
         showsMyLocationButton={false}
@@ -229,7 +229,7 @@ export default function DeliveryMapScreen() {
         )}
 
         {/* Start marker */}
-        {route.length > 0 && (
+        {route.length > 0 && route[0] && (
           <Marker
             coordinate={route[0]}
             title="Start"

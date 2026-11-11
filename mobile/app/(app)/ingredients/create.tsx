@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   TextInput,
   Alert,
@@ -71,7 +70,7 @@ export default function CreateIngredientScreen() {
   return (
     <AppScreen>
       <AppHeader title="Add Ingredient" showBack />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 48 }}
           keyboardShouldPersistTaps="handled"
