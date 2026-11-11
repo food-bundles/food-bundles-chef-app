@@ -2,6 +2,8 @@ import { StyleSheet, View, Image } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle } from 'react-native-svg';
 import { radius } from '@/lib/theme';
 
+const LOGO = require('../../../assets/fb-logo-raw.png');
+
 export interface FoodBundlesCardProps {
   /** Gradient preset key */
   gradient?: keyof typeof GRADIENT_MAP;
@@ -23,9 +25,6 @@ const GRADIENT_MAP = {
 } as const;
 
 const DEFAULT_GRADIENT: [string, string] = ['#059669', '#166534'];
-
-const LOGO_URI =
-  'https://res.cloudinary.com/dzxyelclu/image/upload/v1760111270/Food_bundle_logo_cfsnsw.png';
 
 const CARD_HEIGHT = 148;
 
@@ -61,7 +60,7 @@ export function FoodBundlesCard({ gradient, fromColor, toColor, children }: Food
       {/* Top row: logo + contactless icon */}
       <View style={styles.topRow}>
         <View style={styles.brandRow}>
-          <Image source={{ uri: LOGO_URI }} style={styles.logo} resizeMode="contain" />
+          <Image source={LOGO} style={styles.logo} resizeMode="contain" />
         </View>
         {/* Contactless icon */}
         <Svg width={22} height={18} viewBox="0 0 22 18">

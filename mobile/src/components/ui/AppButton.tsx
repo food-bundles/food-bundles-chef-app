@@ -28,6 +28,18 @@ export function AppButton({
 }: AppButtonProps) {
   const isDisabled = disabled || loading;
 
+  const variantStyle =
+    variant === 'primary' ? styles.primary
+    : variant === 'secondary' ? styles.secondary
+    : variant === 'danger' ? styles.danger
+    : styles.ghost;
+
+  const labelStyle =
+    variant === 'primary' ? styles.primaryLabel
+    : variant === 'secondary' ? styles.secondaryLabel
+    : variant === 'danger' ? styles.dangerLabel
+    : styles.ghostLabel;
+
   return (
     <Pressable
       onPress={onPress}
@@ -38,7 +50,7 @@ export function AppButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
-        styles[variant],
+        variantStyle,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
       ]}
@@ -49,7 +61,7 @@ export function AppButton({
           color={variant === 'primary' ? colors.black : colors.brand[500]}
         />
       ) : (
-        <Text style={[styles.label, styles[`${variant}Label`]]}>{label}</Text>
+        <Text style={[styles.label, labelStyle]}>{label}</Text>
       )}
     </Pressable>
   );

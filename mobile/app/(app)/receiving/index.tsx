@@ -1,7 +1,7 @@
 import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package } from 'lucide-react-native';
+import { Package, Truck } from 'lucide-react-native';
 import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -63,6 +63,7 @@ export default function ReceivingIndexScreen() {
           )}
           ListEmptyComponent={
             <EmptyState
+              Icon={Truck}
               title="No deliveries"
               description="Expected deliveries will appear here when orders are confirmed."
             />

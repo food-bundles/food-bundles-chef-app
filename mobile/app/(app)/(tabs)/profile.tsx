@@ -44,6 +44,14 @@ export default function ProfileScreen() {
 
       <View className="px-4 py-6 gap-4">
         <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4">
+          {chef?.name ? (
+            <>
+              <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider mb-1">
+                Name
+              </Text>
+              <Text className="text-surface-900 dark:text-white font-semibold text-base mb-3">{chef.name}</Text>
+            </>
+          ) : null}
           <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider mb-1">
             Phone
           </Text>
