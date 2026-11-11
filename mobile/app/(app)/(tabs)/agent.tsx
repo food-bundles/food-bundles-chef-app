@@ -14,14 +14,8 @@ import {
   Image,
   useColorScheme,
 } from 'react-native';
-// expo-av is a native module — unavailable in Expo Go, works in dev/production builds
-let Audio: typeof import('expo-av').Audio | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Audio = require('expo-av').Audio;
-} catch {
-  // running in Expo Go — voice input will be disabled
-}
+// Voice input disabled — expo-av removed pending JSI ABI fix for RN 0.88 New Architecture
+const Audio: null = null;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';

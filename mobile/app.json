@@ -42,12 +42,6 @@
           "cameraPermission": "Allow Food Bundles Chef to access your camera to photograph deliveries."
         }
       ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow Food Bundles Chef to access your microphone for voice input to the kitchen assistant."
-        }
-      ],
       "expo-splash-screen",
       "expo-sqlite",
       [
