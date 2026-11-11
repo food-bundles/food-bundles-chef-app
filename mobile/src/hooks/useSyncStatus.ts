@@ -3,6 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { mutationQueueRepo } from '@/data/service-container';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { flushPendingMutations } from '@/services/sync/sync-service';
+import { API_BASE_URL } from '@/api/config';
 
 export type SyncPhase = 'idle' | 'pending' | 'syncing' | 'failed' | 'conflict';
 
@@ -19,8 +20,7 @@ export interface SyncStatus {
 /** Attempt a fetch to the backend base URL to check connectivity. */
 async function isReachable(): Promise<boolean> {
   try {
-    const base = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:8000';
-    const res = await fetch(`${base}/health`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+    const res = await fetch(`${API_BASE_URL}/health`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
     return res.ok || res.status < 500;
   } catch {
     return false;
