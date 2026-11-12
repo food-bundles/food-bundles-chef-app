@@ -58,7 +58,7 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.black : colors.brand[500]}
+          color={variant === 'primary' ? colors.white : '#0E8438'}
         />
       ) : (
         <Text style={[styles.label, labelStyle]}>{label}</Text>
@@ -79,19 +79,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   primary: {
-    backgroundColor: '#22C55E',
-    borderWidth: 2,
-    borderColor: colors.white,
-    shadowColor: '#22C55E',
+    backgroundColor: '#0E8438',
+    borderWidth: 0,
+    shadowColor: '#0E8438',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 6,
   },
   secondary: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: colors.brand[500],
+    borderColor: '#0E8438',
   },
   danger: {
     backgroundColor: colors.danger,
@@ -105,8 +104,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.bold,
   },
-  primaryLabel: { color: colors.black },
-  secondaryLabel: { color: colors.brand[500] },
+  primaryLabel: { color: colors.white },
+  secondaryLabel: { color: '#0E8438' },
   dangerLabel: { color: colors.white },
-  ghostLabel: { color: colors.brand[500] },
+  ghostLabel: { color: '#0E8438' },
 });

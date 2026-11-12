@@ -26,7 +26,7 @@ const GRADIENT_MAP = {
 
 const DEFAULT_GRADIENT: [string, string] = ['#059669', '#166534'];
 
-const CARD_HEIGHT = 148;
+const CARD_HEIGHT = 160;
 
 function resolveColors(
   gradient?: keyof typeof GRADIENT_MAP,
