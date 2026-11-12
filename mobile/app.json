@@ -72,8 +72,7 @@
       },
       "eas": {
         "projectId": "3ca32611-ff5e-4de8-880a-9997eed4d3a3"
-      },
-      "apiBaseUrl": "http://72.60.18.7:8001/api/v1"
+      }
     },
     "owner": "aguramarket"
   }

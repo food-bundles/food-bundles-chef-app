@@ -59,10 +59,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(RequestIdMiddleware)
+# When CORS_ORIGINS=["*"], allow_credentials must be False (browser spec).
+# For specific origins, credentials (Authorization header) are allowed.
+_cors_wildcard = settings.CORS_ORIGINS == ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=not _cors_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
 )
