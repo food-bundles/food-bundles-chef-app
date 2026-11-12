@@ -7,13 +7,13 @@
 export const colors = {
   // Brand — deep kitchen green
   brand: {
-    50: '#E6F9F4',
-    100: '#C0F0E2',
-    300: '#56D4B4',
-    400: '#1DB954',
-    500: '#1DB954',
-    600: '#0E8438',
-    700: '#0A6A2C',
+    50: '#E8F5EE',
+    100: '#C3E6D2',
+    300: '#4DB87A',
+    400: '#0E8438',
+    500: '#0E8438',
+    600: '#0A6A2C',
+    700: '#064E20',
   },
   // Neutrals — warm charcoal
   surface: {
@@ -31,7 +31,7 @@ export const colors = {
     950: '#0F0E0C',
   },
   // Semantic
-  success: '#1DB954',
+  success: '#0E8438',
   warning: '#F59E0B',
   danger: '#EF4444',
   info: '#3B82F6',

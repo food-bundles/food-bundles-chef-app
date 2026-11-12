@@ -127,7 +127,7 @@ export default function PurchasingScreen() {
           </View>
           {catalogLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator color="#1DB954" />
+              <ActivityIndicator color="#0E8438" />
             </View>
           ) : (
           <FlatList
@@ -186,7 +186,7 @@ export default function PurchasingScreen() {
       {tab === 'orders' && (
         ordersLoading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#1DB954" />
+            <ActivityIndicator color="#0E8438" />
           </View>
         ) : (
           <FlatList

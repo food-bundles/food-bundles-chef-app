@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Switch, Pressable, ScrollView } from 'react-native';
+import { View, Text, Switch, Pressable, ScrollView, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, BellOff, ChevronLeft } from 'lucide-react-native';
+import { Bell, BellOff, ChevronLeft, ChevronRight, HelpCircle, Shield, Globe, Moon, MessageSquare, RefreshCw } from 'lucide-react-native';
 import { router } from 'expo-router';
 import {
   getNotificationPermissionStatus,
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
           <View className="px-4 py-4 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-700">
             <View className="flex-row items-center gap-3 flex-1">
               {permStatus === 'granted' ? (
-                <Bell size={20} color="#1DB954" strokeWidth={2} />
+                <Bell size={20} color="#0E8438" strokeWidth={2} />
               ) : (
                 <BellOff size={20} color="#9CA3AF" strokeWidth={2} />
               )}
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
               value={dailyReminderEnabled}
               onValueChange={handleDailyReminderToggle}
               disabled={permStatus !== 'granted'}
-              trackColor={{ false: '#374151', true: '#1DB954' }}
+              trackColor={{ false: '#374151', true: '#0E8438' }}
               thumbColor={dailyReminderEnabled ? '#ffffff' : '#9CA3AF'}
               accessibilityLabel="Daily stock reminder toggle"
               accessibilityRole="switch"
@@ -129,15 +129,70 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {/* App info section */}
+        {/* Kitchen preferences */}
         <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
-          App
+          Kitchen
         </Text>
-        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl px-4 py-4">
-          <View className="flex-row justify-between">
-            <Text className="text-surface-600 dark:text-surface-400 text-sm">Version</Text>
-            <Text className="text-surface-900 dark:text-white text-sm">1.0.0 (Phase 08)</Text>
-          </View>
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
+          <Pressable
+            onPress={() => router.push('/(app)/kitchens')}
+            accessibilityRole="button"
+            accessibilityLabel="Manage kitchens"
+            className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
+          >
+            <Globe size={18} color="#0E8438" strokeWidth={2} />
+            <View className="flex-1">
+              <Text className="text-surface-900 dark:text-white font-medium">Manage Kitchens</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">Add, switch or archive kitchens</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            onPress={() => Alert.alert('Sync', 'Syncing your kitchen data…')}
+            accessibilityRole="button"
+            accessibilityLabel="Sync now"
+            className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
+          >
+            <RefreshCw size={18} color="#6B6860" strokeWidth={2} />
+            <View className="flex-1">
+              <Text className="text-surface-900 dark:text-white font-medium">Sync Data</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">Force a full data refresh</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+          </Pressable>
+        </View>
+
+        {/* Support */}
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
+          Support
+        </Text>
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
+          <Pressable
+            onPress={() => Linking.openURL('mailto:support@foodbundles.rw')}
+            accessibilityRole="button"
+            accessibilityLabel="Contact support"
+            className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
+          >
+            <MessageSquare size={18} color="#6B6860" strokeWidth={2} />
+            <View className="flex-1">
+              <Text className="text-surface-900 dark:text-white font-medium">Contact Support</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">support@foodbundles.rw</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            onPress={() => Linking.openURL('https://foodbundles.rw/privacy')}
+            accessibilityRole="button"
+            accessibilityLabel="Privacy policy"
+            className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
+          >
+            <Shield size={18} color="#6B6860" strokeWidth={2} />
+            <View className="flex-1">
+              <Text className="text-surface-900 dark:text-white font-medium">Privacy Policy</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">How we handle your data</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+          </Pressable>
         </View>
       </ScrollView>
     </View>

@@ -8,16 +8,16 @@ module.exports = {
       colors: {
         // Brand — deep teal/green kitchen palette
         brand: {
-          50: '#E6F9F4',
-          100: '#C0F0E2',
-          200: '#8BE3CC',
-          300: '#56D4B4',
-          400: '#1DB954',
-          500: '#159E45',
-          600: '#0E8438',
-          700: '#0A6A2C',
-          800: '#075122',
-          900: '#043817',
+          50: '#E8F5EE',
+          100: '#C3E6D2',
+          200: '#8FCFAA',
+          300: '#4DB87A',
+          400: '#0E8438',
+          500: '#0E8438',
+          600: '#0A6A2C',
+          700: '#064E20',
+          800: '#043817',
+          900: '#022510',
         },
         // Neutrals — warm off-white / charcoal for kitchen feel
         surface: {
@@ -33,7 +33,7 @@ module.exports = {
           900: '#1A1916',
         },
         // Semantic
-        success: '#1DB954',
+        success: '#0E8438',
         warning: '#F59E0B',
         danger: '#EF4444',
         info: '#3B82F6',

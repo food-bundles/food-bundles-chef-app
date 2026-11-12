@@ -138,7 +138,7 @@ export default function OrderDetailScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#1DB954" />
+          <ActivityIndicator color="#0E8438" />
         </View>
       ) : error || !order ? (
         <View className="flex-1 items-center justify-center px-8 gap-3">

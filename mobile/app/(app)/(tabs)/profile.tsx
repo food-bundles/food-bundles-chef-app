@@ -589,10 +589,15 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Version tag */}
-          <Text style={{ color: textSecondary, fontSize: fontSize.xs, textAlign: 'center', paddingBottom: spacing.sm }}>
-            Food Bundles Chef · v1.0
-          </Text>
+          {/* Footer wordmark */}
+          <View style={{ alignItems: 'center', paddingBottom: spacing.sm, gap: 2 }}>
+            <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>
+              Food Bundles Chef
+            </Text>
+            <Text style={{ color: isDark ? colors.surface[700] : colors.surface[300], fontSize: 10 }}>
+              Built for professional kitchen teams
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

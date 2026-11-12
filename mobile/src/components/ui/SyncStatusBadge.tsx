@@ -9,7 +9,7 @@ interface Props {
 
 const CONFIG: Record<SyncPhase, { icon: React.ReactNode; label: string; className: string }> = {
   idle: {
-    icon: <CheckCircle size={12} color="#1DB954" strokeWidth={2.5} />,
+    icon: <CheckCircle size={12} color="#0E8438" strokeWidth={2.5} />,
     label: 'Saved',
     className: 'bg-success/10 border-success/30',
   },

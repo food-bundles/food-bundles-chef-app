@@ -66,7 +66,7 @@ export default function KitchensScreen() {
                 <View className="flex-row items-center gap-2">
                   <Text className="text-surface-900 dark:text-white font-semibold">{kitchen.name}</Text>
                   {isActive && (
-                    <CheckCircle size={14} color="#1DB954" strokeWidth={2} />
+                    <CheckCircle size={14} color="#0E8438" strokeWidth={2} />
                   )}
                 </View>
                 {kitchen.address ? (

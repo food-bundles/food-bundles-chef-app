@@ -100,9 +100,14 @@ export default function AgentScreen() {
     [entries],
   );
 
+  const scrollToBottom = useCallback(() => {
+    // Small delay lets the layout settle before scrolling
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 120);
+  }, []);
+
   const appendEntry = (entry: ChatEntry) => {
     setEntries((prev) => [...prev, entry]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToBottom();
   };
 
   const handleAttachCamera = async () => {
@@ -170,7 +175,7 @@ export default function AgentScreen() {
       imageUri: imageUri ?? undefined,
     };
     setEntries((prev) => [...prev, userEntry]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToBottom();
 
     // Encode attached image to base64 so Muse Spark can see it
     let imageBase64: string | null = null;
@@ -259,7 +264,7 @@ export default function AgentScreen() {
           },
         ];
       });
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      scrollToBottom();
     } catch {
       appendEntry({
         type: 'error',
@@ -284,7 +289,7 @@ export default function AgentScreen() {
         },
       ];
     });
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToBottom();
   };
 
   const handleOptionSelect = (option: string) => {
@@ -382,13 +387,22 @@ export default function AgentScreen() {
       </View>
 
       {/* Chat list + input bar — KAV wraps both so keyboard pushes input up */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         <FlatList
           ref={listRef}
           data={entries}
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 16 }}
           renderItem={({ item }) => <ChatEntryRow entry={item} onConfirm={handleConfirm} onCancel={handleCancel} onOptionSelect={handleOptionSelect} confirmingId={confirmMutation.isPending ? (entries.find((e) => e.type === 'proposal' && !('confirmed' in e && e.confirmed) && !('cancelled' in e && e.cancelled))?.id ?? null) : null} />}
+          onContentSizeChange={scrollToBottom}
+          onLayout={scrollToBottom}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 20 }}
         />
 
         {/* Input bar */}
@@ -444,6 +458,7 @@ export default function AgentScreen() {
               multiline
               returnKeyType="send"
               onSubmitEditing={() => void sendMessage(inputText)}
+              onFocus={scrollToBottom}
               blurOnSubmit={false}
               accessibilityLabel="Message input"
             />

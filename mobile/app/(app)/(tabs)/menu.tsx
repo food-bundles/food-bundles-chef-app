@@ -77,7 +77,7 @@ export default function MenuScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#1DB954" />
+          <ActivityIndicator color="#0E8438" />
         </View>
       ) : (
         <FlatList
