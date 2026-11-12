@@ -1,7 +1,8 @@
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Truck } from 'lucide-react-native';
+import { useState } from 'react';
 import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -25,7 +26,9 @@ const STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
 
 export default function ReceivingIndexScreen() {
   const insets = useSafeAreaInsets();
-  const { data: orders = [], isLoading, error } = useDeliveries();
+  const { data: orders = [], isLoading, error, refetch } = useDeliveries();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
 
   const pending = orders.filter((o) => o.status !== 'delivered');
   const completed = orders.filter((o) => o.status === 'delivered');
@@ -51,6 +54,7 @@ export default function ReceivingIndexScreen() {
           data={[...pending, ...completed]}
           keyExtractor={(o) => o.id}
           contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
           ListHeaderComponent={
             pending.length > 0 ? (
               <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider mb-1">
@@ -62,16 +66,46 @@ export default function ReceivingIndexScreen() {
             <DeliveryRow order={order} />
           )}
           ListEmptyComponent={
-            <EmptyState
-              Icon={Truck}
-              title="No deliveries"
-              description="Expected deliveries will appear here when orders are confirmed."
-            />
+            <View className="px-4 py-8 items-center gap-4">
+              <View className="w-16 h-16 rounded-full bg-brand-500/10 items-center justify-center">
+                <Truck size={28} color="#0E8438" strokeWidth={1.75} />
+              </View>
+              <View className="items-center gap-1">
+                <Text className="text-surface-900 dark:text-white font-bold text-base">No deliveries yet</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                  Confirmed orders from Food Bundles will appear here, ready to receive and log into stock.
+                </Text>
+              </View>
+              <View className="w-full gap-2 mt-2">
+                <Pressable
+                  onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
+                  accessibilityRole="button"
+                  className="bg-brand-700 rounded-xl px-5 py-3.5 flex-row items-center justify-center gap-2 active:opacity-80"
+                >
+                  <Package size={16} color="#fff" strokeWidth={2} />
+                  <Text className="text-white font-semibold text-sm">Place an Order</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/(app)/receiving/quick' as never)}
+                  accessibilityRole="button"
+                  className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 flex-row items-center justify-center gap-2 active:opacity-70"
+                >
+                  <Truck size={16} color="#0E8438" strokeWidth={2} />
+                  <Text className="text-brand-400 font-semibold text-sm">Log a Walk-in Delivery</Text>
+                </Pressable>
+              </View>
+            </View>
           }
         />
       )}
     </View>
   );
+}
+
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
 function DeliveryRow({ order }: { order: OrderDto }) {
@@ -94,14 +128,18 @@ function DeliveryRow({ order }: { order: OrderDto }) {
         </View>
         <StatusBadge label={label} variant={variant} />
       </View>
-      <Text className="text-surface-600 dark:text-surface-400 text-sm">
-        {order.delivery_date
-          ? `Expected ${new Date(order.delivery_date).toLocaleDateString()}`
-          : `Created ${new Date(order.created_at).toLocaleDateString()}`}
-      </Text>
+      {order.delivery_date ? (
+        <Text className="text-surface-600 dark:text-surface-400 text-xs">
+          Expected {formatDateTime(order.delivery_date)}
+        </Text>
+      ) : (
+        <Text className="text-surface-600 dark:text-surface-400 text-xs">
+          Ordered {formatDateTime(order.created_at)}
+        </Text>
+      )}
       {order.status === 'delivered' && (
-        <Text className="text-surface-500 text-xs mt-1">
-          Updated {new Date(order.updated_at).toLocaleDateString()}
+        <Text className="text-green-600 dark:text-green-400 text-xs mt-1 font-medium">
+          Delivered {formatDateTime(order.updated_at)}
         </Text>
       )}
     </Pressable>

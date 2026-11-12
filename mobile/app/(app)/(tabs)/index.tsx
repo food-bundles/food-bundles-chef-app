@@ -1,17 +1,17 @@
-import { ScrollView, View, Text, Pressable } from 'react-native';
+import { ScrollView, View, Text, Pressable, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive } from 'lucide-react-native';
+import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive, TrendingUp } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { useState } from 'react';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useOrders } from '@/features/orders/useOrders';
 import { useDeliveries } from '@/features/receiving/useDeliveries';
 import { useKitchens } from '@/features/kitchens/useKitchens';
 import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
-import { SectionHeader, StockIndicator, SyncStatusBadge, FoodBundlesCard } from '@/components/ui';
+import { SectionHeader, StockIndicator, FoodBundlesCard } from '@/components/ui';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
-import { useSyncStatus } from '@/hooks/useSyncStatus';
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -20,10 +20,17 @@ export default function DashboardScreen() {
   // Load kitchens from API (hydrates kitchen-store on success)
   useKitchens();
 
-  const { data: stockLevels = [] } = useStockLevels();
-  const { data: orders = [] } = useOrders();
-  const { data: deliveries = [] } = useDeliveries();
-  const { data: allCatalog = [], isLoading: catalogLoading } = useCatalog();
+  const { data: stockLevels = [], refetch: refetchStock } = useStockLevels();
+  const { data: orders = [], refetch: refetchOrders } = useOrders();
+  const { data: deliveries = [], refetch: refetchDeliveries } = useDeliveries();
+  const { data: allCatalog = [], isLoading: catalogLoading, refetch: refetchCatalog } = useCatalog();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchStock(), refetchOrders(), refetchDeliveries(), refetchCatalog()]);
+    setRefreshing(false);
+  };
 
   const lowStockItems = stockLevels.filter((s) => s.is_low_stock);
   const lowStockCount = lowStockItems.length;
@@ -35,8 +42,6 @@ export default function DashboardScreen() {
   const activeDeliveryCount = deliveries.filter(
     (d) => d.status !== 'delivered',
   ).length;
-
-  const sync = useSyncStatus();
 
   const isNewKitchen =
     lowStockCount === 0 && pendingOrderCount === 0 && activeDeliveryCount === 0 && stockLevels.length === 0;
@@ -63,23 +68,21 @@ export default function DashboardScreen() {
             {activeKitchen?.name ?? 'No kitchen selected'}
           </Text>
         </View>
-        <View className="flex-row items-center gap-2">
-          <SyncStatusBadge phase={sync.phase} pendingCount={sync.pendingCount} />
-          <Pressable
-            onPress={() => router.push('/(app)/kitchens')}
-            accessibilityRole="button"
-            accessibilityLabel="Switch kitchen"
-            className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2"
-          >
-            <Text className="text-brand-400 text-sm font-medium">Switch</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={() => router.push('/(app)/kitchens')}
+          accessibilityRole="button"
+          accessibilityLabel="Switch kitchen"
+          className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2"
+        >
+          <Text className="text-brand-400 text-sm font-medium">Switch Kitchen</Text>
+        </Pressable>
       </View>
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
       >
         {/* Alerts */}
         {alerts.length > 0 && (
@@ -98,19 +101,24 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Summary row */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        {/* Summary row — horizontally scrollable stat cards */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 10, paddingRight: 4 }}
+        >
           <Pressable
             onPress={() => router.push('/(app)/(tabs)/stock')}
             accessibilityRole="button"
             accessibilityLabel="Low stock items"
-            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#B91C1C" toColor="#7F1D1D">
               <StatCardContent
-                icon={<TrendingDown size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                icon={<TrendingDown size={18} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
                 label="Low Stock"
                 value={String(lowStockCount)}
+                subtitle={lowStockCount === 1 ? 'ingredient' : 'ingredients'}
               />
             </FoodBundlesCard>
           </Pressable>
@@ -118,13 +126,14 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/(tabs)/purchasing')}
             accessibilityRole="button"
             accessibilityLabel="Pending orders"
-            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#B45309" toColor="#78350F">
               <StatCardContent
-                icon={<ShoppingCart size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
-                label="Pending Orders"
+                icon={<ShoppingCart size={18} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                label="Orders"
                 value={String(pendingOrderCount)}
+                subtitle="pending"
               />
             </FoodBundlesCard>
           </Pressable>
@@ -132,17 +141,18 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/receiving')}
             accessibilityRole="button"
             accessibilityLabel="Active deliveries"
-            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#047857" toColor="#064E3B">
               <StatCardContent
-                icon={<Package size={16} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
+                icon={<Package size={18} color="rgba(255,255,255,0.8)" strokeWidth={2} />}
                 label="Deliveries"
                 value={String(activeDeliveryCount)}
+                subtitle="in transit"
               />
             </FoodBundlesCard>
           </Pressable>
-        </View>
+        </ScrollView>
 
         {/* Quick actions — always visible */}
         <View className="gap-2">
@@ -161,6 +171,18 @@ export default function DashboardScreen() {
               </View>
               <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Menu</Text>
               <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Dishes &amp; recipes</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/sales/entry' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Record sales"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
+            >
+              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
+                <TrendingUp size={18} color="#1DB954" strokeWidth={2} />
+              </View>
+              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Sales</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Record today's sales</Text>
             </Pressable>
             <Pressable
               onPress={() => router.push('/(app)/receiving/quick')}
@@ -348,16 +370,19 @@ function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
   );
 }
 
-function StatCardContent({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatCardContent({ icon, label, value, subtitle }: { icon: React.ReactNode; label: string; value: string; subtitle?: string }) {
   return (
-    <View style={{ gap: 2 }}>
+    <View style={{ gap: 4 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         {icon}
-        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 }}>
           {label}
         </Text>
       </View>
-      <Text style={{ color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: '#FFFFFF', fontSize: 32, fontWeight: '800', letterSpacing: -1 }}>{value}</Text>
+      {subtitle && (
+        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500' }}>{subtitle}</Text>
+      )}
     </View>
   );
 }

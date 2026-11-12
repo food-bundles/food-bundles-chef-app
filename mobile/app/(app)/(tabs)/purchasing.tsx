@@ -5,17 +5,13 @@ import { router } from 'expo-router';
 import { ShoppingCart, ChevronRight, Truck, Package } from 'lucide-react-native';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
-import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
-import { useOrders, useCreateOrder, useSubmitOrder } from '@/features/orders/useOrders';
+import { useOrders, useCreateOrder } from '@/features/orders/useOrders';
 import { SearchInput } from '@/components/ui/SearchInput';
-import { StockIndicator } from '@/components/ui/StockIndicator';
 import { QuantitySelector } from '@/components/ui/QuantitySelector';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
-import type { PurchaseSuggestionDto } from '@/api/purchasing-api';
-
-type Tab = 'needs' | 'catalog' | 'orders';
+type Tab = 'catalog' | 'orders';
 
 interface CartItem {
   product: CatalogProductDto;
@@ -34,20 +30,13 @@ const ORDER_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neu
 export default function PurchasingScreen() {
   const insets = useSafeAreaInsets();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const { data: suggestionsResp, isLoading: suggestionsLoading } = usePurchaseSuggestions();
   const { data: apiOrders = [], isLoading: ordersLoading } = useOrders();
   const { data: allCatalog = [], isLoading: catalogLoading } = useCatalog();
   const createOrder = useCreateOrder();
-  const submitOrderMutation = useSubmitOrder();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [tab, setTab] = useState<Tab>('needs');
+  const [tab, setTab] = useState<Tab>('catalog');
   const [catalogQuery, setCatalogQuery] = useState('');
-
-  const purchaseList = useMemo(
-    () => (suggestionsResp?.suggestions ?? []).filter((s) => parseFloat(s.suggested_qty) > 0),
-    [suggestionsResp],
-  );
 
   const catalogItems = useMemo(() => {
     const q = catalogQuery.toLowerCase().trim();
@@ -95,7 +84,7 @@ export default function PurchasingScreen() {
   return (
     <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
       <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
-        <Text className="text-surface-900 dark:text-white text-lg font-bold">Purchasing</Text>
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">Requisition</Text>
         {cartCount > 0 && (
           <Pressable
             onPress={() => setTab('catalog')}
@@ -111,7 +100,7 @@ export default function PurchasingScreen() {
 
       {/* Tab bar */}
       <View className="flex-row border-b border-surface-200 dark:border-surface-800">
-        {([['needs', 'Need to Buy'], ['catalog', 'Catalog'], ['orders', 'Orders']] as [Tab, string][]).map(
+        {([['catalog', 'Catalog'], ['orders', 'Orders']] as [Tab, string][]).map(
           ([key, label]) => (
             <Pressable
               key={key}
@@ -127,45 +116,6 @@ export default function PurchasingScreen() {
           ),
         )}
       </View>
-
-      {/* Need-to-buy tab */}
-      {tab === 'needs' && (
-        suggestionsLoading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#1DB954" />
-          </View>
-        ) : (
-          <FlatList
-            data={purchaseList}
-            keyExtractor={(i) => i.ingredient_id}
-            contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
-            renderItem={({ item }) => <NeedsRow item={item} />}
-            ListEmptyComponent={
-              <View className="px-4 py-8 items-center gap-3">
-                <Text className="text-4xl">✅</Text>
-                <Text className="text-surface-900 dark:text-white font-semibold text-base">All stocked up</Text>
-                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
-                  Your kitchen has enough of every ingredient for the next 3 days.
-                  This list fills automatically when stock runs low.
-                </Text>
-                <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 mt-2 w-full gap-2">
-                  <Text className="text-surface-700 dark:text-surface-300 text-xs font-medium uppercase tracking-wider">How it works</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">1. Add ingredients to Stock tab</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">2. Record daily sales in Menu</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">3. Items needing reorder appear here</Text>
-                </View>
-                <Pressable
-                  onPress={() => setTab('catalog')}
-                  accessibilityRole="button"
-                  className="mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-6 py-3 active:opacity-70"
-                >
-                  <Text className="text-brand-400 font-medium">Browse Catalog anyway →</Text>
-                </Pressable>
-              </View>
-            }
-          />
-        )
-      )}
 
       {/* Catalog tab */}
       {tab === 'catalog' && (
@@ -300,24 +250,6 @@ export default function PurchasingScreen() {
           />
         )
       )}
-    </View>
-  );
-}
-
-function NeedsRow({ item }: { item: PurchaseSuggestionDto }) {
-  const days = item.days_cover != null ? parseFloat(item.days_cover) : Infinity;
-  return (
-    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center justify-between">
-      <View className="flex-1 mr-3">
-        <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
-        <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
-          On hand: {item.current_stock} {item.unit}
-        </Text>
-        <Text className="text-brand-400 text-sm font-semibold mt-1">
-          Suggested: {item.suggested_qty} {item.unit}
-        </Text>
-      </View>
-      <StockIndicator daysOfCover={days} />
     </View>
   );
 }

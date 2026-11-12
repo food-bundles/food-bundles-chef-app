@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { RefreshCw, Plus, Package } from 'lucide-react-native';
@@ -15,6 +15,8 @@ export default function StockScreen() {
   const { data: allItems = [], isLoading, refetch } = useStockLevels();
   const { phase, pendingCount, sync } = useSyncStatus();
   const [query, setQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
 
   const items = useMemo(() => {
     const filtered = query.trim()
@@ -80,6 +82,7 @@ export default function StockScreen() {
           data={items}
           keyExtractor={(i) => i.ingredient_id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
           renderItem={({ item }) => <StockRow item={item} />}
           ListEmptyComponent={
             query ? (

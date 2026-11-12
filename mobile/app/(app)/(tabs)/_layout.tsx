@@ -41,7 +41,8 @@ export default function TabsLayout() {
           marginTop: 0,
         },
         tabBarItemStyle: {
-          paddingVertical: 0,
+          paddingTop: 6,
+          paddingBottom: 0,
         },
       }}
     >
@@ -68,8 +69,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="purchasing"
         options={{
-          title: 'Purchasing',
-          tabBarAccessibilityLabel: 'Purchasing tab',
+          title: 'Requisition',
+          tabBarAccessibilityLabel: 'Requisition tab',
           tabBarIcon: ({ color }) => (
             <ShoppingCart size={ICON_SIZE} color={color} strokeWidth={1.75} />
           ),
