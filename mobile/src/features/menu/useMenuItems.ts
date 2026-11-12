@@ -8,8 +8,12 @@ import {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
+  listRecipeLines,
+  addRecipeLine,
+  deleteRecipeLine,
+  getRecipeCost,
 } from '@/api/menus-api';
-import type { MenuItemCreateBody, MenuItemUpdateBody, MenuItemDto } from '@/api/menus-api';
+import type { MenuItemCreateBody, MenuItemUpdateBody, MenuItemDto, RecipeLineCreateBody, RecipeLineDto, RecipeCostDto } from '@/api/menus-api';
 
 function useMenuContext() {
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
@@ -101,6 +105,50 @@ export function useToggleMenuItemActive() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
+    },
+  });
+}
+
+export function useRecipeLines(menuItemId: string) {
+  const { chefId, kitchenId } = useMenuContext();
+  const enabled = Boolean(chefId && kitchenId && menuItemId);
+  return useQuery<RecipeLineDto[]>({
+    queryKey: queryKeys.menu.recipe(chefId, kitchenId, menuItemId),
+    queryFn: () => listRecipeLines(kitchenId, menuItemId),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useRecipeCost(menuItemId: string) {
+  const { chefId, kitchenId } = useMenuContext();
+  const enabled = Boolean(chefId && kitchenId && menuItemId);
+  return useQuery<RecipeCostDto>({
+    queryKey: [...queryKeys.menu.recipe(chefId, kitchenId, menuItemId), 'cost'],
+    queryFn: () => getRecipeCost(kitchenId, menuItemId),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAddRecipeLine(menuItemId: string) {
+  const { chefId, kitchenId } = useMenuContext();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RecipeLineCreateBody) => addRecipeLine(kitchenId, menuItemId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.menu.recipe(chefId, kitchenId, menuItemId) });
+    },
+  });
+}
+
+export function useDeleteRecipeLine(menuItemId: string) {
+  const { chefId, kitchenId } = useMenuContext();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (lineId: string) => deleteRecipeLine(kitchenId, menuItemId, lineId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.menu.recipe(chefId, kitchenId, menuItemId) });
     },
   });
 }

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, ClipboardList, Pencil, Trash2 } from 'lucide-react-native';
+import { Plus, ClipboardList, Pencil, Trash2, ChevronRight } from 'lucide-react-native';
 import { useMenuItems, useToggleMenuItemActive, useDeleteMenuItem } from '@/features/menu/useMenuItems';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -169,7 +169,12 @@ function MenuItemRow({
 }) {
   const priceRwf = parseFloat(item.selling_price);
   return (
-    <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 gap-3">
+    <Pressable
+      onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${item.name} details`}
+      className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 gap-3 active:opacity-80"
+    >
       <View className="flex-row items-start justify-between">
         <View className="flex-1 mr-3">
           <View className="flex-row items-center gap-2 flex-wrap">
@@ -216,12 +221,21 @@ function MenuItemRow({
           onPress={onDelete}
           accessibilityRole="button"
           accessibilityLabel="Delete item"
-          className="flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 active:opacity-70"
+          className="flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 active:opacity-70"
         >
           <Trash2 size={14} color="#EF4444" strokeWidth={2} />
           <Text className="text-red-500 text-xs font-medium">Delete</Text>
         </Pressable>
+        <Pressable
+          onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
+          accessibilityRole="button"
+          accessibilityLabel="View details"
+          className="flex-row items-center justify-center gap-1 py-2 px-3 rounded-lg bg-brand-500/10 active:opacity-70"
+        >
+          <ChevronRight size={14} color="#0E8438" strokeWidth={2} />
+          <Text className="text-brand-400 text-xs font-medium">Details</Text>
+        </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
