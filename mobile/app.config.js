@@ -61,6 +61,7 @@ module.exports = {
         },
       ],
       './plugins/withExpoModulesProguard',
+      'expo-sharing',
       [
         'expo-location',
         {

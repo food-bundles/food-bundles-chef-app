@@ -1,11 +1,14 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Package } from 'lucide-react-native';
+import { ArrowLeft, Package, Download, Share2 } from 'lucide-react-native';
 import { useOrderDetail, useCancelOrder, useSubmitOrder } from '@/features/orders/useOrders';
 import { useCatalog } from '@/features/purchasing/useCatalog';
+import { useKitchenStore } from '@/store/kitchen-store';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ProductIcon } from '@/components/ui/ProductIcon';
+import { buildRequisitionHtml } from '@/lib/pdf-requisition';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
   delivered: 'success',
@@ -16,6 +19,32 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'>
   draft: 'neutral',
 };
 
+async function shareOrderAsPdf(htmlContent: string, orderRef: string) {
+  try {
+    // Dynamic import so the module load doesn't fail on old builds without the packages
+    const Print = await import('expo-print').then((m) => m.default ?? m);
+    const Sharing = await import('expo-sharing').then((m) => m.default ?? m);
+
+    const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Requisition REQ-${orderRef}`,
+        UTI: 'com.adobe.pdf',
+      });
+    } else {
+      Alert.alert(
+        'Sharing unavailable',
+        `PDF saved to:\n${uri}`,
+      );
+    }
+  } catch (err) {
+    Alert.alert('Error', 'Could not generate PDF. Please try again.');
+  }
+}
+
 export default function OrderDetailScreen() {
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -23,7 +52,9 @@ export default function OrderDetailScreen() {
   const cancelMutation = useCancelOrder();
   const submitMutation = useSubmitOrder();
   const { data: catalog = [] } = useCatalog();
-  // Build a map from catalog_product_id → image_url for quick lookup
+  const activeKitchen = useKitchenStore((s) => s.activeKitchen);
+  const [sharing, setSharing] = useState(false);
+
   const catalogImageMap = Object.fromEntries(
     catalog.filter((p) => p.image_url).map((p) => [p.id, p.image_url] as [string, string])
   );
@@ -35,6 +66,30 @@ export default function OrderDetailScreen() {
 
   const canSubmit = order?.status === 'draft';
   const canCancel = order && (order.status === 'draft' || order.status === 'submitted');
+
+  const handleSharePdf = async () => {
+    if (!order) return;
+    setSharing(true);
+    try {
+      const html = buildRequisitionHtml({
+        orderId: order.id,
+        status: order.status,
+        createdAt: order.created_at,
+        deliveryDate: order.delivery_date,
+        notes: order.notes,
+        kitchenName: activeKitchen?.name ?? 'Kitchen',
+        lines: order.lines.map((l) => ({
+          product_name: l.product_name,
+          unit: l.unit,
+          quantity_ordered: l.quantity_ordered,
+          unit_price: l.unit_price,
+        })),
+      });
+      await shareOrderAsPdf(html, order.id.slice(-8).toUpperCase());
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
@@ -59,10 +114,25 @@ export default function OrderDetailScreen() {
           )}
         </View>
         {order && (
-          <StatusBadge
-            label={order.status.replace(/_/g, ' ')}
-            variant={STATUS_VARIANT[order.status] ?? 'neutral'}
-          />
+          <View className="flex-row items-center gap-2">
+            <StatusBadge
+              label={order.status.replace(/_/g, ' ')}
+              variant={STATUS_VARIANT[order.status] ?? 'neutral'}
+            />
+            <Pressable
+              onPress={handleSharePdf}
+              disabled={sharing}
+              accessibilityRole="button"
+              accessibilityLabel="Share as PDF"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ opacity: sharing ? 0.4 : 1 }}
+            >
+              {sharing
+                ? <ActivityIndicator size="small" color="#0E8438" />
+                : <Share2 size={20} color="#0E8438" strokeWidth={2} />
+              }
+            </Pressable>
+          </View>
         )}
       </View>
 
@@ -105,6 +175,24 @@ export default function OrderDetailScreen() {
             )}
           </View>
 
+          {/* PDF export button */}
+          <Pressable
+            onPress={handleSharePdf}
+            disabled={sharing}
+            accessibilityRole="button"
+            accessibilityLabel="Download or share requisition PDF"
+            className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-4 flex-row items-center justify-center gap-2 active:opacity-70"
+            style={{ opacity: sharing ? 0.5 : 1 }}
+          >
+            {sharing
+              ? <ActivityIndicator size="small" color="#0E8438" />
+              : <Download size={18} color="#0E8438" strokeWidth={2} />
+            }
+            <Text className="text-brand-400 font-semibold text-sm">
+              {sharing ? 'Generating PDF…' : 'Share Requisition PDF'}
+            </Text>
+          </Pressable>
+
           {/* Line items */}
           <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
             Items ({order.lines.length})
@@ -133,7 +221,7 @@ export default function OrderDetailScreen() {
                     </Text>
                   </View>
                   <Text className="text-brand-400 font-semibold text-sm">
-                    {lineTotal.toLocaleString()} RWF
+                    {lineTotal > 0 ? `${lineTotal.toLocaleString()} RWF` : '—'}
                   </Text>
                 </View>
               );
