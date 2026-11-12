@@ -381,17 +381,17 @@ export default function AgentScreen() {
         ) : null}
       </View>
 
-      {/* Chat list */}
-      <FlatList
-        ref={listRef}
-        data={entries}
-        keyExtractor={(e) => e.id}
-        contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 16 }}
-        renderItem={({ item }) => <ChatEntryRow entry={item} onConfirm={handleConfirm} onCancel={handleCancel} onOptionSelect={handleOptionSelect} confirmingId={confirmMutation.isPending ? (entries.find((e) => e.type === 'proposal' && !('confirmed' in e && e.confirmed) && !('cancelled' in e && e.cancelled))?.id ?? null) : null} />}
-      />
-
-      {/* Input bar */}
+      {/* Chat list + input bar — KAV wraps both so keyboard pushes input up */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <FlatList
+          ref={listRef}
+          data={entries}
+          keyExtractor={(e) => e.id}
+          contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 16 }}
+          renderItem={({ item }) => <ChatEntryRow entry={item} onConfirm={handleConfirm} onCancel={handleCancel} onOptionSelect={handleOptionSelect} confirmingId={confirmMutation.isPending ? (entries.find((e) => e.type === 'proposal' && !('confirmed' in e && e.confirmed) && !('cancelled' in e && e.cancelled))?.id ?? null) : null} />}
+        />
+
+        {/* Input bar */}
         <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: borderColor, gap: 8 }}>
           {/* Attached image preview */}
           {attachedImage && (

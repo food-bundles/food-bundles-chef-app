@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Plus, ClipboardList, Pencil, Trash2 } from 'lucide-react-native';
@@ -13,7 +13,9 @@ const CATEGORIES = ['All', 'Main', 'Side', 'Drink', 'Dessert'];
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
-  const { data: allItems = [], isLoading } = useMenuItems();
+  const { data: allItems = [], isLoading, refetch } = useMenuItems();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
   const toggleActiveMutation = useToggleMenuItemActive();
   const deleteMutation = useDeleteMenuItem();
   const [query, setQuery] = useState('');
@@ -82,6 +84,7 @@ export default function MenuScreen() {
           data={items}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
           renderItem={({ item }) => (
             <MenuItemRow
               item={item}

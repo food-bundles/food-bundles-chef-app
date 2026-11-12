@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ShoppingCart, ChevronRight, Truck, Package } from 'lucide-react-native';
@@ -30,9 +30,11 @@ const ORDER_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neu
 export default function PurchasingScreen() {
   const insets = useSafeAreaInsets();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const { data: apiOrders = [], isLoading: ordersLoading } = useOrders();
-  const { data: allCatalog = [], isLoading: catalogLoading } = useCatalog();
+  const { data: apiOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
+  const { data: allCatalog = [], isLoading: catalogLoading, refetch: refetchCatalog } = useCatalog();
   const createOrder = useCreateOrder();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await Promise.all([refetchOrders(), refetchCatalog()]); setRefreshing(false); };
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tab, setTab] = useState<Tab>('catalog');
@@ -132,6 +134,7 @@ export default function PurchasingScreen() {
             data={catalogItems}
             keyExtractor={(p) => p.id}
             contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: cartCount > 0 ? 120 : 32 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
             renderItem={({ item }) => {
               const cartItem = cart.find((c) => c.product.id === item.id);
               return (
@@ -204,6 +207,7 @@ export default function PurchasingScreen() {
             }
             keyExtractor={(o) => o.id}
             contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
             renderItem={({ item: order }) => (
               <Pressable
                 onPress={() => router.push(`/(app)/orders/${order.id}` as never)}
