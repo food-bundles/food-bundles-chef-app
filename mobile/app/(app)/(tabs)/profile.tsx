@@ -124,7 +124,7 @@ export default function ProfileScreen() {
     ? new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : null;
 
-  const activeKitchens = allKitchens.filter((k) => k.status !== 'archived');
+  const activeKitchens = allKitchens.filter((k) => !k.isArchived);
 
   return (
     <View style={{ flex: 1, backgroundColor: bg, paddingTop: insets.top }}>
