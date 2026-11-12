@@ -1,7 +1,7 @@
 import { ScrollView, View, Text, Pressable, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive, TrendingUp } from 'lucide-react-native';
+import { AlertTriangle, Package, ShoppingCart, TrendingDown, CheckCircle, Utensils, Archive, Truck } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useState } from 'react';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
@@ -111,7 +111,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/(tabs)/stock')}
             accessibilityRole="button"
             accessibilityLabel="Low stock items"
-            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 170, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#B91C1C" toColor="#7F1D1D">
               <StatCardContent
@@ -126,7 +126,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/(tabs)/purchasing')}
             accessibilityRole="button"
             accessibilityLabel="Pending orders"
-            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 170, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#B45309" toColor="#78350F">
               <StatCardContent
@@ -141,7 +141,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(app)/receiving')}
             accessibilityRole="button"
             accessibilityLabel="Active deliveries"
-            style={({ pressed }) => ({ width: 160, opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ width: 170, opacity: pressed ? 0.8 : 1 })}
           >
             <FoodBundlesCard fromColor="#047857" toColor="#064E3B">
               <StatCardContent
@@ -159,42 +159,42 @@ export default function DashboardScreen() {
           <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
             Quick Actions
           </Text>
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => router.push('/(app)/(tabs)/menu')}
-              accessibilityRole="button"
-              accessibilityLabel="Manage menu"
-              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
-            >
-              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <Utensils size={18} color="#1DB954" strokeWidth={2} />
-              </View>
-              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Menu</Text>
-              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Dishes &amp; recipes</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push('/(app)/sales/entry' as never)}
-              accessibilityRole="button"
-              accessibilityLabel="Record sales"
-              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
-            >
-              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <TrendingUp size={18} color="#1DB954" strokeWidth={2} />
-              </View>
-              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Sales</Text>
-              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Record today's sales</Text>
-            </Pressable>
+          <View className="flex-row gap-2">
             <Pressable
               onPress={() => router.push('/(app)/receiving/quick')}
               accessibilityRole="button"
               accessibilityLabel="Receive a delivery"
-              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center gap-2 active:opacity-70"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center gap-1.5 active:opacity-70"
             >
-              <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <Package size={18} color="#1DB954" strokeWidth={2} />
+              <View className="w-9 h-9 rounded-full bg-brand-500/15 items-center justify-center">
+                <Truck size={16} color="#0E8438" strokeWidth={2} />
               </View>
-              <Text className="text-surface-900 dark:text-white font-semibold text-sm text-center">Receive</Text>
-              <Text className="text-surface-600 dark:text-surface-400 text-xs text-center">Log a delivery</Text>
+              <Text className="text-surface-900 dark:text-white font-semibold text-xs text-center">Receive</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-center" style={{ fontSize: 9 }}>Log delivery</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/purchasing')}
+              accessibilityRole="button"
+              accessibilityLabel="View orders"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center gap-1.5 active:opacity-70"
+            >
+              <View className="w-9 h-9 rounded-full bg-brand-500/15 items-center justify-center">
+                <ShoppingCart size={16} color="#0E8438" strokeWidth={2} />
+              </View>
+              <Text className="text-surface-900 dark:text-white font-semibold text-xs text-center">Orders</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-center" style={{ fontSize: 9 }}>Requisitions</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/menu')}
+              accessibilityRole="button"
+              accessibilityLabel="Manage menu"
+              className="flex-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-3 items-center gap-1.5 active:opacity-70"
+            >
+              <View className="w-9 h-9 rounded-full bg-brand-500/15 items-center justify-center">
+                <Utensils size={16} color="#0E8438" strokeWidth={2} />
+              </View>
+              <Text className="text-surface-900 dark:text-white font-semibold text-xs text-center">Menu</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-center" style={{ fontSize: 9 }}>Dishes & prices</Text>
             </Pressable>
           </View>
         </View>
@@ -242,7 +242,7 @@ export default function DashboardScreen() {
               className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
             >
               <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <Utensils size={18} color="#1DB954" strokeWidth={2} />
+                <Utensils size={18} color="#0E8438" strokeWidth={2} />
               </View>
               <View className="flex-1">
                 <Text className="text-surface-900 dark:text-white font-semibold text-sm">Add menu items</Text>
@@ -257,7 +257,7 @@ export default function DashboardScreen() {
               className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
             >
               <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <Archive size={18} color="#1DB954" strokeWidth={2} />
+                <Archive size={18} color="#0E8438" strokeWidth={2} />
               </View>
               <View className="flex-1">
                 <Text className="text-surface-900 dark:text-white font-semibold text-sm">Track ingredients</Text>
@@ -272,7 +272,7 @@ export default function DashboardScreen() {
               className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 flex-row items-center gap-3 active:opacity-70"
             >
               <View className="w-10 h-10 rounded-full bg-brand-500/15 items-center justify-center">
-                <Package size={18} color="#1DB954" strokeWidth={2} />
+                <Package size={18} color="#0E8438" strokeWidth={2} />
               </View>
               <View className="flex-1">
                 <Text className="text-surface-900 dark:text-white font-semibold text-sm">Receive a delivery</Text>
@@ -318,7 +318,7 @@ export default function DashboardScreen() {
         {lowStockCount > 0 && (
           <View className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
             <View className="flex-row items-center gap-2 mb-2">
-              <CheckCircle size={16} color="#1DB954" strokeWidth={2} />
+              <CheckCircle size={16} color="#0E8438" strokeWidth={2} />
               <Text className="text-brand-400 font-semibold text-sm">Procurement Reminder</Text>
             </View>
             <Text className="text-surface-700 dark:text-surface-300 text-sm">
@@ -370,19 +370,22 @@ function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
   );
 }
 
-function StatCardContent({ icon, label, value, subtitle }: { icon: React.ReactNode; label: string; value: string; subtitle?: string }) {
+function StatCardContent({ icon, label, value, subtitle, change }: { icon: React.ReactNode; label: string; value: string; subtitle?: string; change?: string }) {
   return (
-    <View style={{ gap: 4 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        {icon}
-        <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-          {label}
-        </Text>
+    <View style={{ gap: 2 }}>
+      <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 }}>
+        {label}
+      </Text>
+      <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -1, lineHeight: 38 }}>{value}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {subtitle && <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' }}>{subtitle}</Text>}
+        {change && (
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 9, fontWeight: '700' }}>{change}</Text>
+          </View>
+        )}
+        <View style={{ marginLeft: 'auto' as never }}>{icon}</View>
       </View>
-      <Text style={{ color: '#FFFFFF', fontSize: 32, fontWeight: '800', letterSpacing: -1 }}>{value}</Text>
-      {subtitle && (
-        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500' }}>{subtitle}</Text>
-      )}
     </View>
   );
 }

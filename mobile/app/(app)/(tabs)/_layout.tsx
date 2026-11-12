@@ -18,8 +18,8 @@ export default function TabsLayout() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const insets = useSafeAreaInsets();
-  // Tab bar height: icon (20) + label (10) + gap (4) + bottom inset + 10px padding
-  const tabBarHeight = 44 + insets.bottom;
+  // Tab bar height: icon (20) + label (10) + gap (4) + bottom inset + 16px padding
+  const tabBarHeight = 50 + insets.bottom;
 
   return (
     <Tabs
@@ -30,18 +30,18 @@ export default function TabsLayout() {
           borderTopColor: isDark ? '#32302C' : '#EAE9E4',
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: insets.bottom + 4,
-          paddingTop: 4,
+          paddingBottom: insets.bottom + 2,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarLabelStyle: {
           fontSize: 9,
           fontWeight: '600',
-          marginTop: 0,
+          marginTop: -2,
         },
         tabBarItemStyle: {
-          paddingTop: 6,
+          paddingTop: 4,
           paddingBottom: 0,
         },
       }}
