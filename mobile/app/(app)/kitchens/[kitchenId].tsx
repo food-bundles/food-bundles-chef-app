@@ -68,7 +68,7 @@ export default function KitchenDetailScreen() {
       <AppHeader title="Edit Kitchen" showBack />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={{

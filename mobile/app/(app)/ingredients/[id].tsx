@@ -229,7 +229,7 @@ export default function IngredientDetailScreen() {
                 ingredient.cost_per_unit ? ['Cost per unit', `${parseFloat(ingredient.cost_per_unit).toLocaleString()} RWF/${ingredient.unit}`] : null,
                 ['Days open/week', String(ingredient.days_open_per_week)],
                 ingredient.notes ? ['Notes', ingredient.notes] : null,
-              ].filter(Boolean).map(([label, value]) => (
+              ].filter((r): r is string[] => r !== null).map(([label, value]) => (
                 <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Text style={{ color: textSecondary, fontSize: fontSize.sm, flex: 1 }}>{label}</Text>
                   <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: '500', flex: 1, textAlign: 'right' }}>{value}</Text>

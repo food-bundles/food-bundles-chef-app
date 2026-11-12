@@ -30,12 +30,21 @@ export interface ChefProfile {
   id: string;
   phone_number: string;
   name: string | null;
+  email: string | null;
+  preferred_locale: string;
   expo_push_token: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface PushTokenBody {
   token: string;
+}
+
+export interface ProfileUpdateBody {
+  name?: string | null;
+  email?: string | null;
+  preferred_locale?: string | null;
 }
 
 // ── API calls ───────────────────────────────────────────────────────────────
@@ -102,6 +111,16 @@ export function getMe(): Promise<ChefProfile> {
 export function registerPushToken(body: PushTokenBody): Promise<void> {
   return request<void>('/auth/me/push-token', {
     method: 'PUT',
+    body,
+  });
+}
+
+/**
+ * Update the authenticated chef's profile (name, email, locale).
+ */
+export function updateProfile(body: ProfileUpdateBody): Promise<ChefProfile> {
+  return request<ChefProfile>('/auth/me', {
+    method: 'PATCH',
     body,
   });
 }
