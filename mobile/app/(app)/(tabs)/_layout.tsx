@@ -19,7 +19,9 @@ export default function TabsLayout() {
   const isDark = scheme === 'dark';
   const insets = useSafeAreaInsets();
   // Tab bar height: icon (20) + label (10) + gap (4) + bottom inset + 16px padding
-  const tabBarHeight = 50 + insets.bottom;
+  // Add extra clearance on Android so OS nav buttons (back/home/recents) don't overlap
+  const androidExtra = 4;
+  const tabBarHeight = 56 + insets.bottom + (insets.bottom === 0 ? androidExtra : 0);
 
   return (
     <Tabs
@@ -30,18 +32,18 @@ export default function TabsLayout() {
           borderTopColor: isDark ? '#32302C' : '#EAE9E4',
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: insets.bottom + 2,
-          paddingTop: 6,
+          paddingBottom: insets.bottom + (insets.bottom === 0 ? androidExtra : 2),
+          paddingTop: 8,
         },
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarLabelStyle: {
           fontSize: 9,
           fontWeight: '600',
-          marginTop: -2,
+          marginTop: -1,
         },
         tabBarItemStyle: {
-          paddingTop: 4,
+          paddingTop: 2,
           paddingBottom: 0,
         },
       }}

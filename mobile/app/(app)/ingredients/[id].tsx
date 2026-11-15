@@ -12,12 +12,71 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useColorScheme } from 'react-native';
-import { Package, TrendingDown, Clock, Plus, Minus, CheckCircle } from 'lucide-react-native';
+import { Package, TrendingDown, Clock, Plus, Minus, CheckCircle, Utensils, ChevronRight, AlertCircle } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { StockIndicator } from '@/components/ui/StockIndicator';
 import { useIngredientDetail, useStockLevels, useRecordInventoryEntry, useInventoryHistory } from '@/features/inventory/useStockLevels';
+import { useMenuItems, useRecipeLines } from '@/features/menu/useMenuItems';
 import { colors, spacing, fontSize, radius } from '@/lib/theme';
+import type { MenuItemDto } from '@/api/menus-api';
+
+function MenuItemUsageRow({
+  menuItem,
+  ingredientId,
+  isDark,
+  cardBg,
+  textPrimary,
+  textSecondary,
+  borderColor,
+}: {
+  menuItem: MenuItemDto;
+  ingredientId: string;
+  isDark: boolean;
+  cardBg: string;
+  textPrimary: string;
+  textSecondary: string;
+  borderColor: string;
+}) {
+  const { data: lines = [] } = useRecipeLines(menuItem.id);
+  const matchedLine = lines.find((l) => l.ingredient_id === ingredientId);
+  if (!matchedLine) return null;
+  return (
+    <Pressable
+      onPress={() => router.push(`/(app)/menu/${menuItem.id}` as never)}
+      accessibilityRole="button"
+      accessibilityLabel={`View menu item ${menuItem.name}`}
+      style={({ pressed }) => ({
+        backgroundColor: cardBg,
+        borderRadius: radius.md,
+        padding: spacing.sm + 2,
+        borderWidth: 1,
+        borderColor,
+        flexDirection: 'row',
+        alignItems: 'center',
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#0E843815', alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm }}>
+        <Utensils size={14} color="#0E8438" strokeWidth={2} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: '600' }}>{menuItem.name}</Text>
+        <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>
+          {matchedLine.qty_per_portion} {matchedLine.unit} per portion · {parseFloat(menuItem.selling_price).toLocaleString()} RWF
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {!menuItem.is_active && (
+          <View style={{ backgroundColor: isDark ? '#3D3200' : '#FEF3C7', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+            <Text style={{ color: '#D97706', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Off Menu</Text>
+          </View>
+        )}
+        <ChevronRight size={14} color={textSecondary} strokeWidth={2} />
+      </View>
+    </Pressable>
+  );
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -39,7 +98,9 @@ export default function IngredientDetailScreen() {
   const { data: ingredient, isLoading: loadingIngredient } = useIngredientDetail(id ?? '');
   const { data: stockLevels = [] } = useStockLevels();
   const { data: history = [], isLoading: loadingHistory } = useInventoryHistory(id ?? '');
+  const { data: allMenuItems = [] } = useMenuItems();
   const recordEntry = useRecordInventoryEntry();
+
 
   const stockLevel = stockLevels.find((s) => s.ingredient_id === id);
   const stock = stockLevel ? parseFloat(stockLevel.current_stock) : 0;
@@ -237,6 +298,32 @@ export default function IngredientDetailScreen() {
               ))}
             </View>
           </View>
+
+          {/* Used in menu items */}
+          <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            Used in Menu Items
+          </Text>
+          {allMenuItems.length === 0 ? (
+            <View style={{ backgroundColor: cardBg, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor, alignItems: 'center', gap: 6 }}>
+              <Utensils size={20} color={colors.surface[500]} strokeWidth={1.5} />
+              <Text style={{ color: textSecondary, fontSize: fontSize.sm, textAlign: 'center' }}>No menu items yet. Add items to your menu and link this ingredient to track food cost.</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 6 }}>
+              {allMenuItems.map((menuItem) => (
+                <MenuItemUsageRow
+                  key={menuItem.id}
+                  menuItem={menuItem}
+                  ingredientId={id ?? ''}
+                  isDark={isDark}
+                  cardBg={cardBg}
+                  textPrimary={textPrimary}
+                  textSecondary={textSecondary}
+                  borderColor={borderColor}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Stock history */}
           <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 }}>

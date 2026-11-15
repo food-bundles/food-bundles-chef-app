@@ -8,6 +8,7 @@ import {
   Pressable,
   Image,
   Alert,
+  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -16,7 +17,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, ChefHat, MapPin, Users, UtensilsCrossed } from 'lucide-react-native';
 import { AppTextField } from '@/components/ui/AppTextField';
-import { AppButton } from '@/components/ui/AppButton';
 import { useCreateKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
 import { useColorScheme } from 'react-native';
@@ -71,7 +71,7 @@ export default function CreateKitchenScreen() {
         keyboardVerticalOffset={0}
       >
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 48 }}
+          contentContainerStyle={{ paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           scrollIndicatorInsets={{ right: 1 }}
@@ -220,24 +220,37 @@ export default function CreateKitchenScreen() {
               </View>
             </View>
 
-            {/* Submit */}
-            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
-              <AppButton
-                label={isPending ? 'Creating Kitchen…' : 'Create Kitchen'}
-                onPress={handleSubmit(onSubmit)}
-                loading={isPending}
-              />
-              {createKitchen.isError && (
-                <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
-                  Failed to create kitchen. Please try again.
-                </Text>
-              )}
-            </View>
+            {createKitchen.isError && (
+              <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
+                Failed to create kitchen. Please try again.
+              </Text>
+            )}
 
-            <View style={{ height: 24 }} />
+            <View style={{ height: 8 }} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* CTA — sticky above keyboard, always visible */}
+      <View style={[styles.ctaBar, { paddingBottom: Math.max(insets.bottom + 12, 24), backgroundColor: bg, borderTopColor: borderColor }]}>
+        <Pressable
+          onPress={() => void handleSubmit(onSubmit)()}
+          disabled={isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Create Kitchen"
+          style={({ pressed }) => [
+            styles.ctaBtn,
+            isPending && styles.ctaBtnDisabled,
+            pressed && !isPending && { opacity: 0.85 },
+          ]}
+        >
+          {isPending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.ctaBtnText}>Create Kitchen  →</Text>
+          )}
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -259,5 +272,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
+  },
+  ctaBar: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    borderTopWidth: 1,
+  },
+  ctaBtn: {
+    backgroundColor: '#0E8438',
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0E8438',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  ctaBtnDisabled: {
+    backgroundColor: '#1A4D2E',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  ctaBtnText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });

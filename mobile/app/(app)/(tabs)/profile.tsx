@@ -24,8 +24,11 @@ import {
   UtensilsCrossed,
   Package,
   Truck,
-  User,
   CheckCircle,
+  Star,
+  FileText,
+  BarChart2,
+  X,
 } from 'lucide-react-native';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -41,10 +44,13 @@ export default function ProfileScreen() {
   const updateChef = useSessionStore((s) => s.updateChef);
   const signOut = useSessionStore((s) => s.signOut);
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const { data: allKitchens = [], refetch: refetchKitchens } = useKitchens();
+  const storeKitchens = useKitchenStore((s) => s.kitchens);
+  const { refetch: refetchKitchens } = useKitchens();
 
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(chef?.name ?? '');
+  const [bioInput, setBioInput] = useState('');
+  const [experienceInput, setExperienceInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,7 +130,7 @@ export default function ProfileScreen() {
     ? new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : null;
 
-  const activeKitchens = allKitchens.filter((k) => !k.isArchived);
+  const activeKitchens = storeKitchens.filter((k) => !k.isArchived);
 
   return (
     <View style={{ flex: 1, backgroundColor: bg, paddingTop: insets.top }}>
@@ -226,10 +232,23 @@ export default function ProfileScreen() {
             {/* Name / edit */}
             {editing ? (
               <View style={{ width: '100%', gap: spacing.sm }}>
+                {/* Close editing */}
+                <Pressable
+                  onPress={() => { setEditing(false); setNameInput(chef?.name ?? ''); }}
+                  style={{ position: 'absolute', top: -48, right: 0, zIndex: 1, width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.surface[700] : colors.surface[200], alignItems: 'center', justifyContent: 'center' }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel editing"
+                >
+                  <X size={16} color={textSecondary} strokeWidth={2} />
+                </Pressable>
+
+                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  Display Name
+                </Text>
                 <TextInput
                   value={nameInput}
                   onChangeText={setNameInput}
-                  placeholder="Your name"
+                  placeholder="Your full name"
                   placeholderTextColor={colors.surface[500]}
                   style={{
                     backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
@@ -238,51 +257,88 @@ export default function ProfileScreen() {
                     paddingVertical: spacing.sm + 2,
                     color: textPrimary,
                     fontSize: fontSize.base,
-                    textAlign: 'center',
+                    borderWidth: 1,
+                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
                   }}
                   autoFocus
+                  returnKeyType="next"
+                />
+
+                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>
+                  Bio (optional)
+                </Text>
+                <TextInput
+                  value={bioInput}
+                  onChangeText={setBioInput}
+                  placeholder="Brief professional bio…"
+                  placeholderTextColor={colors.surface[500]}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm + 2,
+                    color: textPrimary,
+                    fontSize: fontSize.sm,
+                    minHeight: 70,
+                    textAlignVertical: 'top',
+                    borderWidth: 1,
+                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
+                  }}
+                />
+
+                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>
+                  Experience
+                </Text>
+                <TextInput
+                  value={experienceInput}
+                  onChangeText={setExperienceInput}
+                  placeholder="e.g. 8 years · French & Rwandan cuisine"
+                  placeholderTextColor={colors.surface[500]}
+                  style={{
+                    backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm + 2,
+                    color: textPrimary,
+                    fontSize: fontSize.sm,
+                    borderWidth: 1,
+                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
+                  }}
                   returnKeyType="done"
                   onSubmitEditing={saveProfile}
                 />
-                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => { setEditing(false); setNameInput(chef?.name ?? ''); }}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      paddingVertical: spacing.sm,
-                      borderRadius: radius.md,
-                      backgroundColor: isDark ? colors.surface[700] : colors.surface[200],
-                      alignItems: 'center',
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <Text style={{ color: textSecondary, fontWeight: '600', fontSize: fontSize.sm }}>Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={saveProfile}
-                    disabled={saving}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      paddingVertical: spacing.sm,
-                      borderRadius: radius.md,
-                      backgroundColor: '#0E8438',
-                      alignItems: 'center',
-                      opacity: saving || pressed ? 0.7 : 1,
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                      gap: 6,
-                    })}
-                  >
-                    {saving
-                      ? <ActivityIndicator size="small" color="#fff" />
-                      : <CheckCircle size={16} color="#fff" strokeWidth={2.5} />
-                    }
-                    <Text style={{ color: '#fff', fontWeight: '600', fontSize: fontSize.sm }}>Save</Text>
-                  </Pressable>
-                </View>
+
+                <Pressable
+                  onPress={saveProfile}
+                  disabled={saving}
+                  style={({ pressed }) => ({
+                    paddingVertical: spacing.sm + 4,
+                    borderRadius: radius.md,
+                    backgroundColor: '#0E8438',
+                    alignItems: 'center',
+                    opacity: saving || pressed ? 0.7 : 1,
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 6,
+                    marginTop: 4,
+                    shadowColor: '#0E8438',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  })}
+                >
+                  {saving
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <CheckCircle size={16} color="#fff" strokeWidth={2.5} />
+                  }
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: fontSize.base }}>Save Profile</Text>
+                </Pressable>
               </View>
             ) : (
-              <View style={{ alignItems: 'center', gap: 4 }}>
+              <View style={{ alignItems: 'center', gap: 4, width: '100%' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ color: textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>
                     {chef?.name ?? 'Set your name'}
@@ -290,7 +346,7 @@ export default function ProfileScreen() {
                   <Pressable
                     onPress={() => { setEditing(true); setNameInput(chef?.name ?? ''); }}
                     accessibilityRole="button"
-                    accessibilityLabel="Edit name"
+                    accessibilityLabel="Edit profile"
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Pencil size={16} color={textSecondary} strokeWidth={2} />
@@ -299,10 +355,22 @@ export default function ProfileScreen() {
                 <Text style={{ color: textSecondary, fontSize: fontSize.sm }}>
                   {chef?.phoneNumber ?? '—'}
                 </Text>
-                {memberSince && (
-                  <Text style={{ color: textSecondary, fontSize: fontSize.xs }}>
-                    Member since {memberSince}
+                {experienceInput ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Star size={12} color="#0E8438" strokeWidth={2} />
+                    <Text style={{ color: '#0E8438', fontSize: fontSize.xs, fontWeight: '600' }}>{experienceInput}</Text>
+                  </View>
+                ) : null}
+                {bioInput ? (
+                  <Text style={{ color: textSecondary, fontSize: fontSize.sm, textAlign: 'center', marginTop: 4, paddingHorizontal: 8, lineHeight: 18 }}>
+                    {bioInput}
                   </Text>
+                ) : (
+                  memberSince && (
+                    <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>
+                      Member since {memberSince}
+                    </Text>
+                  )
                 )}
               </View>
             )}
@@ -440,7 +508,7 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Quick actions */}
+          {/* Quick Links */}
           <Text
             style={{
               color: textSecondary,
@@ -459,20 +527,32 @@ export default function ProfileScreen() {
               {
                 icon: <Package size={18} color="#0E8438" strokeWidth={2} />,
                 label: 'Stock & Ingredients',
-                sub: 'View and manage inventory',
+                sub: 'View and manage inventory levels',
                 onPress: () => router.push('/(app)/(tabs)/stock' as never),
               },
               {
                 icon: <UtensilsCrossed size={18} color="#0E8438" strokeWidth={2} />,
                 label: 'Menu Management',
-                sub: 'Items, pricing, recipes',
+                sub: 'Dishes, pricing and recipes',
                 onPress: () => router.push('/(app)/(tabs)/menu' as never),
               },
               {
                 icon: <Truck size={18} color="#0E8438" strokeWidth={2} />,
                 label: 'Delivery Receiving',
                 sub: 'Log and track deliveries',
-                onPress: () => router.push('/(app)/receiving'),
+                onPress: () => router.push('/(app)/receiving' as never),
+              },
+              {
+                icon: <FileText size={18} color="#0E8438" strokeWidth={2} />,
+                label: 'Requisitions',
+                sub: 'Orders and purchase history',
+                onPress: () => router.push('/(app)/(tabs)/purchasing' as never),
+              },
+              {
+                icon: <BarChart2 size={18} color="#0E8438" strokeWidth={2} />,
+                label: 'Sales & Reports',
+                sub: 'Daily sales records',
+                onPress: () => router.push('/(app)/sales/entry' as never),
               },
             ].map((item, i, arr) => (
               <View key={item.label}>
@@ -596,6 +676,9 @@ export default function ProfileScreen() {
             </Text>
             <Text style={{ color: isDark ? colors.surface[700] : colors.surface[300], fontSize: 10 }}>
               Built for professional kitchen teams
+            </Text>
+            <Text style={{ color: isDark ? colors.surface[800] : colors.surface[300], fontSize: 9 }}>
+              © Food Bundles · foodbundles.rw
             </Text>
           </View>
         </ScrollView>

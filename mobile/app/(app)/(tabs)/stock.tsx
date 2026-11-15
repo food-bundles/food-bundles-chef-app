@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { RefreshCw, Plus, Package } from 'lucide-react-native';
+import { RefreshCw, Plus, Package, Utensils } from 'lucide-react-native';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -10,7 +10,7 @@ import { StockIndicator } from '@/components/ui/StockIndicator';
 import { SyncStatusBadge } from '@/components/ui/SyncStatusBadge';
 import type { StockLevelDto } from '@/api/inventory-api';
 
-type StockFilter = 'all' | 'in_stock' | 'out_of_stock';
+type StockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'in_recipes';
 
 export default function StockScreen() {
   const insets = useSafeAreaInsets();
@@ -24,18 +24,28 @@ export default function StockScreen() {
   const outOfStockCount = useMemo(() => allItems.filter((i) => parseFloat(i.current_stock) === 0).length, [allItems]);
   const lowStockCount = useMemo(() => allItems.filter((i) => i.is_low_stock && parseFloat(i.current_stock) > 0).length, [allItems]);
 
+  // Build set of ingredient IDs used in menu items (from recipe lines cached in query)
+  // useMenuItems doesn't directly return recipe lines; we approximate by checking if
+  // expected_daily_use > 0 which indicates the ingredient is linked to a recipe
+  const inRecipesIds = useMemo(() => {
+    return new Set(allItems.filter((i) => i.expected_daily_use != null && parseFloat(i.expected_daily_use) > 0).map((i) => i.ingredient_id));
+  }, [allItems]);
+
+  const inRecipesCount = inRecipesIds.size;
+
   const items = useMemo(() => {
     let list = query.trim()
       ? allItems.filter((i) => i.ingredient_name.toLowerCase().includes(query.toLowerCase()))
       : allItems;
     if (filter === 'in_stock') list = list.filter((i) => parseFloat(i.current_stock) > 0);
     if (filter === 'out_of_stock') list = list.filter((i) => parseFloat(i.current_stock) === 0);
+    if (filter === 'in_recipes') list = list.filter((i) => inRecipesIds.has(i.ingredient_id));
     return list.slice().sort((a, b) => {
       const da = a.days_cover != null ? parseFloat(a.days_cover) : Infinity;
       const db = b.days_cover != null ? parseFloat(b.days_cover) : Infinity;
       return da - db;
     });
-  }, [allItems, query, filter]);
+  }, [allItems, query, filter, inRecipesIds]);
 
   async function handleSync() {
     await sync();
@@ -47,7 +57,7 @@ export default function StockScreen() {
       <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center justify-between">
         <Text className="text-surface-900 dark:text-white text-lg font-bold">Stock</Text>
         <View className="flex-row items-center gap-3">
-          <SyncStatusBadge phase={phase} pendingCount={pendingCount} />
+          {phase !== 'idle' && <SyncStatusBadge phase={phase} pendingCount={pendingCount} />}
           <TouchableOpacity
             onPress={handleSync}
             disabled={phase === 'syncing'}
@@ -82,6 +92,7 @@ export default function StockScreen() {
             ['all', 'All', allItems.length],
             ['in_stock', 'In Stock', allItems.length - outOfStockCount],
             ['out_of_stock', 'Out of Stock', outOfStockCount],
+            ['in_recipes', 'In Recipes', inRecipesCount],
           ] as [StockFilter, string, number][]).map(([key, label, count]) => (
             <Pressable
               key={key}
@@ -114,10 +125,10 @@ export default function StockScreen() {
             query || filter !== 'all' ? (
               <View className="items-center py-10 px-6 gap-2">
                 <Text className="text-surface-900 dark:text-white font-semibold text-base">
-                  {filter === 'out_of_stock' ? 'No out-of-stock items' : filter === 'in_stock' ? 'No items in stock' : 'No results'}
+                  {filter === 'out_of_stock' ? 'No out-of-stock items' : filter === 'in_stock' ? 'No items in stock' : filter === 'in_recipes' ? 'No recipe ingredients yet' : 'No results'}
                 </Text>
                 <Text className="text-surface-500 text-sm text-center">
-                  {filter === 'out_of_stock' ? "Great — all ingredients have stock." : filter === 'in_stock' ? "All ingredients are currently out of stock." : "Try a different search term."}
+                  {filter === 'out_of_stock' ? "Great — all ingredients have stock." : filter === 'in_stock' ? "All ingredients are currently out of stock." : filter === 'in_recipes' ? "Link ingredients to your menu items to see them here. Open a menu item and add ingredients to its recipe." : "Try a different search term."}
                 </Text>
               </View>
             ) : (
@@ -157,24 +168,37 @@ function StockRow({ item }: { item: StockLevelDto }) {
   const dailyUse = item.expected_daily_use != null ? parseFloat(item.expected_daily_use) : null;
   const stock = parseFloat(item.current_stock);
   const isOut = stock === 0;
+  const isLow = !isOut && item.is_low_stock;
+  const isInRecipe = dailyUse != null && dailyUse > 0;
   const coverLabel = isFinite(days) ? `${days.toFixed(1)} days cover` : 'unlimited cover';
   return (
     <Pressable
       onPress={() => router.push(`/(app)/ingredients/${item.ingredient_id}` as never)}
       accessibilityRole="button"
       accessibilityLabel={`${item.ingredient_name}: ${item.current_stock} ${item.unit} on hand, ${coverLabel}`}
-      className={`rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isOut ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent'}`}
+      className={`rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isOut ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50' : isLow ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent'}`}
     >
       <View className="flex-1 mr-3">
-        <View className="flex-row items-center gap-2">
+        <View className="flex-row items-center gap-2 flex-wrap">
           <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
           {isOut && (
             <View className="bg-red-100 dark:bg-red-900/40 rounded px-1.5 py-0.5">
               <Text className="text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wide">Out of Stock</Text>
             </View>
           )}
+          {isLow && !isOut && (
+            <View className="bg-amber-100 dark:bg-amber-900/40 rounded px-1.5 py-0.5">
+              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">Low Stock</Text>
+            </View>
+          )}
+          {isInRecipe && (
+            <View className="bg-brand-500/10 rounded px-1.5 py-0.5 flex-row items-center gap-0.5">
+              <Utensils size={8} color="#0E8438" strokeWidth={2.5} />
+              <Text className="text-brand-400 text-[10px] font-bold uppercase tracking-wide">In Recipe</Text>
+            </View>
+          )}
         </View>
-        <Text className={`text-sm mt-0.5 ${isOut ? 'text-red-500 dark:text-red-400' : 'text-surface-600 dark:text-surface-400'}`}>
+        <Text className={`text-sm mt-0.5 ${isOut ? 'text-red-500 dark:text-red-400' : isLow ? 'text-amber-600 dark:text-amber-400' : 'text-surface-600 dark:text-surface-400'}`}>
           {isOut ? 'No stock — reorder needed' : `${item.current_stock} ${item.unit} on hand`}
           {!isOut && dailyUse != null ? ` · ${dailyUse.toFixed(1)} ${item.unit}/day` : ''}
         </Text>

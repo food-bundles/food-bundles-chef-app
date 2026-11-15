@@ -24,6 +24,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { queryKeys } from '@/api/query-keys';
 import { listMenus, createMenu, createMenuItem } from '@/api/menus-api';
 import { useMenuItems } from '@/features/menu/useMenuItems';
@@ -57,6 +58,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function CreateMenuItemScreen() {
   const isDark = useColorScheme() === 'dark';
+  const insets = useSafeAreaInsets();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
@@ -537,7 +539,7 @@ Respond ONLY in this exact JSON format, nothing else:
       </KeyboardAvoidingView>
 
       {/* Fixed bottom save button */}
-      <View style={[styles.bottomBar, { backgroundColor: bg, borderTopColor: borderColor }]}>
+      <View style={[styles.bottomBar, { backgroundColor: bg, borderTopColor: borderColor, paddingBottom: Math.max(insets.bottom + 12, 24) }]}>
         <AppButton
           label="Save Menu Item"
           onPress={handleSubmit(onSubmit)}
@@ -552,7 +554,6 @@ const styles = StyleSheet.create({
   bottomBar: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
     borderTopWidth: 1,
   },
 });

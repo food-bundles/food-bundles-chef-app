@@ -8,14 +8,15 @@ import {
   Pressable,
   TextInput,
   Alert,
+  ActivityIndicator,
   useColorScheme,
 } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
-import { AppButton } from '@/components/ui/AppButton';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { queryKeys } from '@/api/query-keys';
 import { createIngredient } from '@/api/ingredients-api';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
@@ -24,6 +25,7 @@ const COMMON_UNITS = ['kg', 'g', 'litres', 'ml', 'pieces', 'bunches', 'crates', 
 
 export default function CreateIngredientScreen() {
   const isDark = useColorScheme() === 'dark';
+  const insets = useSafeAreaInsets();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
@@ -84,7 +86,7 @@ export default function CreateIngredientScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={{ backgroundColor: bg }}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 48 }}
+          contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={{ color: textSecondary, fontSize: fontSize.sm }}>
@@ -173,16 +175,43 @@ export default function CreateIngredientScreen() {
             />
             {unitError ? <Text style={{ color: colors.danger, fontSize: fontSize.xs }}>{unitError}</Text> : null}
           </View>
-
-          <View style={{ marginTop: spacing.sm }}>
-            <AppButton
-              label="Add Ingredient"
-              onPress={handleSubmit}
-              loading={submitting}
-            />
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Sticky CTA — always above keyboard */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 14,
+        paddingBottom: Math.max(insets.bottom + 12, 24),
+        borderTopWidth: 1,
+        borderTopColor: isDark ? colors.surface[700] : colors.surface[200],
+        backgroundColor: bg,
+      }}>
+        <Pressable
+          onPress={() => void handleSubmit()}
+          disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Add Ingredient"
+          style={({ pressed }) => ({
+            backgroundColor: submitting ? '#1A4D2E' : '#0E8438',
+            borderRadius: 14,
+            paddingVertical: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#0E8438',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: submitting ? 0 : 0.4,
+            shadowRadius: 14,
+            elevation: submitting ? 0 : 10,
+            opacity: pressed && !submitting ? 0.85 : 1,
+          })}
+        >
+          {submitting
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 }}>Add Ingredient  →</Text>
+          }
+        </Pressable>
+      </View>
     </AppScreen>
   );
 }

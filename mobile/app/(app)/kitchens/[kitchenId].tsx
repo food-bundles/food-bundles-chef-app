@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,7 +18,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, ChefHat, MapPin, Users, UtensilsCrossed, Archive } from 'lucide-react-native';
 import { AppTextField } from '@/components/ui/AppTextField';
-import { AppButton } from '@/components/ui/AppButton';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
@@ -104,16 +104,16 @@ export default function KitchenDetailScreen() {
   };
 
   const isPending = isSubmitting || updateKitchen.isPending;
+  const isDisabled = isPending || (!isDirty && !photoUri);
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
       >
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 48 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -330,22 +330,6 @@ export default function KitchenDetailScreen() {
               </View>
             </View>
 
-            {/* Submit */}
-            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
-              <AppButton
-                label={isPending ? 'Saving…' : 'Save Changes'}
-                onPress={handleSubmit(onSubmit)}
-                loading={isPending}
-                disabled={!isDirty}
-              />
-
-              {updateKitchen.isError && (
-                <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
-                  Failed to save changes. Please try again.
-                </Text>
-              )}
-            </View>
-
             {/* Archive section */}
             {!kitchen.isArchived ? (
               <Pressable
@@ -388,6 +372,55 @@ export default function KitchenDetailScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Sticky save CTA */}
+      <View
+        style={{
+          paddingHorizontal: spacing.md,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom + 12, 24),
+          borderTopWidth: 1,
+          borderTopColor: isDark ? colors.surface[800] : colors.surface[200],
+          backgroundColor: bg,
+          gap: 8,
+        }}
+      >
+        {updateKitchen.isError && (
+          <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
+            Failed to save changes. Please try again.
+          </Text>
+        )}
+        <Pressable
+          onPress={() => void handleSubmit(onSubmit)()}
+          disabled={isDisabled}
+          accessibilityRole="button"
+          accessibilityLabel="Save kitchen changes"
+          style={({ pressed }) => ({
+            backgroundColor: isDisabled ? (isDark ? colors.surface[700] : colors.surface[200]) : '#0E8438',
+            borderRadius: 14,
+            paddingVertical: 18,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 8,
+            opacity: pressed ? 0.85 : 1,
+            shadowColor: '#0E8438',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDisabled ? 0 : 0.3,
+            shadowRadius: 10,
+            elevation: isDisabled ? 0 : 6,
+          })}
+        >
+          {isPending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <ChefHat size={18} color={isDisabled ? colors.surface[500] : '#fff'} strokeWidth={2} />
+          )}
+          <Text style={{ color: isDisabled ? colors.surface[500] : '#fff', fontWeight: '700', fontSize: fontSize.base }}>
+            {isPending ? 'Saving…' : 'Save Changes'}
+          </Text>
+        </Pressable>
+      </View>
 
       <ConfirmationDialog
         visible={archiveDialogVisible}

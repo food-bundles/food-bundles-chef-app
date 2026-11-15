@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Switch, Pressable, ScrollView, Alert, Linking } from 'react-native';
+import { View, Text, Switch, Pressable, ScrollView, Alert, Linking, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, BellOff, ChevronLeft, ChevronRight, HelpCircle, Shield, Globe, Moon, MessageSquare, RefreshCw } from 'lucide-react-native';
+import { Bell, BellOff, ChevronLeft, ChevronRight, Shield, Globe, Moon, Sun, MessageSquare, RefreshCw, LogOut, Trash2 } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useSessionStore } from '@/store/session-store';
 import {
   getNotificationPermissionStatus,
   requestNotificationPermission,
@@ -13,6 +14,8 @@ import {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === 'dark';
+  const signOut = useSessionStore((s) => s.signOut);
   const [permStatus, setPermStatus] = useState<NotificationPermissionStatus>('undetermined');
   const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,6 +28,32 @@ export default function SettingsScreen() {
   useEffect(() => {
     void refreshPermStatus();
   }, [refreshPermStatus]);
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/welcome');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all kitchen data. This action cannot be undone.\n\nTo proceed, contact support@foodbundles.rw.',
+      [{ text: 'OK', style: 'default' }],
+    );
+  };
 
   const handleRequestPermission = async () => {
     setLoading(true);
@@ -162,6 +191,26 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        {/* Appearance */}
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
+          Appearance
+        </Text>
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
+          <View className="px-4 py-4 flex-row items-center gap-3">
+            {isDark ? (
+              <Moon size={18} color="#0E8438" strokeWidth={2} />
+            ) : (
+              <Sun size={18} color="#0E8438" strokeWidth={2} />
+            )}
+            <View className="flex-1">
+              <Text className="text-surface-900 dark:text-white font-medium">Theme</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
+                {isDark ? 'Dark mode active' : 'Light mode active'} · follows system setting
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Support */}
         <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
           Support
@@ -193,6 +242,51 @@ export default function SettingsScreen() {
             </View>
             <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
           </Pressable>
+        </View>
+
+        {/* Account */}
+        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
+          Account
+        </Text>
+        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
+          <Pressable
+            onPress={handleSignOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
+          >
+            <View className="w-8 h-8 rounded-lg bg-surface-100 dark:bg-surface-700 items-center justify-center">
+              <LogOut size={16} color="#DC2626" strokeWidth={2} />
+            </View>
+            <Text className="flex-1 text-red-600 font-medium">Sign Out</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleDeleteAccount}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
+          >
+            <View className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-950/30 items-center justify-center">
+              <Trash2 size={16} color="#DC2626" strokeWidth={2} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-red-600 font-medium">Delete Account</Text>
+              <Text className="text-surface-500 text-xs mt-0.5">Permanently remove all data</Text>
+            </View>
+          </Pressable>
+        </View>
+
+        {/* Footer wordmark */}
+        <View className="items-center pt-2 pb-2 gap-1">
+          <Text className="text-surface-900 dark:text-white text-xs font-bold uppercase tracking-widest">
+            Food Bundles Chef
+          </Text>
+          <Text className="text-surface-400 dark:text-surface-600 text-[10px]">
+            Built for professional kitchen teams
+          </Text>
+          <Text className="text-surface-300 dark:text-surface-800 text-[9px]">
+            © Food Bundles · foodbundles.rw
+          </Text>
         </View>
       </ScrollView>
     </View>

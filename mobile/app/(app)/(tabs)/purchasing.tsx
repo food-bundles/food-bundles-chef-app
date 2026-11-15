@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl, Share, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ShoppingCart, ChevronRight, Truck, Package } from 'lucide-react-native';
+import { ShoppingCart, ChevronRight, Truck, Package, Share2, FileText } from 'lucide-react-native';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useOrders, useCreateOrder } from '@/features/orders/useOrders';
@@ -39,6 +39,33 @@ export default function PurchasingScreen() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tab, setTab] = useState<Tab>('catalog');
   const [catalogQuery, setCatalogQuery] = useState('');
+
+  const handleShareRequisition = async () => {
+    if (cart.length === 0) return;
+    const date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    const lines = cart.map((c) => {
+      const price = c.product.reference_price != null ? parseFloat(c.product.reference_price) : 0;
+      const lineTotal = price * c.quantity;
+      return `  • ${c.product.name} — ${c.quantity} ${c.product.unit} @ ${price.toLocaleString()} RWF = ${lineTotal.toLocaleString()} RWF`;
+    }).join('\n');
+    const total = cart.reduce((s, c) => {
+      const price = c.product.reference_price != null ? parseFloat(c.product.reference_price) : 0;
+      return s + price * c.quantity;
+    }, 0);
+    const text = [
+      `PURCHASE REQUISITION`,
+      `Kitchen: ${activeKitchen?.name ?? 'Unknown'}`,
+      `Date: ${date}`,
+      ``,
+      `Items:`,
+      lines,
+      ``,
+      `Total: ${total.toLocaleString()} RWF`,
+      ``,
+      `Generated via Food Bundles Chef App`,
+    ].join('\n');
+    await Share.share({ message: text, title: `Requisition — ${activeKitchen?.name ?? ''}` });
+  };
 
   const catalogItems = useMemo(() => {
     const q = catalogQuery.toLowerCase().trim();
@@ -159,11 +186,20 @@ export default function PurchasingScreen() {
           />
           )}
           {cartCount > 0 && (
-            <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 bg-surface-100/95 dark:bg-surface-950/95">
+            <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 bg-surface-100/95 dark:bg-surface-950/95" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 8 }}>
               <View className="mt-3 mb-2 flex-row items-center justify-between">
                 <Text className="text-surface-600 dark:text-surface-400 text-sm">
                   {cartCount} item{cartCount > 1 ? 's' : ''} · {cartTotal.toLocaleString()} RWF
                 </Text>
+                <Pressable
+                  onPress={() => void handleShareRequisition()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share requisition"
+                  className="flex-row items-center gap-1.5 px-3 py-1.5 bg-surface-200 dark:bg-surface-700 rounded-lg active:opacity-70"
+                >
+                  <Share2 size={13} color="#6B7280" strokeWidth={2} />
+                  <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium">Share</Text>
+                </Pressable>
               </View>
               <Pressable
                 onPress={handleSubmitOrder}
@@ -174,7 +210,7 @@ export default function PurchasingScreen() {
               >
                 <ShoppingCart size={18} color="#fff" strokeWidth={2} />
                 <Text className="text-white font-semibold">
-                  {isPlacingOrder ? 'Placing Order…' : 'Place Order'}
+                  {isPlacingOrder ? 'Placing Order…' : 'Order from Food Bundles'}
                 </Text>
               </Pressable>
             </View>
@@ -209,31 +245,56 @@ export default function PurchasingScreen() {
             contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
             renderItem={({ item: order }) => (
-              <Pressable
-                onPress={() => router.push(`/(app)/orders/${order.id}` as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`Order ${order.id.slice(-6)}`}
-                className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 active:opacity-70"
-              >
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-surface-900 dark:text-white font-semibold text-sm">Order #{order.id.slice(-6).toUpperCase()}</Text>
-                  <View className="flex-row items-center gap-2">
-                    <StatusBadge
-                      label={order.status.replace(/_/g, ' ')}
-                      variant={ORDER_STATUS_VARIANT[order.status] ?? 'neutral'}
-                    />
-                    <ChevronRight size={16} color="#4D4B45" strokeWidth={2} />
+              <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
+                <Pressable
+                  onPress={() => router.push(`/(app)/orders/${order.id}` as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Order ${order.id.slice(-6)}`}
+                  className="p-4 active:opacity-70"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-surface-900 dark:text-white font-semibold text-sm">Order #{order.id.slice(-6).toUpperCase()}</Text>
+                    <View className="flex-row items-center gap-2">
+                      <StatusBadge
+                        label={order.status.replace(/_/g, ' ')}
+                        variant={ORDER_STATUS_VARIANT[order.status] ?? 'neutral'}
+                      />
+                      <ChevronRight size={16} color="#4D4B45" strokeWidth={2} />
+                    </View>
                   </View>
-                </View>
-                {order.delivery_date && (
-                  <Text className="text-surface-600 dark:text-surface-400 text-xs mb-1">
-                    Delivery {new Date(order.delivery_date).toLocaleDateString()}
+                  {order.delivery_date && (
+                    <Text className="text-surface-600 dark:text-surface-400 text-xs mb-1">
+                      Delivery {new Date(order.delivery_date).toLocaleDateString()}
+                    </Text>
+                  )}
+                  <Text className="text-surface-500 text-xs">
+                    Created {new Date(order.created_at).toLocaleDateString()}
                   </Text>
-                )}
-                <Text className="text-surface-500 text-xs">
-                  Created {new Date(order.created_at).toLocaleDateString()}
-                </Text>
-              </Pressable>
+                </Pressable>
+                {/* Share row */}
+                <Pressable
+                  onPress={() => {
+                    const date = new Date(order.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+                    const text = [
+                      `FOOD BUNDLES ORDER`,
+                      `Order #${order.id.slice(-6).toUpperCase()}`,
+                      `Kitchen: ${activeKitchen?.name ?? ''}`,
+                      `Status: ${order.status.replace(/_/g, ' ').toUpperCase()}`,
+                      `Date: ${date}`,
+                      order.delivery_date ? `Expected Delivery: ${new Date(order.delivery_date).toLocaleDateString()}` : '',
+                      ``,
+                      `To view order details, open the Food Bundles Chef App.`,
+                    ].filter(Boolean).join('\n');
+                    void Share.share({ message: text, title: `Order #${order.id.slice(-6).toUpperCase()}` });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share order ${order.id.slice(-6)}`}
+                  className="border-t border-surface-100 dark:border-surface-700 px-4 py-2.5 flex-row items-center gap-1.5 active:opacity-70"
+                >
+                  <Share2 size={12} color="#9CA3AF" strokeWidth={2} />
+                  <Text className="text-surface-500 dark:text-surface-400 text-xs font-medium">Share Requisition</Text>
+                </Pressable>
+              </View>
             )}
             ListEmptyComponent={
               <View className="px-4 py-8 items-center gap-3">
