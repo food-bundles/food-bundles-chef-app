@@ -2,6 +2,7 @@ import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, Sty
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import { verifyOtp, getMe } from '@/api/auth-api';
 import { listKitchens } from '@/api/kitchens-api';
 import { ApiError } from '@/api/errors';
@@ -91,7 +92,7 @@ export default function VerifyOtpScreen() {
           accessibilityLabel="Go back"
           style={styles.backBtn}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <ChevronLeft size={22} color="#6B7280" strokeWidth={2} />
         </Pressable>
 
         {/* Heading */}
@@ -156,19 +157,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginBottom: 32,
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#112B18',
     borderRadius: 21,
     borderWidth: 1,
     borderColor: '#1E4028',
-  },
-  backArrow: {
-    color: '#4ADE80',
-    fontSize: 18,
-    lineHeight: 20,
   },
   eyebrow: {
     color: '#22C55E',

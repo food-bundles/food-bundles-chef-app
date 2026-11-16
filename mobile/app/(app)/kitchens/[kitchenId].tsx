@@ -3,21 +3,21 @@ import {
   View,
   Text,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   useColorScheme,
   Pressable,
   Image,
   Alert,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ChefHat, MapPin, Users, UtensilsCrossed, Archive } from 'lucide-react-native';
+import { Camera, ChefHat, ChevronLeft, MapPin, Users, UtensilsCrossed, Archive } from 'lucide-react-native';
 import { AppTextField } from '@/components/ui/AppTextField';
+import { AppButton } from '@/components/ui/AppButton';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { StickyFooter } from '@/components/ui/StickyFooter';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
@@ -108,10 +108,7 @@ export default function KitchenDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <FormScreen>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
@@ -129,11 +126,12 @@ export default function KitchenDetailScreen() {
               <Rect width="100%" height="220" fill="url(#heroGrad)" />
             </Svg>
 
-            {/* Back button */}
+            {/* Back button — 36px circle + hitSlop = ≥44pt target (#18) */}
             <Pressable
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Go back"
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               style={{
                 position: 'absolute',
                 top: insets.top + 8,
@@ -146,7 +144,7 @@ export default function KitchenDetailScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 20, lineHeight: 22 }}>{'←'}</Text>
+              <ChevronLeft size={22} color={colors.white} strokeWidth={2} />
             </Pressable>
 
             <View
@@ -171,7 +169,7 @@ export default function KitchenDetailScreen() {
                 Kitchen Details
               </Text>
               <Text
-                style={{ color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', paddingHorizontal: 48 }}
+                style={{ color: colors.white, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', paddingHorizontal: 48 }}
                 numberOfLines={2}
               >
                 {kitchen.name}
@@ -191,12 +189,12 @@ export default function KitchenDetailScreen() {
                   width: 80,
                   height: 80,
                   borderRadius: 40,
-                  backgroundColor: isDark ? colors.surface[800] : '#fff',
+                  backgroundColor: isDark ? colors.surface[800] : colors.white,
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden',
                   borderWidth: 3,
-                  borderColor: '#fff',
+                  borderColor: colors.white,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.2,
@@ -208,23 +206,23 @@ export default function KitchenDetailScreen() {
                   <Image source={{ uri: photoUri }} style={{ width: 80, height: 80 }} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 4 }}>
-                    <UtensilsCrossed size={28} color="#0A6A2C" strokeWidth={1.75} />
+                    <UtensilsCrossed size={28} color={colors.brand[600]} strokeWidth={1.75} />
                     <View
                       style={{
                         position: 'absolute',
                         bottom: -4,
                         right: -4,
-                        backgroundColor: '#0E8438',
+                        backgroundColor: colors.brand[500],
                         borderRadius: 10,
                         width: 20,
                         height: 20,
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderWidth: 2,
-                        borderColor: '#fff',
+                        borderColor: colors.white,
                       }}
                     >
-                      <Camera size={10} color="#fff" strokeWidth={2.5} />
+                      <Camera size={10} color={colors.white} strokeWidth={2.5} />
                     </View>
                   </View>
                 )}
@@ -237,7 +235,7 @@ export default function KitchenDetailScreen() {
             {/* Kitchen Name */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <ChefHat size={16} color="#0E8438" strokeWidth={2} />
+                <ChefHat size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -261,7 +259,7 @@ export default function KitchenDetailScreen() {
             {/* Cuisine Type */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <UtensilsCrossed size={16} color="#0E8438" strokeWidth={2} />
+                <UtensilsCrossed size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -269,8 +267,8 @@ export default function KitchenDetailScreen() {
                   name="cuisineType"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <AppTextField
-                      label="Cuisine Type (optional)"
-                      placeholder="e.g. Rwandan, French"
+                      label="City / Location *"
+                      placeholder="e.g. Kigali, Musanze, Butare"
                       value={value ?? ''}
                       onChangeText={onChange}
                       onBlur={onBlur}
@@ -285,7 +283,7 @@ export default function KitchenDetailScreen() {
             {/* Address */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <MapPin size={16} color="#0E8438" strokeWidth={2} />
+                <MapPin size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -309,7 +307,7 @@ export default function KitchenDetailScreen() {
             {/* Capacity */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <Users size={16} color="#0E8438" strokeWidth={2} />
+                <Users size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -371,56 +369,22 @@ export default function KitchenDetailScreen() {
             <View style={{ height: 24 }} />
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* Sticky save CTA */}
-      <View
-        style={{
-          paddingHorizontal: spacing.md,
-          paddingTop: 12,
-          paddingBottom: Math.max(insets.bottom + 12, 24),
-          borderTopWidth: 1,
-          borderTopColor: isDark ? colors.surface[800] : colors.surface[200],
-          backgroundColor: bg,
-          gap: 8,
-        }}
-      >
-        {updateKitchen.isError && (
-          <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
-            Failed to save changes. Please try again.
-          </Text>
-        )}
-        <Pressable
-          onPress={() => void handleSubmit(onSubmit)()}
-          disabled={isDisabled}
-          accessibilityRole="button"
-          accessibilityLabel="Save kitchen changes"
-          style={({ pressed }) => ({
-            backgroundColor: isDisabled ? (isDark ? colors.surface[700] : colors.surface[200]) : '#0E8438',
-            borderRadius: 14,
-            paddingVertical: 18,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            gap: 8,
-            opacity: pressed ? 0.85 : 1,
-            shadowColor: '#0E8438',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isDisabled ? 0 : 0.3,
-            shadowRadius: 10,
-            elevation: isDisabled ? 0 : 6,
-          })}
-        >
-          {isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <ChefHat size={18} color={isDisabled ? colors.surface[500] : '#fff'} strokeWidth={2} />
+        <StickyFooter>
+          {updateKitchen.isError && (
+            <Text style={{ color: colors.danger, fontSize: fontSize.sm, textAlign: 'center' }}>
+              Failed to save changes. Please try again.
+            </Text>
           )}
-          <Text style={{ color: isDisabled ? colors.surface[500] : '#fff', fontWeight: '700', fontSize: fontSize.base }}>
-            {isPending ? 'Saving…' : 'Save Changes'}
-          </Text>
-        </Pressable>
-      </View>
+          <AppButton
+            label={isPending ? 'Saving…' : 'Save Changes'}
+            onPress={() => void handleSubmit(onSubmit)()}
+            loading={isPending}
+            disabled={isDisabled}
+            size="lg"
+          />
+        </StickyFooter>
+      </FormScreen>
 
       <ConfirmationDialog
         visible={archiveDialogVisible}
@@ -449,7 +413,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#0E843815',
+    backgroundColor: colors.brand[50],
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,

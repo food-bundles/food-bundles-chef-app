@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: fontSize.base,
+    letterSpacing: 0,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,

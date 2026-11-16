@@ -20,11 +20,30 @@ const LEVEL_CONFIG: Record<Level, { color: string; label: string }> = {
   ok: { color: colors.success, label: 'OK' },
 };
 
+function formatDays(days: number): string {
+  if (!isFinite(days)) return '—';
+  // Show whole numbers without decimal; fractional values to 1dp
+  return days % 1 === 0 ? String(Math.round(days)) : days.toFixed(1);
+}
+
 /** Stock coverage pill with colour-coded level */
 export function StockIndicator({ daysOfCover, unit = 'days' }: StockIndicatorProps) {
   const level = getLevel(daysOfCover);
   const { color, label } = LEVEL_CONFIG[level];
-  const displayDays = isFinite(daysOfCover) ? daysOfCover.toFixed(1) : '∞';
+  const isUnlimited = !isFinite(daysOfCover);
+  const displayDays = isUnlimited ? 'No usage yet' : formatDays(daysOfCover);
+
+  if (isUnlimited) {
+    return (
+      <View
+        style={[styles.container, { borderColor: colors.surface[300] }]}
+        accessibilityLabel="No usage recorded yet"
+      >
+        <View style={[styles.dot, { backgroundColor: colors.surface[400] }]} />
+        <Text style={[styles.days, { color: colors.surface[500] }]}>No usage</Text>
+      </View>
+    );
+  }
 
   return (
     <View

@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Switch, Pressable, ScrollView, Alert, Linking, useColorScheme } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, Switch, Pressable, ScrollView, Alert, Linking, AppState, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, BellOff, ChevronLeft, ChevronRight, Shield, Globe, Moon, Sun, MessageSquare, RefreshCw, LogOut, Trash2 } from 'lucide-react-native';
+import { colors } from '@/lib/theme';
 import { router } from 'expo-router';
 import { useSessionStore } from '@/store/session-store';
 import {
@@ -27,6 +28,18 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     void refreshPermStatus();
+  }, [refreshPermStatus]);
+
+  // Re-check permission when user returns from device settings (#19)
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appStateRef.current !== 'active' && nextState === 'active') {
+        void refreshPermStatus();
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
   }, [refreshPermStatus]);
 
   const handleSignOut = () => {
@@ -80,7 +93,7 @@ export default function SettingsScreen() {
           accessibilityLabel="Go back"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronLeft size={24} color="#9CA3AF" strokeWidth={2} />
+          <ChevronLeft size={24} color={colors.surface[400]} strokeWidth={2} />
         </Pressable>
         <Text className="text-surface-900 dark:text-white text-lg font-bold">Settings</Text>
       </View>
@@ -100,9 +113,9 @@ export default function SettingsScreen() {
           <View className="px-4 py-4 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-700">
             <View className="flex-row items-center gap-3 flex-1">
               {permStatus === 'granted' ? (
-                <Bell size={20} color="#0E8438" strokeWidth={2} />
+                <Bell size={20} color={colors.brand[500]} strokeWidth={2} />
               ) : (
-                <BellOff size={20} color="#9CA3AF" strokeWidth={2} />
+                <BellOff size={20} color={colors.surface[400]} strokeWidth={2} />
               )}
               <View className="flex-1">
                 <Text className="text-surface-900 dark:text-white font-medium">Push Notifications</Text>
@@ -140,8 +153,8 @@ export default function SettingsScreen() {
               value={dailyReminderEnabled}
               onValueChange={handleDailyReminderToggle}
               disabled={permStatus !== 'granted'}
-              trackColor={{ false: '#374151', true: '#0E8438' }}
-              thumbColor={dailyReminderEnabled ? '#ffffff' : '#9CA3AF'}
+              trackColor={{ false: colors.surface[700], true: colors.brand[500] }}
+              thumbColor={dailyReminderEnabled ? colors.white : colors.surface[400]}
               accessibilityLabel="Daily stock reminder toggle"
               accessibilityRole="switch"
               accessibilityState={{ checked: dailyReminderEnabled }}
@@ -150,11 +163,19 @@ export default function SettingsScreen() {
         </View>
 
         {permStatus === 'denied' && (
-          <View className="bg-warning/10 border border-warning/30 rounded-xl p-4">
-            <Text className="text-warning text-sm font-medium mb-1">Notifications blocked</Text>
+          <View className="bg-warning/10 border border-warning/30 rounded-xl p-4 gap-3">
+            <Text className="text-warning text-sm font-medium">Notifications blocked</Text>
             <Text className="text-surface-700 dark:text-surface-300 text-sm">
-              Open your device Settings → Food Bundles Chef → Notifications and enable them there.
+              Notifications are blocked for this app. Tap below to open your device settings and enable them.
             </Text>
+            <Pressable
+              onPress={() => void Linking.openSettings()}
+              accessibilityRole="button"
+              accessibilityLabel="Open device settings to enable notifications"
+              className="bg-warning rounded-lg px-4 py-2.5 self-start active:opacity-80"
+            >
+              <Text className="text-white font-semibold text-sm">Open Settings</Text>
+            </Pressable>
           </View>
         )}
 
@@ -169,12 +190,12 @@ export default function SettingsScreen() {
             accessibilityLabel="Manage kitchens"
             className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
           >
-            <Globe size={18} color="#0E8438" strokeWidth={2} />
+            <Globe size={18} color={colors.brand[500]} strokeWidth={2} />
             <View className="flex-1">
               <Text className="text-surface-900 dark:text-white font-medium">Manage Kitchens</Text>
               <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">Add, switch or archive kitchens</Text>
             </View>
-            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+            <ChevronRight size={16} color={colors.surface[400]} strokeWidth={2} />
           </Pressable>
           <Pressable
             onPress={() => Alert.alert('Sync', 'Syncing your kitchen data…')}
@@ -182,12 +203,12 @@ export default function SettingsScreen() {
             accessibilityLabel="Sync now"
             className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
           >
-            <RefreshCw size={18} color="#6B6860" strokeWidth={2} />
+            <RefreshCw size={18} color={colors.surface[500]} strokeWidth={2} />
             <View className="flex-1">
               <Text className="text-surface-900 dark:text-white font-medium">Sync Data</Text>
               <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">Force a full data refresh</Text>
             </View>
-            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+            <ChevronRight size={16} color={colors.surface[400]} strokeWidth={2} />
           </Pressable>
         </View>
 
@@ -198,9 +219,9 @@ export default function SettingsScreen() {
         <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
           <View className="px-4 py-4 flex-row items-center gap-3">
             {isDark ? (
-              <Moon size={18} color="#0E8438" strokeWidth={2} />
+              <Moon size={18} color={colors.brand[500]} strokeWidth={2} />
             ) : (
-              <Sun size={18} color="#0E8438" strokeWidth={2} />
+              <Sun size={18} color={colors.brand[500]} strokeWidth={2} />
             )}
             <View className="flex-1">
               <Text className="text-surface-900 dark:text-white font-medium">Theme</Text>
@@ -222,12 +243,12 @@ export default function SettingsScreen() {
             accessibilityLabel="Contact support"
             className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
           >
-            <MessageSquare size={18} color="#6B6860" strokeWidth={2} />
+            <MessageSquare size={18} color={colors.surface[500]} strokeWidth={2} />
             <View className="flex-1">
               <Text className="text-surface-900 dark:text-white font-medium">Contact Support</Text>
               <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">support@foodbundles.rw</Text>
             </View>
-            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+            <ChevronRight size={16} color={colors.surface[400]} strokeWidth={2} />
           </Pressable>
           <Pressable
             onPress={() => Linking.openURL('https://foodbundles.rw/privacy')}
@@ -235,12 +256,12 @@ export default function SettingsScreen() {
             accessibilityLabel="Privacy policy"
             className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
           >
-            <Shield size={18} color="#6B6860" strokeWidth={2} />
+            <Shield size={18} color={colors.surface[500]} strokeWidth={2} />
             <View className="flex-1">
               <Text className="text-surface-900 dark:text-white font-medium">Privacy Policy</Text>
               <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">How we handle your data</Text>
             </View>
-            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+            <ChevronRight size={16} color={colors.surface[400]} strokeWidth={2} />
           </Pressable>
         </View>
 
@@ -256,7 +277,7 @@ export default function SettingsScreen() {
             className="px-4 py-4 flex-row items-center gap-3 border-b border-surface-200 dark:border-surface-700 active:opacity-70"
           >
             <View className="w-8 h-8 rounded-lg bg-surface-100 dark:bg-surface-700 items-center justify-center">
-              <LogOut size={16} color="#DC2626" strokeWidth={2} />
+              <LogOut size={16} color={colors.danger} strokeWidth={2} />
             </View>
             <Text className="flex-1 text-red-600 font-medium">Sign Out</Text>
           </Pressable>
@@ -267,7 +288,7 @@ export default function SettingsScreen() {
             className="px-4 py-4 flex-row items-center gap-3 active:opacity-70"
           >
             <View className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-950/30 items-center justify-center">
-              <Trash2 size={16} color="#DC2626" strokeWidth={2} />
+              <Trash2 size={16} color={colors.danger} strokeWidth={2} />
             </View>
             <View className="flex-1">
               <Text className="text-red-600 font-medium">Delete Account</Text>

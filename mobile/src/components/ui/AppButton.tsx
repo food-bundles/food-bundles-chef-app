@@ -2,11 +2,13 @@ import { Pressable, Text, ActivityIndicator, StyleSheet, View } from 'react-nati
 import { colors, radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+export type ButtonSize = 'md' | 'lg';
 
 export interface AppButtonProps {
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   accessibilityLabel?: string;
@@ -21,6 +23,7 @@ export function AppButton({
   label,
   onPress,
   variant = 'primary',
+  size = 'md',
   loading = false,
   disabled = false,
   accessibilityLabel,
@@ -50,6 +53,7 @@ export function AppButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
+        size === 'lg' && styles.sizeLg,
         variantStyle,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
@@ -61,7 +65,7 @@ export function AppButton({
           color={variant === 'primary' ? colors.white : '#0E8438'}
         />
       ) : (
-        <Text style={[styles.label, labelStyle]}>{label}</Text>
+        <Text style={[styles.label, size === 'lg' && styles.labelLg, labelStyle]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -97,12 +101,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.white,
   },
+  sizeLg: {
+    paddingVertical: 18,
+    minHeight: 56,
+  },
   ghost: { backgroundColor: 'transparent' },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.75 },
   label: {
     fontSize: fontSize.base,
     fontWeight: fontWeight.bold,
+  },
+  labelLg: {
+    fontSize: fontSize.lg,
   },
   primaryLabel: { color: colors.white },
   secondaryLabel: { color: '#0E8438' },

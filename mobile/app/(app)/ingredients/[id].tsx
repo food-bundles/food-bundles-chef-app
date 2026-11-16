@@ -12,9 +12,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useColorScheme } from 'react-native';
-import { Package, TrendingDown, Clock, Plus, Minus, CheckCircle, Utensils, ChevronRight, AlertCircle } from 'lucide-react-native';
+import { Plus, Minus, Utensils, ChevronRight } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
-import { StatusBadge } from '@/components/ui/StatusBadge';
 import { StockIndicator } from '@/components/ui/StockIndicator';
 import { useIngredientDetail, useStockLevels, useRecordInventoryEntry, useInventoryHistory } from '@/features/inventory/useStockLevels';
 import { useMenuItems, useRecipeLines } from '@/features/menu/useMenuItems';
@@ -24,7 +23,6 @@ import type { MenuItemDto } from '@/api/menus-api';
 function MenuItemUsageRow({
   menuItem,
   ingredientId,
-  isDark,
   cardBg,
   textPrimary,
   textSecondary,
@@ -32,7 +30,6 @@ function MenuItemUsageRow({
 }: {
   menuItem: MenuItemDto;
   ingredientId: string;
-  isDark: boolean;
   cardBg: string;
   textPrimary: string;
   textSecondary: string;
@@ -57,8 +54,8 @@ function MenuItemUsageRow({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#0E843815', alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm }}>
-        <Utensils size={14} color="#0E8438" strokeWidth={2} />
+      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.brand[50], alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm }}>
+        <Utensils size={14} color={colors.brand[500]} strokeWidth={2} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: '600' }}>{menuItem.name}</Text>
@@ -68,8 +65,8 @@ function MenuItemUsageRow({
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         {!menuItem.is_active && (
-          <View style={{ backgroundColor: isDark ? '#3D3200' : '#FEF3C7', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
-            <Text style={{ color: '#D97706', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Off Menu</Text>
+          <View style={{ backgroundColor: colors.warning + '1A', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+            <Text style={{ color: colors.warning, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Off Menu</Text>
           </View>
         )}
         <ChevronRight size={14} color={textSecondary} strokeWidth={2} />
@@ -146,7 +143,7 @@ export default function IngredientDetailScreen() {
       <AppScreen>
         <AppHeader title="Ingredient" showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color="#0E8438" />
+          <ActivityIndicator color={colors.brand[500]} />
         </View>
       </AppScreen>
     );
@@ -174,18 +171,18 @@ export default function IngredientDetailScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Stock summary card */}
-          <View style={{ backgroundColor: isOut ? '#FEF2F2' : cardBg, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: isOut ? '#FCA5A5' : borderColor, gap: spacing.sm }}>
+          <View style={{ backgroundColor: isOut ? colors.danger + '1A' : cardBg, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: isOut ? colors.danger + '66' : borderColor, gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: textPrimary, fontSize: fontSize.lg, fontWeight: '700' }}>Current Stock</Text>
               {isOut ? (
-                <View style={{ backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ color: '#DC2626', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Out of Stock</Text>
+                <View style={{ backgroundColor: colors.danger + '33', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ color: colors.danger, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Out of Stock</Text>
                 </View>
               ) : (
                 <StockIndicator daysOfCover={days} />
               )}
             </View>
-            <Text style={{ color: isOut ? '#EF4444' : textPrimary, fontSize: 36, fontWeight: '800', letterSpacing: -1 }}>
+            <Text style={{ color: isOut ? colors.danger : textPrimary, fontSize: 36, fontWeight: '800', letterSpacing: -1 }}>
               {stock % 1 === 0 ? stock.toFixed(0) : stock.toFixed(2)}
               <Text style={{ color: textSecondary, fontSize: fontSize.base, fontWeight: '500' }}> {ingredient.unit}</Text>
             </Text>
@@ -229,7 +226,7 @@ export default function IngredientDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Add stock"
                 style={({ pressed }) => ({
-                  backgroundColor: '#0E8438',
+                  backgroundColor: colors.brand[500],
                   borderRadius: radius.md,
                   paddingHorizontal: spacing.md,
                   paddingVertical: spacing.sm,
@@ -239,8 +236,8 @@ export default function IngredientDetailScreen() {
                   opacity: (submitting || !adjustQty) ? 0.45 : pressed ? 0.75 : 1,
                 })}
               >
-                <Plus size={16} color="#fff" strokeWidth={2.5} />
-                <Text style={{ color: '#fff', fontWeight: '600', fontSize: fontSize.sm }}>Add</Text>
+                <Plus size={16} color={colors.white} strokeWidth={2.5} />
+                <Text style={{ color: colors.white, fontWeight: '600', fontSize: fontSize.sm }}>Add</Text>
               </Pressable>
               <Pressable
                 onPress={() => void handleAdjust('remove')}
@@ -315,7 +312,6 @@ export default function IngredientDetailScreen() {
                   key={menuItem.id}
                   menuItem={menuItem}
                   ingredientId={id ?? ''}
-                  isDark={isDark}
                   cardBg={cardBg}
                   textPrimary={textPrimary}
                   textSecondary={textSecondary}
@@ -330,7 +326,7 @@ export default function IngredientDetailScreen() {
             Stock History
           </Text>
           {loadingHistory ? (
-            <ActivityIndicator color="#0E8438" />
+            <ActivityIndicator color={colors.brand[500]} />
           ) : history.length === 0 ? (
             <View style={{ backgroundColor: cardBg, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor, alignItems: 'center' }}>
               <Text style={{ color: textSecondary, fontSize: fontSize.sm }}>No stock entries recorded yet.</Text>
@@ -351,7 +347,7 @@ export default function IngredientDetailScreen() {
                         {formatDate(entry.recorded_at)}
                       </Text>
                     </View>
-                    <Text style={{ color: isPositive ? '#0E8438' : '#EF4444', fontSize: fontSize.base, fontWeight: '700', marginLeft: spacing.sm }}>
+                    <Text style={{ color: isPositive ? colors.brand[500] : colors.danger, fontSize: fontSize.base, fontWeight: '700', marginLeft: spacing.sm }}>
                       {isPositive ? '+' : ''}{qty % 1 === 0 ? qty.toFixed(0) : qty.toFixed(2)} {ingredient.unit}
                     </Text>
                   </View>

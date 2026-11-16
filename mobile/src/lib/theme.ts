@@ -77,6 +77,15 @@ export const fontWeight = {
 export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 export const MIN_TOUCH_SIZE = 44;
 
+/** Motion timing constants — respect Reduce Motion at the component level */
+export const motion = {
+  duration: {
+    fast: 150,
+    base: 200,
+    slow: 300,
+  },
+} as const;
+
 /** Semantic color sets for StyleSheet-based components */
 export const lightColors = {
   bg: colors.surface[50],

@@ -9,26 +9,26 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  ScrollView,
   Modal,
   Image,
   useColorScheme,
 } from 'react-native';
-// Voice input disabled — expo-av removed pending JSI ABI fix for RN 0.88 New Architecture
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Audio = null as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
-import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, ChevronDown, Paperclip, Camera, Images, FileUp, X } from 'lucide-react-native';
+import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, Paperclip, Camera, Images, FileUp, X } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useAgentTurn, useConfirmAction } from '@/features/agent/useAgent';
 import { transcribeAudio } from '@/api/ai-api';
 import { ApiError } from '@/api/errors';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { AgentMessage, AgentResponse, ActionProposal, ClarifyingQuestion } from '@/api/agent-api';
+
+// Voice input disabled — expo-av removed pending JSI ABI fix for RN 0.88 New Architecture
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Audio = null as any;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -304,7 +304,7 @@ export default function AgentScreen() {
   const handleVoiceInput = async () => {
     if (!activeKitchen) return;
     if (!Audio) {
-      Alert.alert('Development build required', 'Voice input is not available in Expo Go. Use a development build to enable it.');
+      // Voice input disabled — Audio = null while expo-av JSI ABI fix is pending
       return;
     }
 
@@ -462,30 +462,33 @@ export default function AgentScreen() {
               blurOnSubmit={false}
               accessibilityLabel="Message input"
             />
-            <Pressable
-              onPress={() => void handleVoiceInput()}
-              disabled={isTranscribing}
-              accessibilityRole="button"
-              accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
-              style={[
-                { borderRadius: radius.md, padding: spacing.sm },
-                isRecording ? { backgroundColor: colors.danger } : { backgroundColor: bgCard },
-                isTranscribing && { opacity: 0.5 },
-              ]}
-            >
-              {isTranscribing ? (
-                <ActivityIndicator size="small" color={colors.surface[400]} />
-              ) : (
-                <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
-              )}
-            </Pressable>
+            {/* Mic button — hidden when Audio is disabled (expo-av JSI ABI pending) */}
+            {Audio !== null && (
+              <Pressable
+                onPress={() => void handleVoiceInput()}
+                disabled={isTranscribing}
+                accessibilityRole="button"
+                accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
+                style={[
+                  { borderRadius: radius.md, padding: spacing.sm },
+                  isRecording ? { backgroundColor: colors.danger } : { backgroundColor: bgCard },
+                  isTranscribing && { opacity: 0.5 },
+                ]}
+              >
+                {isTranscribing ? (
+                  <ActivityIndicator size="small" color={colors.surface[400]} />
+                ) : (
+                  <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
+                )}
+              </Pressable>
+            )}
             <Pressable
               onPress={() => void sendMessage(inputText)}
               disabled={(!inputText.trim() && !attachedImage) || agentTurnMutation.isPending}
               accessibilityRole="button"
               accessibilityLabel="Send message"
               style={[
-                { backgroundColor: '#22C55E', borderRadius: radius.md, padding: spacing.sm },
+                { backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.sm },
                 ((!inputText.trim() && !attachedImage) || agentTurnMutation.isPending) && { opacity: 0.5 },
               ]}
             >
@@ -722,16 +725,16 @@ function ChatEntryRow({
                 accessibilityRole="button"
                 accessibilityLabel="Confirm proposed action"
                 style={[
-                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: '#22C55E', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
+                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.brand[500], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
                   isConfirming && { opacity: 0.6 },
                 ]}
               >
                 {isConfirming ? (
-                  <ActivityIndicator size="small" color="#000000" />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <>
-                    <CheckCircle size={16} color="#000000" />
-                    <Text style={{ color: '#000000', fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Confirm</Text>
+                    <CheckCircle size={16} color={colors.white} />
+                    <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Confirm</Text>
                   </>
                 )}
               </Pressable>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl, Modal, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, ClipboardList, Pencil, Trash2, ChevronRight, ScanLine, Sparkles, X, CheckSquare, Square } from 'lucide-react-native';
+import { Plus, ClipboardList, Pencil, Trash2, ChevronRight, ScanLine, X, CheckSquare, Square, MoreHorizontal } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { useMenuItems, useToggleMenuItemActive, useDeleteMenuItem } from '@/features/menu/useMenuItems';
@@ -16,7 +16,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { useColorScheme } from 'react-native';
-import { colors, spacing, fontSize, radius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import type { MenuItemDto } from '@/api/menus-api';
 
 interface ScannedItem {
@@ -48,18 +48,17 @@ export default function MenuScreen() {
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [showScanModal, setShowScanModal] = useState(false);
   const [importingItems, setImportingItems] = useState(false);
-
-  const cardBg = isDark ? colors.surface[800] : colors.white;
-  const textPrimary = isDark ? colors.white : colors.surface[900];
-  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
-  const borderColor = isDark ? 'transparent' : colors.surface[200];
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ count: number } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const scanMenuFromPhoto = async (fromCamera: boolean) => {
     const perm = fromCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow access to continue.');
+      Alert.alert('Permission needed', 'Allow camera or gallery access in Settings to scan a menu.');
       return;
     }
     const result = fromCamera
@@ -70,6 +69,9 @@ export default function MenuScreen() {
     const uri = result.assets[0].uri;
     setScanPhotoUri(uri);
     setScannedItems([]);
+    setScanError(null);
+    setImportResult(null);
+    setImportError(null);
     setShowScanModal(true);
     setScanAnalyzing(true);
 
@@ -112,7 +114,7 @@ Rules:
         }
       }
     } catch {
-      Alert.alert('Scan Failed', 'Could not read the menu. Please try again or add items manually.');
+      setScanError('Could not read the menu photo. Try a clearer shot or add items manually.');
     } finally {
       setScanAnalyzing(false);
     }
@@ -133,9 +135,11 @@ Rules:
     if (!activeKitchen) return;
     const selected = scannedItems.filter((i) => i.selected && i.name.trim());
     if (selected.length === 0) {
-      Alert.alert('No items selected', 'Select at least one item to import.');
+      setSelectionError('Select at least one item to import.');
       return;
     }
+    setSelectionError(null);
+    setImportError(null);
     setImportingItems(true);
     try {
       const menus = await listMenus(activeKitchen.id);
@@ -154,12 +158,11 @@ Rules:
         )
       );
       void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, activeKitchen.id) });
-      setShowScanModal(false);
-      setScanPhotoUri(null);
+      setImportResult({ count: selected.length });
       setScannedItems([]);
-      Alert.alert('Menu Imported!', `${selected.length} item${selected.length > 1 ? 's' : ''} added to your menu.`);
+      setScanPhotoUri(null);
     } catch {
-      Alert.alert('Import Failed', 'Some items could not be saved. Please try again.');
+      setImportError('Some items could not be saved. Please try again.');
     } finally {
       setImportingItems(false);
     }
@@ -187,7 +190,7 @@ Rules:
             accessibilityLabel="Record sales"
             className="w-10 h-10 items-center justify-center rounded-xl bg-surface-200 dark:bg-surface-700"
           >
-            <ClipboardList size={18} color="#B3B0A6" strokeWidth={1.75} />
+            <ClipboardList size={18} color={colors.surface[400]} strokeWidth={1.75} />
           </Pressable>
           <Pressable
             onPress={showScanPicker}
@@ -195,7 +198,7 @@ Rules:
             accessibilityLabel="Scan menu photo"
             className="w-10 h-10 items-center justify-center rounded-xl bg-surface-200 dark:bg-surface-700"
           >
-            <ScanLine size={18} color="#0E8438" strokeWidth={2} />
+            <ScanLine size={18} color={colors.brand[500]} strokeWidth={2} />
           </Pressable>
           <Pressable
             onPress={() => router.push('/(app)/menu/create-item' as never)}
@@ -203,7 +206,7 @@ Rules:
             accessibilityLabel="Add menu item"
             className="w-10 h-10 items-center justify-center rounded-xl bg-brand-500"
           >
-            <Plus size={20} color="#fff" strokeWidth={2.5} />
+            <Plus size={20} color={colors.white} strokeWidth={2.5} />
           </Pressable>
         </View>
       </View>
@@ -229,14 +232,14 @@ Rules:
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#0E8438" />
+          <ActivityIndicator color={colors.brand[500]} />
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(i) => i.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 88, gap: 8 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
           renderItem={({ item }) => (
             <MenuItemRow
               item={item}
@@ -317,7 +320,7 @@ Rules:
           <View className="flex-row items-center justify-between px-4 py-4 border-b border-surface-200 dark:border-surface-800">
             <View className="flex-row items-center gap-2">
               <View className="w-8 h-8 rounded-lg bg-brand-500/10 items-center justify-center">
-                <ScanLine size={16} color="#0E8438" strokeWidth={2} />
+                <ScanLine size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <Text className="text-surface-900 dark:text-white font-bold text-base">Scan Menu</Text>
             </View>
@@ -328,11 +331,21 @@ Rules:
               accessibilityLabel="Close"
               className="w-8 h-8 items-center justify-center rounded-full bg-surface-200 dark:bg-surface-700"
             >
-              <X size={16} color="#6B7280" strokeWidth={2} />
+              <X size={16} color={colors.surface[500]} strokeWidth={2} />
             </Pressable>
           </View>
 
           <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
+            {/* Photo guidance — always shown before photo taken (#11) */}
+            {!scanPhotoUri && !scanAnalyzing && (
+              <View className="bg-brand-500/10 rounded-xl px-4 py-3 gap-1">
+                <Text className="text-brand-400 font-semibold text-sm">How to scan</Text>
+                <Text className="text-brand-400 text-xs">
+                  Point your camera at a printed or handwritten menu. Make sure all text is in frame and well-lit.
+                </Text>
+              </View>
+            )}
+
             {/* Photo Preview */}
             {scanPhotoUri && (
               <View className="rounded-2xl overflow-hidden bg-surface-200 dark:bg-surface-800" style={{ height: 200 }}>
@@ -343,16 +356,60 @@ Rules:
             {/* Analyzing state */}
             {scanAnalyzing && (
               <View className="items-center py-8 gap-3">
-                <ActivityIndicator size="large" color="#0E8438" />
+                <ActivityIndicator size="large" color={colors.brand[500]} />
                 <Text className="text-surface-900 dark:text-white font-semibold">Reading menu…</Text>
                 <Text className="text-surface-500 text-sm text-center">
-                  AI is scanning the photo and extracting all menu items. This takes a few seconds.
+                  Scanning the photo and extracting menu items. This takes a few seconds.
                 </Text>
               </View>
             )}
 
+            {/* Import success state */}
+            {importResult && (
+              <View className="items-center py-8 gap-3">
+                <Text className="text-3xl">✅</Text>
+                <Text className="text-surface-900 dark:text-white font-semibold">
+                  {importResult.count} item{importResult.count > 1 ? 's' : ''} added to your menu
+                </Text>
+                <Pressable
+                  onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setImportResult(null); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Done"
+                  className="bg-brand-500 rounded-xl px-6 py-3"
+                >
+                  <Text className="text-white font-semibold">Done</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {/* Inline scan error (#11) */}
+            {scanError && !scanAnalyzing && (
+              <View className="bg-danger/10 border border-danger/30 rounded-xl p-4 gap-3">
+                <Text className="text-danger font-semibold text-sm">Could not read this photo</Text>
+                <Text className="text-surface-700 dark:text-surface-300 text-sm">{scanError}</Text>
+                <View className="flex-row gap-3">
+                  <Pressable
+                    onPress={() => { setScanError(null); setScanPhotoUri(null); setTimeout(() => showScanPicker(), 200); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retake photo"
+                    className="flex-1 bg-surface-200 dark:bg-surface-700 rounded-xl py-3 items-center"
+                  >
+                    <Text className="text-surface-800 dark:text-surface-200 font-semibold text-sm">Retake photo</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setShowScanModal(false); setScanError(null); setScanPhotoUri(null); router.push('/(app)/menu/create-item' as never); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add manually"
+                    className="flex-1 bg-brand-500 rounded-xl py-3 items-center"
+                  >
+                    <Text className="text-white font-semibold text-sm">Add manually</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
             {/* Results */}
-            {!scanAnalyzing && scannedItems.length > 0 && (
+            {!scanAnalyzing && !scanError && !importResult && scannedItems.length > 0 && (
               <View className="gap-3">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-surface-900 dark:text-white font-semibold">
@@ -379,8 +436,8 @@ Rules:
                   >
                     <View className="mt-0.5">
                       {item.selected
-                        ? <CheckSquare size={20} color="#0E8438" strokeWidth={2} />
-                        : <Square size={20} color="#9CA3AF" strokeWidth={2} />}
+                        ? <CheckSquare size={20} color={colors.brand[500]} strokeWidth={2} />
+                        : <Square size={20} color={colors.surface[400]} strokeWidth={2} />}
                     </View>
                     <View className="flex-1">
                       <Text className={`font-semibold text-sm ${item.selected ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
@@ -403,27 +460,44 @@ Rules:
             )}
 
             {/* No items found */}
-            {!scanAnalyzing && scannedItems.length === 0 && scanPhotoUri && (
+            {!scanAnalyzing && !scanError && !importResult && scannedItems.length === 0 && scanPhotoUri && (
               <View className="items-center py-8 gap-3">
                 <Text className="text-3xl">🤔</Text>
                 <Text className="text-surface-900 dark:text-white font-semibold">No items detected</Text>
                 <Text className="text-surface-500 text-sm text-center">
-                  Try a clearer photo with better lighting, or add items manually.
+                  Try a clearer photo, or add items manually.
                 </Text>
-                <Pressable
-                  onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setTimeout(() => showScanPicker(), 300); }}
-                  accessibilityRole="button"
-                  className="bg-surface-200 dark:bg-surface-700 rounded-xl px-6 py-3 mt-1"
-                >
-                  <Text className="text-surface-700 dark:text-surface-200 font-semibold text-sm">Try Again</Text>
-                </Pressable>
+                <View className="flex-row gap-3">
+                  <Pressable
+                    onPress={() => { setScanPhotoUri(null); setTimeout(() => showScanPicker(), 200); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retake photo"
+                    className="flex-1 bg-surface-200 dark:bg-surface-700 rounded-xl py-3 items-center"
+                  >
+                    <Text className="text-surface-700 dark:text-surface-200 font-semibold text-sm">Retake photo</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setShowScanModal(false); setScanPhotoUri(null); router.push('/(app)/menu/create-item' as never); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add manually"
+                    className="flex-1 bg-brand-500 rounded-xl py-3 items-center"
+                  >
+                    <Text className="text-white font-semibold text-sm">Add manually</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
           </ScrollView>
 
-          {/* Import Button */}
-          {!scanAnalyzing && scannedItems.length > 0 && (
-            <View className="px-4 pt-3 pb-8 border-t border-surface-200 dark:border-surface-800 gap-3">
+          {/* Import footer */}
+          {!scanAnalyzing && !importResult && !scanError && scannedItems.length > 0 && (
+            <View className="px-4 pt-3 pb-8 border-t border-surface-200 dark:border-surface-800 gap-2">
+              {importError && (
+                <Text className="text-danger text-sm text-center">{importError}</Text>
+              )}
+              {selectionError && (
+                <Text className="text-danger text-sm text-center">{selectionError}</Text>
+              )}
               {scannedItems.filter((i) => i.selected).length > 0 && (
                 <Pressable
                   onPress={() => void importSelectedItems()}
@@ -434,14 +508,14 @@ Rules:
                   style={{ opacity: importingItems ? 0.7 : 1 }}
                 >
                   {importingItems
-                    ? <ActivityIndicator color="#fff" />
+                    ? <ActivityIndicator color={colors.white} />
                     : <Text className="text-white font-bold text-base">
                         Import {scannedItems.filter((i) => i.selected).length} Item{scannedItems.filter((i) => i.selected).length > 1 ? 's' : ''}
                       </Text>}
                 </Pressable>
               )}
               <Pressable
-                onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setScannedItems([]); }}
+                onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setScannedItems([]); setImportError(null); setSelectionError(null); }}
                 disabled={importingItems}
                 accessibilityRole="button"
                 className="items-center py-3"
@@ -467,7 +541,21 @@ function MenuItemRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const [showOverflow, setShowOverflow] = useState(false);
   const priceRwf = parseFloat(item.selling_price);
+
+  const handleDelete = () => {
+    setShowOverflow(false);
+    Alert.alert(
+      'Delete Item',
+      `Remove "${item.name}" from the menu? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
+      ],
+    );
+  };
+
   return (
     <Pressable
       onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
@@ -496,7 +584,7 @@ function MenuItemRow({
         <Pressable
           onPress={onToggle}
           accessibilityRole="switch"
-          accessibilityLabel={item.is_active ? 'Deactivate' : 'Activate'}
+          accessibilityLabel={`Toggle ${item.name} availability`}
           accessibilityState={{ checked: item.is_active }}
           className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-300 dark:bg-surface-700'}`}
         >
@@ -506,36 +594,69 @@ function MenuItemRow({
         </Pressable>
       </View>
 
-      {/* Edit / Delete row */}
+      {/* Edit / Details row — Delete moved to overflow */}
       <View className="flex-row gap-2 border-t border-surface-100 dark:border-surface-700 pt-2">
         <Pressable
           onPress={onEdit}
           accessibilityRole="button"
-          accessibilityLabel="Edit item"
+          accessibilityLabel={`Edit ${item.name}`}
           className="flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-100 dark:bg-surface-700 active:opacity-70"
         >
-          <Pencil size={14} color="#6B7280" strokeWidth={2} />
+          <Pencil size={14} color={colors.surface[500]} strokeWidth={2} />
           <Text className="text-surface-600 dark:text-surface-300 text-xs font-medium">Edit</Text>
-        </Pressable>
-        <Pressable
-          onPress={onDelete}
-          accessibilityRole="button"
-          accessibilityLabel="Delete item"
-          className="flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 active:opacity-70"
-        >
-          <Trash2 size={14} color="#EF4444" strokeWidth={2} />
-          <Text className="text-red-500 text-xs font-medium">Delete</Text>
         </Pressable>
         <Pressable
           onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
           accessibilityRole="button"
-          accessibilityLabel="View details"
-          className="flex-row items-center justify-center gap-1 py-2 px-3 rounded-lg bg-brand-500/10 active:opacity-70"
+          accessibilityLabel={`View ${item.name} recipe`}
+          className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-lg bg-brand-500/10 active:opacity-70"
         >
-          <ChevronRight size={14} color="#0E8438" strokeWidth={2} />
-          <Text className="text-brand-400 text-xs font-medium">Details</Text>
+          <ChevronRight size={14} color={colors.brand[500]} strokeWidth={2} />
+          <Text className="text-brand-400 text-xs font-medium">Recipe</Text>
+        </Pressable>
+        {/* Overflow — ⋯ shows Delete */}
+        <Pressable
+          onPress={() => setShowOverflow(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`More options for ${item.name}`}
+          className="flex-row items-center justify-center py-2 px-3 rounded-lg bg-surface-100 dark:bg-surface-700 active:opacity-70"
+        >
+          <MoreHorizontal size={16} color={colors.surface[500]} strokeWidth={2} />
         </Pressable>
       </View>
+
+      {/* Overflow sheet */}
+      <Modal visible={showOverflow} transparent animationType="fade" onRequestClose={() => setShowOverflow(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setShowOverflow(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
+          <Pressable onPress={() => { /* stop propagation */ }}>
+            <View className="bg-white dark:bg-surface-800 rounded-t-2xl px-4 pt-4 pb-8 gap-2">
+              <Text className="text-surface-500 text-xs font-medium uppercase tracking-wider mb-1">{item.name}</Text>
+              <Pressable
+                onPress={handleDelete}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${item.name}`}
+                className="flex-row items-center gap-3 py-3 px-2 rounded-xl active:bg-red-50 dark:active:bg-red-900/20"
+              >
+                <Trash2 size={18} color={colors.danger} strokeWidth={2} />
+                <Text className="text-red-500 font-medium text-base">Delete Item</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowOverflow(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                className="items-center py-3 mt-1"
+              >
+                <Text className="text-surface-500 font-medium">Cancel</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Pressable>
   );
 }

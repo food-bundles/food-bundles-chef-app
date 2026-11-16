@@ -6,13 +6,13 @@ export const kitchenSchema = z.object({
     .min(2, 'Kitchen name must be at least 2 characters')
     .max(60, 'Kitchen name must be 60 characters or fewer')
     .trim(),
-  address: z.string().max(120, 'Address too long').trim().optional().or(z.literal('')),
+  // location (city) is required — #18
   cuisineType: z
     .string()
-    .max(40, 'Cuisine type too long')
-    .trim()
-    .optional()
-    .or(z.literal('')),
+    .min(1, 'City or location is required')
+    .max(40, 'Location too long')
+    .trim(),
+  address: z.string().max(120, 'Address too long').trim().optional().or(z.literal('')),
   seatingCapacity: z
     .string()
     .optional()

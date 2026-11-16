@@ -8,11 +8,12 @@ export interface StatusBadgeProps {
   variant?: BadgeVariant;
 }
 
+// Solid fills with white text — passes WCAG AA (≥4.5:1) unlike 10% opacity fills
 const SEMANTIC_VARIANTS: Record<Exclude<BadgeVariant, 'neutral'>, { bg: string; text: string }> = {
-  success: { bg: `${colors.success}1A`, text: colors.success },
-  warning: { bg: `${colors.warning}1A`, text: colors.warning },
-  danger: { bg: `${colors.danger}1A`, text: colors.danger },
-  info: { bg: `${colors.info}1A`, text: colors.info },
+  success: { bg: '#0E8438', text: colors.white },
+  warning: { bg: '#B45309', text: colors.white },
+  danger: { bg: '#DC2626', text: colors.white },
+  info: { bg: '#1D4ED8', text: colors.white },
 };
 
 /** Small status pill badge. Does not rely on color alone — label is always visible. */

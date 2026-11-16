@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { RefreshCw, Plus, Package, Utensils } from 'lucide-react-native';
+import { RefreshCw, Plus, Package, Utensils, ShoppingCart } from 'lucide-react-native';
+import { colors } from '@/lib/theme';
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
+import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StockIndicator } from '@/components/ui/StockIndicator';
 import { SyncStatusBadge } from '@/components/ui/SyncStatusBadge';
@@ -22,7 +24,6 @@ export default function StockScreen() {
   const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
 
   const outOfStockCount = useMemo(() => allItems.filter((i) => parseFloat(i.current_stock) === 0).length, [allItems]);
-  const lowStockCount = useMemo(() => allItems.filter((i) => i.is_low_stock && parseFloat(i.current_stock) > 0).length, [allItems]);
 
   // Build set of ingredient IDs used in menu items (from recipe lines cached in query)
   // useMenuItems doesn't directly return recipe lines; we approximate by checking if
@@ -32,6 +33,13 @@ export default function StockScreen() {
   }, [allItems]);
 
   const inRecipesCount = inRecipesIds.size;
+
+  const { data: suggestionsData } = usePurchaseSuggestions();
+  const reorderItems = useMemo(() => {
+    return (suggestionsData?.suggestions ?? [])
+      .filter((s) => s.is_low_stock || (s.days_cover != null && parseFloat(s.days_cover) < 2))
+      .slice(0, 5);
+  }, [suggestionsData]);
 
   const items = useMemo(() => {
     let list = query.trim()
@@ -66,7 +74,7 @@ export default function StockScreen() {
           >
             <RefreshCw
               size={18}
-              color={phase === 'syncing' ? '#60A5FA' : '#9CA3AF'}
+              color={phase === 'syncing' ? colors.info : colors.surface[400]}
               strokeWidth={2}
             />
           </TouchableOpacity>
@@ -76,7 +84,7 @@ export default function StockScreen() {
             accessibilityLabel="Add ingredient"
             hitSlop={8}
           >
-            <Plus size={22} color="#0E8438" strokeWidth={2.5} />
+            <Plus size={22} color={colors.brand[500]} strokeWidth={2.5} />
           </Pressable>
         </View>
       </View>
@@ -110,16 +118,45 @@ export default function StockScreen() {
         </View>
       </View>
 
+      {/* Smart Reorder strip — appears only when low-stock items need ordering */}
+      {reorderItems.length > 0 && (
+        <Pressable
+          onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
+          accessibilityRole="button"
+          accessibilityLabel={`${reorderItems.length} items need reordering — tap to open Requisitions`}
+          className="mx-4 mb-2 rounded-xl overflow-hidden active:opacity-80"
+        >
+          <View className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl px-4 py-3 gap-2">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <ShoppingCart size={14} color={colors.warning} strokeWidth={2} />
+                <Text className="text-amber-700 dark:text-amber-400 font-semibold text-sm">
+                  {reorderItems.length} item{reorderItems.length > 1 ? 's' : ''} need reordering
+                </Text>
+              </View>
+              <Text className="text-amber-600 dark:text-amber-500 text-xs font-medium">Order now →</Text>
+            </View>
+            <View className="gap-1">
+              {reorderItems.map((s) => (
+                <Text key={s.ingredient_id} className="text-amber-800 dark:text-amber-300 text-xs" numberOfLines={1}>
+                  · {s.ingredient_name} — suggest {parseFloat(s.suggested_qty) % 1 === 0 ? Math.round(parseFloat(s.suggested_qty)) : parseFloat(s.suggested_qty).toFixed(1)} {s.unit}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      )}
+
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#0E8438" />
+          <ActivityIndicator color={colors.brand[500]} />
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(i) => i.ingredient_id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 88, gap: 8 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
           renderItem={({ item }) => <StockRow item={item} />}
           ListEmptyComponent={
             query || filter !== 'all' ? (
@@ -134,7 +171,7 @@ export default function StockScreen() {
             ) : (
               <View className="items-center py-10 px-6 gap-4">
                 <View className="w-16 h-16 rounded-full bg-brand-500/10 items-center justify-center">
-                  <Package size={28} color="#0E8438" strokeWidth={1.75} />
+                  <Package size={28} color={colors.brand[500]} strokeWidth={1.75} />
                 </View>
                 <View className="items-center gap-1">
                   <Text className="text-surface-900 dark:text-white font-semibold text-base">No ingredients yet</Text>
@@ -148,7 +185,7 @@ export default function StockScreen() {
                   accessibilityLabel="Add first ingredient"
                   className="bg-brand-500 rounded-xl px-6 py-3 flex-row items-center gap-2 active:opacity-80"
                 >
-                  <Plus size={16} color="#fff" strokeWidth={2.5} />
+                  <Plus size={16} color={colors.white} strokeWidth={2.5} />
                   <Text className="text-white font-semibold text-sm">Add Ingredient</Text>
                 </Pressable>
                 <Text className="text-surface-400 text-xs text-center">
@@ -193,14 +230,16 @@ function StockRow({ item }: { item: StockLevelDto }) {
           )}
           {isInRecipe && (
             <View className="bg-brand-500/10 rounded px-1.5 py-0.5 flex-row items-center gap-0.5">
-              <Utensils size={8} color="#0E8438" strokeWidth={2.5} />
+              <Utensils size={8} color={colors.brand[500]} strokeWidth={2.5} />
               <Text className="text-brand-400 text-[10px] font-bold uppercase tracking-wide">In Recipe</Text>
             </View>
           )}
         </View>
         <Text className={`text-sm mt-0.5 ${isOut ? 'text-red-500 dark:text-red-400' : isLow ? 'text-amber-600 dark:text-amber-400' : 'text-surface-600 dark:text-surface-400'}`}>
-          {isOut ? 'No stock — reorder needed' : `${item.current_stock} ${item.unit} on hand`}
-          {!isOut && dailyUse != null ? ` · ${dailyUse.toFixed(1)} ${item.unit}/day` : ''}
+          {isOut
+            ? 'No stock — reorder needed'
+            : `${stock % 1 === 0 ? Math.round(stock) : stock.toFixed(2).replace(/\.?0+$/, '')} ${item.unit} on hand`}
+          {!isOut && dailyUse != null && dailyUse > 0 ? ` · ${dailyUse % 1 === 0 ? Math.round(dailyUse) : dailyUse.toFixed(1)} ${item.unit}/day` : ''}
         </Text>
       </View>
       <StockIndicator daysOfCover={days} />

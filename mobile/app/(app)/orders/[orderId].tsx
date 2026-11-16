@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Package, Download, Share2 } from 'lucide-react-native';
+import { ChevronLeft, Package, Download, Share2 } from 'lucide-react-native';
 import { useOrderDetail, useCancelOrder, useSubmitOrder } from '@/features/orders/useOrders';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -101,7 +101,7 @@ export default function OrderDetailScreen() {
           accessibilityLabel="Go back"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ArrowLeft size={22} color="#B3B0A6" strokeWidth={2} />
+          <ChevronLeft size={22} color="#6B7280" strokeWidth={2} />
         </Pressable>
         <View className="flex-1">
           <Text className="text-surface-900 dark:text-white text-lg font-bold">

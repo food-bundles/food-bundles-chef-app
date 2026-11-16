@@ -7,8 +7,8 @@ import {
   ShoppingCart,
   Package,
   User,
-  Bot,
 } from 'lucide-react-native';
+import { FloatingAIButton } from '@/components/ui/FloatingAIButton';
 
 const ICON_SIZE = 20;
 const ACTIVE_COLOR = '#0E8438';
@@ -18,96 +18,101 @@ export default function TabsLayout() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const insets = useSafeAreaInsets();
-  // Tab bar height: icon (20) + label (10) + gap (4) + bottom inset + 16px padding
-  // Add extra clearance on Android so OS nav buttons (back/home/recents) don't overlap
   const androidExtra = 4;
   const tabBarHeight = 56 + insets.bottom + (insets.bottom === 0 ? androidExtra : 0);
+  // FAB sits above the tab bar: tab bar height + 16px clearance
+  // bottomOffset passed to FAB; it adds insets.bottom again, so subtract it here
+  const fabBottomOffset = tabBarHeight - insets.bottom + 16;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: isDark ? '#1A1916' : '#FFFFFF',
-          borderTopColor: isDark ? '#32302C' : '#EAE9E4',
-          borderTopWidth: 1,
-          height: tabBarHeight,
-          paddingBottom: insets.bottom + (insets.bottom === 0 ? androidExtra : 2),
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: ACTIVE_COLOR,
-        tabBarInactiveTintColor: INACTIVE_COLOR,
-        tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: '600',
-          marginTop: -1,
-        },
-        tabBarItemStyle: {
-          paddingTop: 2,
-          paddingBottom: 0,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarAccessibilityLabel: 'Dashboard tab',
-          tabBarIcon: ({ color }) => (
-            <LayoutDashboard size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
+    <>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: {
+            backgroundColor: isDark ? '#1A1916' : '#FFFFFF',
+            borderTopColor: isDark ? '#32302C' : '#EAE9E4',
+            borderTopWidth: 1,
+            height: tabBarHeight,
+            paddingBottom: insets.bottom + (insets.bottom === 0 ? androidExtra : 2),
+            paddingTop: 8,
+          },
+          tabBarActiveTintColor: ACTIVE_COLOR,
+          tabBarInactiveTintColor: INACTIVE_COLOR,
+          tabBarLabelStyle: {
+            fontSize: 9,
+            fontWeight: '600',
+            marginTop: -1,
+          },
+          tabBarItemStyle: {
+            paddingTop: 2,
+            paddingBottom: 0,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="menu"
-        options={{
-          title: 'Menu',
-          tabBarAccessibilityLabel: 'Menu tab',
-          tabBarIcon: ({ color }) => (
-            <UtensilsCrossed size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="purchasing"
-        options={{
-          title: 'Requisition',
-          tabBarAccessibilityLabel: 'Requisition tab',
-          tabBarIcon: ({ color }) => (
-            <ShoppingCart size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stock"
-        options={{
-          title: 'Stock',
-          tabBarAccessibilityLabel: 'Stock tab',
-          tabBarIcon: ({ color }) => (
-            <Package size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="agent"
-        options={{
-          title: 'Assistant',
-          tabBarAccessibilityLabel: 'AI Assistant tab',
-          tabBarIcon: ({ color }) => (
-            <Bot size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarAccessibilityLabel: 'Profile tab',
-          tabBarIcon: ({ color }) => (
-            <User size={ICON_SIZE} color={color} strokeWidth={1.75} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Dashboard',
+            tabBarAccessibilityLabel: 'Dashboard tab',
+            tabBarIcon: ({ color }) => (
+              <LayoutDashboard size={ICON_SIZE} color={color} strokeWidth={1.75} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="menu"
+          options={{
+            title: 'Menu',
+            tabBarAccessibilityLabel: 'Menu tab',
+            tabBarIcon: ({ color }) => (
+              <UtensilsCrossed size={ICON_SIZE} color={color} strokeWidth={1.75} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="purchasing"
+          options={{
+            title: 'Requisition',
+            tabBarAccessibilityLabel: 'Requisition tab',
+            tabBarIcon: ({ color }) => (
+              <ShoppingCart size={ICON_SIZE} color={color} strokeWidth={1.75} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="stock"
+          options={{
+            title: 'Stock',
+            tabBarAccessibilityLabel: 'Stock tab',
+            tabBarIcon: ({ color }) => (
+              <Package size={ICON_SIZE} color={color} strokeWidth={1.75} />
+            ),
+          }}
+        />
+        {/* Agent route kept registered but hidden from tab bar — accessed via FAB */}
+        <Tabs.Screen
+          name="agent"
+          options={{
+            tabBarButton: () => null,
+            tabBarStyle: { display: 'none' },
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarAccessibilityLabel: 'Profile tab',
+            tabBarIcon: ({ color }) => (
+              <User size={ICON_SIZE} color={color} strokeWidth={1.75} />
+            ),
+          }}
+        />
+      </Tabs>
+
+      {/* Persistent AI Assistant FAB — visible on all tab screens except agent itself */}
+      <FloatingAIButton bottomOffset={fabBottomOffset} />
+    </>
   );
 }

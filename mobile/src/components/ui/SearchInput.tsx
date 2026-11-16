@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: fontSize.base,
+    letterSpacing: 0,
     paddingVertical: 0,
   },
   clear: {

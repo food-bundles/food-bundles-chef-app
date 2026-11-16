@@ -2,8 +2,6 @@ import { useState } from 'react';
 import {
   View,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Text,
   Pressable,
   Image,
@@ -15,8 +13,11 @@ import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ChefHat, MapPin, Users, UtensilsCrossed } from 'lucide-react-native';
+import { Camera, ChefHat, ChevronLeft, MapPin, Users, UtensilsCrossed } from 'lucide-react-native';
 import { AppTextField } from '@/components/ui/AppTextField';
+import { AppButton } from '@/components/ui/AppButton';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { StickyFooter } from '@/components/ui/StickyFooter';
 import { useCreateKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
 import { useColorScheme } from 'react-native';
@@ -65,11 +66,7 @@ export default function CreateKitchenScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
+      <FormScreen>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"
@@ -92,13 +89,14 @@ export default function CreateKitchenScreen() {
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Go back"
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Text style={{ color: '#fff', fontSize: 20, lineHeight: 22 }}>{'←'}</Text>
+              <ChevronLeft size={22} color={colors.white} strokeWidth={2} />
             </Pressable>
             <View style={{ position: 'absolute', top: insets.top + 48, left: 0, right: 0, alignItems: 'center', gap: 8 }}>
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase' }}>Food Bundles Chef</Text>
-              <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>Create Your Kitchen</Text>
+              <Text style={{ color: colors.white, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>Create Your Kitchen</Text>
               <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', paddingHorizontal: 32 }}>Your kitchen workspace for managing stock, menus, and deliveries.</Text>
             </View>
             {/* Photo circle at bottom of hero */}
@@ -107,14 +105,14 @@ export default function CreateKitchenScreen() {
                 onPress={showPhotoPicker}
                 accessibilityRole="button"
                 accessibilityLabel="Add kitchen photo"
-                style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: isDark ? colors.surface[800] : '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 3, borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 }}
+                style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: isDark ? colors.surface[800] : colors.white, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 3, borderColor: colors.white, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 }}
               >
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={{ width: 80, height: 80 }} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 4 }}>
-                    <Camera size={24} color="#0E8438" strokeWidth={1.75} />
-                    <Text style={{ color: '#0E8438', fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Photo</Text>
+                    <Camera size={24} color={colors.brand[500]} strokeWidth={1.75} />
+                    <Text style={{ color: colors.brand[500], fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Photo</Text>
                   </View>
                 )}
               </Pressable>
@@ -126,7 +124,7 @@ export default function CreateKitchenScreen() {
             {/* Kitchen Name */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <ChefHat size={16} color="#0E8438" strokeWidth={2} />
+                <ChefHat size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -151,7 +149,7 @@ export default function CreateKitchenScreen() {
             {/* Cuisine Type */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <UtensilsCrossed size={16} color="#0E8438" strokeWidth={2} />
+                <UtensilsCrossed size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -159,8 +157,8 @@ export default function CreateKitchenScreen() {
                   name="cuisineType"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <AppTextField
-                      label="Cuisine Type (optional)"
-                      placeholder="e.g. Rwandan, French, Pan-African"
+                      label="City / Location *"
+                      placeholder="e.g. Kigali, Musanze, Butare"
                       value={value ?? ''}
                       onChangeText={onChange}
                       onBlur={onBlur}
@@ -175,7 +173,7 @@ export default function CreateKitchenScreen() {
             {/* Address */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <MapPin size={16} color="#0E8438" strokeWidth={2} />
+                <MapPin size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -199,7 +197,7 @@ export default function CreateKitchenScreen() {
             {/* Capacity */}
             <View style={[styles.fieldGroup, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.fieldIcon}>
-                <Users size={16} color="#0E8438" strokeWidth={2} />
+                <Users size={16} color={colors.brand[500]} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Controller
@@ -229,28 +227,17 @@ export default function CreateKitchenScreen() {
             <View style={{ height: 8 }} />
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* CTA — sticky above keyboard, always visible */}
-      <View style={[styles.ctaBar, { paddingBottom: Math.max(insets.bottom + 12, 24), backgroundColor: bg, borderTopColor: borderColor }]}>
-        <Pressable
-          onPress={() => void handleSubmit(onSubmit)()}
-          disabled={isPending}
-          accessibilityRole="button"
-          accessibilityLabel="Create Kitchen"
-          style={({ pressed }) => [
-            styles.ctaBtn,
-            isPending && styles.ctaBtnDisabled,
-            pressed && !isPending && { opacity: 0.85 },
-          ]}
-        >
-          {isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.ctaBtnText}>Create Kitchen  →</Text>
-          )}
-        </Pressable>
-      </View>
+        <StickyFooter>
+          <AppButton
+            label="Create Kitchen"
+            onPress={() => void handleSubmit(onSubmit)()}
+            loading={isPending}
+            disabled={isPending}
+            size="lg"
+          />
+        </StickyFooter>
+      </FormScreen>
     </View>
   );
 }
@@ -268,37 +255,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#0E843815',
+    backgroundColor: colors.brand[50],
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
-  },
-  ctaBar: {
-    paddingHorizontal: 24,
-    paddingTop: 14,
-    borderTopWidth: 1,
-  },
-  ctaBtn: {
-    backgroundColor: '#0E8438',
-    borderRadius: 14,
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0E8438',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  ctaBtnDisabled: {
-    backgroundColor: '#1A4D2E',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  ctaBtnText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.3,
   },
 });

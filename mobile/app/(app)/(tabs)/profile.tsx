@@ -7,7 +7,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Image,
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
@@ -17,23 +16,21 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Settings,
-  Camera,
   Pencil,
-  ChevronRight,
   LogOut,
   UtensilsCrossed,
-  Package,
-  Truck,
   CheckCircle,
   Star,
-  FileText,
-  BarChart2,
+  Truck,
+  TrendingUp,
   X,
 } from 'lucide-react-native';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useKitchens } from '@/features/kitchens/useKitchens';
 import { getMe, updateProfile } from '@/api/auth-api';
+import { Avatar } from '@/components/ui/Avatar';
+import { ListRow } from '@/components/ui/ListRow';
 import { colors, spacing, fontSize, radius } from '@/lib/theme';
 import { useColorScheme } from 'react-native';
 
@@ -122,9 +119,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const initials = chef?.name
-    ? chef.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-    : chef?.phoneNumber?.slice(-2) ?? '?';
+  // Avatar component derives initials from name safely; phone number never shown as initials
 
   const memberSince = chef?.id
     ? new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
@@ -167,7 +162,7 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />
           }
         >
           {/* Avatar + name hero */}
@@ -182,52 +177,14 @@ export default function ProfileScreen() {
               gap: spacing.md,
             }}
           >
-            {/* Avatar */}
-            <Pressable
+            {/* Avatar — initials derived from name; never shows phone digits */}
+            <Avatar
+              uri={avatarUri}
+              name={chef?.name}
+              size={88}
               onPress={pickAvatar}
-              accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
-              style={{ position: 'relative' }}
-            >
-              {avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={{ width: 88, height: 88, borderRadius: 44 }}
-                />
-              ) : (
-                <View
-                  style={{
-                    width: 88,
-                    height: 88,
-                    borderRadius: 44,
-                    backgroundColor: '#0E8438',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -1 }}>
-                    {initials}
-                  </Text>
-                </View>
-              )}
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  backgroundColor: '#0E8438',
-                  borderRadius: 12,
-                  width: 24,
-                  height: 24,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 2,
-                  borderColor: cardBg,
-                }}
-              >
-                <Camera size={12} color="#fff" strokeWidth={2.5} />
-              </View>
-            </Pressable>
+              showCameraBadge
+            />
 
             {/* Name / edit */}
             {editing ? (
@@ -316,14 +273,14 @@ export default function ProfileScreen() {
                   style={({ pressed }) => ({
                     paddingVertical: spacing.sm + 4,
                     borderRadius: radius.md,
-                    backgroundColor: '#0E8438',
+                    backgroundColor: colors.brand[500],
                     alignItems: 'center',
                     opacity: saving || pressed ? 0.7 : 1,
                     flexDirection: 'row',
                     justifyContent: 'center',
                     gap: 6,
                     marginTop: 4,
-                    shadowColor: '#0E8438',
+                    shadowColor: colors.brand[500],
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -331,10 +288,10 @@ export default function ProfileScreen() {
                   })}
                 >
                   {saving
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <CheckCircle size={16} color="#fff" strokeWidth={2.5} />
+                    ? <ActivityIndicator size="small" color={colors.white} />
+                    : <CheckCircle size={16} color={colors.white} strokeWidth={2.5} />
                   }
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: fontSize.base }}>Save Profile</Text>
+                  <Text style={{ color: colors.white, fontWeight: '700', fontSize: fontSize.base }}>Save Profile</Text>
                 </Pressable>
               </View>
             ) : (
@@ -357,8 +314,8 @@ export default function ProfileScreen() {
                 </Text>
                 {experienceInput ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <Star size={12} color="#0E8438" strokeWidth={2} />
-                    <Text style={{ color: '#0E8438', fontSize: fontSize.xs, fontWeight: '600' }}>{experienceInput}</Text>
+                    <Star size={12} color={colors.brand[500]} strokeWidth={2} />
+                    <Text style={{ color: colors.brand[500], fontSize: fontSize.xs, fontWeight: '600' }}>{experienceInput}</Text>
                   </View>
                 ) : null}
                 {bioInput ? (
@@ -399,7 +356,7 @@ export default function ProfileScreen() {
                     borderRightColor: isDark ? colors.surface[700] : colors.surface[100],
                   }}
                 >
-                  <Text style={{ color: '#0E8438', fontSize: 22, fontWeight: '800' }}>{stat.value}</Text>
+                  <Text style={{ color: colors.brand[500], fontSize: 22, fontWeight: '800' }}>{stat.value}</Text>
                   <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>{stat.label}</Text>
                 </View>
               ))}
@@ -421,94 +378,38 @@ export default function ProfileScreen() {
           </Text>
 
           <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            {/* Active kitchen card */}
-            <Pressable
+            {/* Active kitchen card — ListRow (#5) */}
+            <ListRow
+              icon={<UtensilsCrossed size={20} color={activeKitchen ? colors.brand[500] : textSecondary} strokeWidth={1.75} />}
+              iconBg={activeKitchen ? colors.brand[50] : (isDark ? colors.surface[700] : colors.surface[100])}
+              title={activeKitchen?.name ?? 'No Kitchen Selected'}
+              subtitle={
+                activeKitchen?.cuisineType
+                  ? `${activeKitchen.cuisineType}${activeKitchen.address ? ` · ${activeKitchen.address}` : ''}`
+                  : activeKitchen?.address ?? (activeKitchen ? 'Tap to view details' : 'Set up your kitchen workspace')
+              }
               onPress={() => activeKitchen && router.push(`/(app)/kitchens/${activeKitchen.id}` as never)}
-              accessibilityRole="button"
               accessibilityLabel="View active kitchen details"
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: spacing.md,
-                gap: spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: radius.md,
-                  backgroundColor: activeKitchen ? '#0E843820' : (isDark ? colors.surface[700] : colors.surface[100]),
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <UtensilsCrossed
-                  size={22}
-                  color={activeKitchen ? '#0E8438' : textSecondary}
-                  strokeWidth={1.75}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: textPrimary, fontWeight: '600', fontSize: fontSize.base }}>
-                  {activeKitchen?.name ?? 'No Kitchen Selected'}
-                </Text>
-                {activeKitchen?.cuisineType ? (
-                  <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 1 }}>
-                    {activeKitchen.cuisineType}
-                    {activeKitchen.address ? ` · ${activeKitchen.address}` : ''}
+              separator
+            />
+            {/* Manage kitchens — ListRow with count badge (#5) */}
+            <ListRow
+              icon={<UtensilsCrossed size={18} color={colors.surface[500]} strokeWidth={1.75} />}
+              title="Manage Kitchens"
+              trailing={
+                <View style={{ backgroundColor: colors.brand[50], borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                  <Text style={{ color: colors.brand[500], fontSize: fontSize.xs, fontWeight: '600' }}>
+                    {activeKitchens.length}
                   </Text>
-                ) : activeKitchen?.address ? (
-                  <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 1 }}>
-                    {activeKitchen.address}
-                  </Text>
-                ) : (
-                  <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 1 }}>
-                    {activeKitchen ? 'Tap to view details' : 'Set up your kitchen workspace'}
-                  </Text>
-                )}
-              </View>
-              <ChevronRight size={16} color={textSecondary} strokeWidth={2} />
-            </Pressable>
-
-            {/* Divider */}
-            <View style={{ height: 1, backgroundColor: isDark ? colors.surface[700] : colors.surface[100], marginHorizontal: spacing.md }} />
-
-            {/* Manage kitchens */}
-            <Pressable
+                </View>
+              }
               onPress={() => router.push('/(app)/kitchens')}
-              accessibilityRole="button"
-              accessibilityLabel="Manage all kitchens"
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm + 4,
-                gap: spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Text style={{ flex: 1, color: '#0E8438', fontSize: fontSize.sm, fontWeight: '500' }}>
-                Manage All Kitchens
-              </Text>
-              <View
-                style={{
-                  backgroundColor: '#0E843820',
-                  borderRadius: 10,
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                }}
-              >
-                <Text style={{ color: '#0E8438', fontSize: fontSize.xs, fontWeight: '600' }}>
-                  {activeKitchens.length}
-                </Text>
-              </View>
-              <ChevronRight size={14} color="#0E8438" strokeWidth={2} />
-            </Pressable>
+              accessibilityLabel={`Manage kitchens, ${activeKitchens.length} active`}
+              separator={false}
+            />
           </View>
 
-          {/* Quick Links */}
+          {/* Links — only non-tab destinations to avoid duplication with tab bar */}
           <Text
             style={{
               color: textSecondary,
@@ -519,79 +420,28 @@ export default function ProfileScreen() {
               marginBottom: -4,
             }}
           >
-            Quick Links
+            Links
           </Text>
 
+          {/* Links section — uses ListRow (#5) */}
           <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            {[
-              {
-                icon: <Package size={18} color="#0E8438" strokeWidth={2} />,
-                label: 'Stock & Ingredients',
-                sub: 'View and manage inventory levels',
-                onPress: () => router.push('/(app)/(tabs)/stock' as never),
-              },
-              {
-                icon: <UtensilsCrossed size={18} color="#0E8438" strokeWidth={2} />,
-                label: 'Menu Management',
-                sub: 'Dishes, pricing and recipes',
-                onPress: () => router.push('/(app)/(tabs)/menu' as never),
-              },
-              {
-                icon: <Truck size={18} color="#0E8438" strokeWidth={2} />,
-                label: 'Delivery Receiving',
-                sub: 'Log and track deliveries',
-                onPress: () => router.push('/(app)/receiving' as never),
-              },
-              {
-                icon: <FileText size={18} color="#0E8438" strokeWidth={2} />,
-                label: 'Requisitions',
-                sub: 'Orders and purchase history',
-                onPress: () => router.push('/(app)/(tabs)/purchasing' as never),
-              },
-              {
-                icon: <BarChart2 size={18} color="#0E8438" strokeWidth={2} />,
-                label: 'Sales & Reports',
-                sub: 'Daily sales records',
-                onPress: () => router.push('/(app)/sales/entry' as never),
-              },
-            ].map((item, i, arr) => (
-              <View key={item.label}>
-                <Pressable
-                  onPress={item.onPress}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.sm + 4,
-                    gap: spacing.sm,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: radius.md,
-                      backgroundColor: '#0E843815',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {item.icon}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: textPrimary, fontWeight: '500', fontSize: fontSize.sm }}>{item.label}</Text>
-                    <Text style={{ color: textSecondary, fontSize: fontSize.xs }}>{item.sub}</Text>
-                  </View>
-                  <ChevronRight size={14} color={textSecondary} strokeWidth={2} />
-                </Pressable>
-                {i < arr.length - 1 && (
-                  <View style={{ height: 1, backgroundColor: isDark ? colors.surface[700] : colors.surface[100], marginHorizontal: spacing.md }} />
-                )}
-              </View>
-            ))}
+            <ListRow
+              icon={<Truck size={18} color={colors.brand[500]} strokeWidth={2} />}
+              iconBg={colors.brand[50]}
+              title="Delivery Receiving"
+              subtitle="Log and track deliveries"
+              onPress={() => router.push('/(app)/receiving' as never)}
+              accessibilityLabel="Delivery Receiving"
+            />
+            <ListRow
+              icon={<TrendingUp size={18} color={colors.brand[500]} strokeWidth={2} />}
+              iconBg={colors.brand[50]}
+              title="Sales & Reports"
+              subtitle="Record daily sales"
+              onPress={() => router.push('/(app)/sales/entry' as never)}
+              accessibilityLabel="Sales and Reports"
+              separator={false}
+            />
           </View>
 
           {/* Account section */}
@@ -609,64 +459,21 @@ export default function ProfileScreen() {
           </Text>
 
           <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            <Pressable
+            <ListRow
+              icon={<Settings size={18} color={textSecondary} strokeWidth={2} />}
+              title="Settings"
               onPress={() => router.push('/(app)/settings')}
-              accessibilityRole="button"
               accessibilityLabel="Settings"
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm + 4,
-                gap: spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: radius.md,
-                  backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Settings size={18} color={textSecondary} strokeWidth={2} />
-              </View>
-              <Text style={{ flex: 1, color: textPrimary, fontWeight: '500', fontSize: fontSize.sm }}>Settings</Text>
-              <ChevronRight size={14} color={textSecondary} strokeWidth={2} />
-            </Pressable>
-
-            <View style={{ height: 1, backgroundColor: isDark ? colors.surface[700] : colors.surface[100], marginHorizontal: spacing.md }} />
-
-            <Pressable
+            />
+            <ListRow
+              icon={<LogOut size={18} color={colors.danger} strokeWidth={2} />}
+              iconBg={colors.danger + '33'}
+              title="Sign Out"
               onPress={handleSignOut}
-              accessibilityRole="button"
+              destructive
+              separator={false}
               accessibilityLabel="Sign out"
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm + 4,
-                gap: spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: radius.md,
-                  backgroundColor: '#FEE2E2',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <LogOut size={18} color="#DC2626" strokeWidth={2} />
-              </View>
-              <Text style={{ flex: 1, color: '#DC2626', fontWeight: '500', fontSize: fontSize.sm }}>Sign Out</Text>
-            </Pressable>
+            />
           </View>
 
           {/* Footer wordmark */}
@@ -674,11 +481,11 @@ export default function ProfileScreen() {
             <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>
               Food Bundles Chef
             </Text>
-            <Text style={{ color: isDark ? colors.surface[700] : colors.surface[300], fontSize: 10 }}>
+            <Text style={{ color: isDark ? colors.surface[500] : colors.surface[500], fontSize: fontSize.xs }}>
               Built for professional kitchen teams
             </Text>
-            <Text style={{ color: isDark ? colors.surface[800] : colors.surface[300], fontSize: 9 }}>
-              © Food Bundles · foodbundles.rw
+            <Text style={{ color: isDark ? colors.surface[500] : colors.surface[500], fontSize: fontSize.xs }}>
+              © Food Bundles
             </Text>
           </View>
         </ScrollView>

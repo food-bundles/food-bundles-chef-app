@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl, Share, Alert } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ShoppingCart, ChevronRight, Truck, Package, Share2, FileText } from 'lucide-react-native';
+import { ShoppingCart, ChevronRight, Truck, Package, Share2 } from 'lucide-react-native';
+import { colors } from '@/lib/theme';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useOrders, useCreateOrder } from '@/features/orders/useOrders';
@@ -121,7 +122,7 @@ export default function PurchasingScreen() {
             accessibilityLabel={`Cart: ${cartCount} items`}
             className="bg-brand-500 rounded-lg px-3 py-1.5 flex-row items-center gap-1"
           >
-            <ShoppingCart size={14} color="#fff" strokeWidth={2} />
+            <ShoppingCart size={14} color={colors.white} strokeWidth={2} />
             <Text className="text-white text-xs font-bold">{cartCount}</Text>
           </Pressable>
         )}
@@ -154,14 +155,14 @@ export default function PurchasingScreen() {
           </View>
           {catalogLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator color="#0E8438" />
+              <ActivityIndicator color={colors.brand[500]} />
             </View>
           ) : (
           <FlatList
             data={catalogItems}
             keyExtractor={(p) => p.id}
             contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: cartCount > 0 ? 120 : 32 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
             renderItem={({ item }) => {
               const cartItem = cart.find((c) => c.product.id === item.id);
               return (
@@ -197,7 +198,7 @@ export default function PurchasingScreen() {
                   accessibilityLabel="Share requisition"
                   className="flex-row items-center gap-1.5 px-3 py-1.5 bg-surface-200 dark:bg-surface-700 rounded-lg active:opacity-70"
                 >
-                  <Share2 size={13} color="#6B7280" strokeWidth={2} />
+                  <Share2 size={13} color={colors.surface[500]} strokeWidth={2} />
                   <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium">Share</Text>
                 </Pressable>
               </View>
@@ -208,7 +209,7 @@ export default function PurchasingScreen() {
                 accessibilityLabel="Place order with Food Bundles"
                 className={`rounded-full py-4 items-center flex-row justify-center gap-2 active:opacity-80 ${isPlacingOrder ? 'bg-surface-300 dark:bg-surface-700' : 'bg-brand-700'}`}
               >
-                <ShoppingCart size={18} color="#fff" strokeWidth={2} />
+                <ShoppingCart size={18} color={colors.white} strokeWidth={2} />
                 <Text className="text-white font-semibold">
                   {isPlacingOrder ? 'Placing Order…' : 'Order from Food Bundles'}
                 </Text>
@@ -222,7 +223,7 @@ export default function PurchasingScreen() {
       {tab === 'orders' && (
         ordersLoading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#0E8438" />
+            <ActivityIndicator color={colors.brand[500]} />
           </View>
         ) : (
           <FlatList
@@ -235,15 +236,15 @@ export default function PurchasingScreen() {
                 className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-4 flex-row items-center justify-between mb-2 active:opacity-70"
               >
                 <View className="flex-row items-center gap-2">
-                  <Truck size={16} color="#0E8438" strokeWidth={2} />
+                  <Truck size={16} color={colors.brand[500]} strokeWidth={2} />
                   <Text className="text-brand-400 font-semibold text-sm">Delivery Receiving</Text>
                 </View>
-                <ChevronRight size={16} color="#0E8438" strokeWidth={2} />
+                <ChevronRight size={16} color={colors.brand[500]} strokeWidth={2} />
               </Pressable>
             }
             keyExtractor={(o) => o.id}
-            contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0E8438" colors={['#0E8438']} />}
+            contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 88 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
             renderItem={({ item: order }) => (
               <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
                 <Pressable
@@ -259,7 +260,7 @@ export default function PurchasingScreen() {
                         label={order.status.replace(/_/g, ' ')}
                         variant={ORDER_STATUS_VARIANT[order.status] ?? 'neutral'}
                       />
-                      <ChevronRight size={16} color="#4D4B45" strokeWidth={2} />
+                      <ChevronRight size={16} color={colors.surface[500]} strokeWidth={2} />
                     </View>
                   </View>
                   {order.delivery_date && (
@@ -291,7 +292,7 @@ export default function PurchasingScreen() {
                   accessibilityLabel={`Share order ${order.id.slice(-6)}`}
                   className="border-t border-surface-100 dark:border-surface-700 px-4 py-2.5 flex-row items-center gap-1.5 active:opacity-70"
                 >
-                  <Share2 size={12} color="#9CA3AF" strokeWidth={2} />
+                  <Share2 size={12} color={colors.surface[400]} strokeWidth={2} />
                   <Text className="text-surface-500 dark:text-surface-400 text-xs font-medium">Share Requisition</Text>
                 </Pressable>
               </View>
@@ -300,16 +301,35 @@ export default function PurchasingScreen() {
               <View className="px-4 py-8 items-center gap-3">
                 <Text className="text-4xl">🛒</Text>
                 <Text className="text-surface-900 dark:text-white font-semibold text-base">No orders yet</Text>
-                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
-                  Go to the Catalog tab, add products to your cart, and place an order.
-                </Text>
-                <Pressable
-                  onPress={() => setTab('catalog')}
-                  accessibilityRole="button"
-                  className="mt-2 bg-brand-700 rounded-full px-6 py-3 active:opacity-80"
-                >
-                  <Text className="text-white font-semibold">Browse Catalog</Text>
-                </Pressable>
+                {allCatalog.length > 0 ? (
+                  <>
+                    <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                      Go to the Catalog tab, add products to your cart, and place an order.
+                    </Text>
+                    <Pressable
+                      onPress={() => setTab('catalog')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Browse catalog"
+                      className="mt-2 bg-brand-700 rounded-full px-6 py-3 active:opacity-80"
+                    >
+                      <Text className="text-white font-semibold">Browse Catalog</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
+                      No catalog products are available yet. You can log a delivery manually while you wait.
+                    </Text>
+                    <Pressable
+                      onPress={() => router.push('/(app)/receiving' as never)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Log a delivery manually"
+                      className="mt-2 bg-surface-700 rounded-full px-6 py-3 active:opacity-80"
+                    >
+                      <Text className="text-white font-semibold">Log a delivery manually</Text>
+                    </Pressable>
+                  </>
+                )}
               </View>
             }
           />

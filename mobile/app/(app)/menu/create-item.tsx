@@ -3,13 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   Image,
   Alert,
   ActivityIndicator,
-  StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,18 +14,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-import { Camera, Sparkles, X, Plus, ChevronRight, Utensils } from 'lucide-react-native';
+import { Camera, Sparkles, X, Plus, ChevronRight, Utensils, AlertTriangle } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { StickyFooter } from '@/components/ui/StickyFooter';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppButton } from '@/components/ui/AppButton';
+import { SelectableChip } from '@/components/ui/SelectableChip';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@/store/session-store';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { queryKeys } from '@/api/query-keys';
 import { listMenus, createMenu, createMenuItem } from '@/api/menus-api';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { agentTurn } from '@/api/agent-api';
+import { detectAnomaly } from '@/domain/anomaly';
 import { useColorScheme } from 'react-native';
 import { colors, spacing, fontSize, radius } from '@/lib/theme';
 
@@ -58,13 +58,14 @@ type FormValues = z.infer<typeof schema>;
 
 export default function CreateMenuItemScreen() {
   const isDark = useColorScheme() === 'dark';
-  const insets = useSafeAreaInsets();
+
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
+  const [category, setCategory] = useState<string | null>(null);
 
   // Photo + AI state
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -224,13 +225,20 @@ Respond ONLY in this exact JSON format, nothing else:
 
   const hasAiResults = aiIngredients.length > 0 || aiSuggestedPrice != null;
 
+  const sellingPriceValue = watch('selling_price');
+  const priceAnomalyWarning = useMemo((): 'high' | 'low' | false => {
+    const entered = parseFloat(sellingPriceValue);
+    if (isNaN(entered) || entered <= 0) return false;
+    const peers = existingItems
+      .map((i) => parseFloat(i.selling_price))
+      .filter((p) => !isNaN(p) && p > 0);
+    return detectAnomaly(entered, peers);
+  }, [sellingPriceValue, existingItems]);
+
   return (
     <AppScreen>
       <AppHeader title="New Menu Item" showBack />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <FormScreen>
         <ScrollView
           style={{ backgroundColor: bg }}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 80 }}
@@ -262,7 +270,7 @@ Respond ONLY in this exact JSON format, nothing else:
                     justifyContent: 'center',
                   }}
                 >
-                  <X size={14} color="#fff" strokeWidth={2.5} />
+                  <X size={14} color={colors.white} strokeWidth={2.5} />
                 </Pressable>
 
                 {/* Analyze button */}
@@ -273,7 +281,7 @@ Respond ONLY in this exact JSON format, nothing else:
                       accessibilityRole="button"
                       accessibilityLabel="Analyze photo with AI"
                       style={({ pressed }) => ({
-                        backgroundColor: '#0E8438',
+                        backgroundColor: colors.brand[500],
                         borderRadius: radius.lg,
                         paddingVertical: 12,
                         flexDirection: 'row',
@@ -285,8 +293,8 @@ Respond ONLY in this exact JSON format, nothing else:
                         opacity: pressed ? 0.8 : 1,
                       })}
                     >
-                      <Sparkles size={16} color="#fff" strokeWidth={2} />
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: fontSize.sm }}>
+                      <Sparkles size={16} color={colors.white} strokeWidth={2} />
+                      <Text style={{ color: colors.white, fontWeight: '700', fontSize: fontSize.sm }}>
                         Analyze with AI
                       </Text>
                     </Pressable>
@@ -295,7 +303,7 @@ Respond ONLY in this exact JSON format, nothing else:
 
                 {analyzing && (
                   <View style={{ padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                    <ActivityIndicator color="#0E8438" size="small" />
+                    <ActivityIndicator color={colors.brand[500]} size="small" />
                     <Text style={{ color: textSecondary, fontSize: fontSize.sm }}>Analyzing dish…</Text>
                   </View>
                 )}
@@ -317,20 +325,20 @@ Respond ONLY in this exact JSON format, nothing else:
                   width: 56,
                   height: 56,
                   borderRadius: radius.md,
-                  backgroundColor: '#0E843815',
+                  backgroundColor: colors.brand[50],
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 1.5,
-                  borderColor: '#0E843840',
+                  borderColor: colors.brand[100],
                   borderStyle: 'dashed',
                 }}>
-                  <Camera size={22} color="#0E8438" strokeWidth={1.75} />
+                  <Camera size={22} color={colors.brand[500]} strokeWidth={1.75} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ color: textPrimary, fontWeight: '600', fontSize: fontSize.sm }}>Add Dish Photo</Text>
-                    <View style={{ backgroundColor: '#0E843815', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-                      <Text style={{ color: '#0E8438', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>AI</Text>
+                    <View style={{ backgroundColor: colors.brand[50], borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
+                      <Text style={{ color: colors.brand[500], fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>AI</Text>
                     </View>
                   </View>
                   <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>
@@ -344,7 +352,7 @@ Respond ONLY in this exact JSON format, nothing else:
 
           {/* AI Results */}
           {hasAiResults && !aiDismissed && (
-            <View style={{ backgroundColor: '#0E843308', borderRadius: radius.xl, borderWidth: 1, borderColor: '#0E843330', overflow: 'hidden' }}>
+            <View style={{ backgroundColor: colors.brand[50], borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand[100], overflow: 'hidden' }}>
               <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -354,8 +362,8 @@ Respond ONLY in this exact JSON format, nothing else:
                 paddingBottom: spacing.sm,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={14} color="#0E8438" strokeWidth={2} />
-                  <Text style={{ color: '#0E8438', fontWeight: '700', fontSize: fontSize.sm }}>AI Suggestions</Text>
+                  <Sparkles size={14} color={colors.brand[500]} strokeWidth={2} />
+                  <Text style={{ color: colors.brand[500], fontWeight: '700', fontSize: fontSize.sm }}>AI Suggestions</Text>
                 </View>
                 <Pressable onPress={() => setAiDismissed(true)} hitSlop={8}>
                   <X size={16} color={textSecondary} strokeWidth={2} />
@@ -369,14 +377,14 @@ Respond ONLY in this exact JSON format, nothing else:
                     onPress={() => setValue('selling_price', aiSuggestedPrice, { shouldValidate: true })}
                     accessibilityRole="button"
                     style={({ pressed }) => ({
-                      backgroundColor: '#0E8438',
+                      backgroundColor: colors.brand[500],
                       borderRadius: 20,
                       paddingHorizontal: 12,
                       paddingVertical: 4,
                       opacity: pressed ? 0.8 : 1,
                     })}
                   >
-                    <Text style={{ color: '#fff', fontSize: fontSize.xs, fontWeight: '700' }}>
+                    <Text style={{ color: colors.white, fontSize: fontSize.xs, fontWeight: '700' }}>
                       {parseFloat(aiSuggestedPrice).toLocaleString()} RWF
                     </Text>
                   </Pressable>
@@ -402,7 +410,7 @@ Respond ONLY in this exact JSON format, nothing else:
                         gap: 8,
                       }}
                     >
-                      <Utensils size={14} color="#0E8438" strokeWidth={2} />
+                      <Utensils size={14} color={colors.brand[500]} strokeWidth={2} />
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: '500' }}>{ing.name}</Text>
                         <Text style={{ color: textSecondary, fontSize: fontSize.xs }}>{ing.qty} {ing.unit} per portion</Text>
@@ -478,7 +486,7 @@ Respond ONLY in this exact JSON format, nothing else:
                           gap: spacing.sm,
                         })}
                       >
-                        <Text style={{ color: '#0E8438', fontSize: fontSize.sm }}>+</Text>
+                        <Text style={{ color: colors.brand[500], fontSize: fontSize.sm }}>+</Text>
                         <Text style={{ color: textPrimary, fontSize: fontSize.sm, flex: 1 }}>{s}</Text>
                       </Pressable>
                     ))}
@@ -487,6 +495,23 @@ Respond ONLY in this exact JSON format, nothing else:
               </View>
             )}
           />
+
+          {/* Category */}
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: isDark ? colors.surface[400] : colors.surface[600], fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Category
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {(['Main', 'Side', 'Drink', 'Dessert'] as const).map((cat) => (
+                <SelectableChip
+                  key={cat}
+                  label={cat}
+                  selected={category === cat}
+                  onPress={() => setCategory(category === cat ? null : cat)}
+                />
+              ))}
+            </View>
+          </View>
 
           <Controller
             control={control}
@@ -503,6 +528,17 @@ Respond ONLY in this exact JSON format, nothing else:
               />
             )}
           />
+
+          {priceAnomalyWarning !== false && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.warning + '1A', borderRadius: radius.md, padding: spacing.sm + 2, borderWidth: 1, borderColor: colors.warning + '4D' }}>
+              <AlertTriangle size={14} color={colors.warning} strokeWidth={2} />
+              <Text style={{ color: colors.warning, fontSize: fontSize.xs, flex: 1, lineHeight: 18 }}>
+                {priceAnomalyWarning === 'high'
+                  ? 'This price is unusually high compared to your other items — please confirm it\'s correct.'
+                  : 'This price is unusually low compared to your other items — please confirm it\'s correct.'}
+              </Text>
+            </View>
+          )}
 
           <Controller
             control={control}
@@ -522,9 +558,9 @@ Respond ONLY in this exact JSON format, nothing else:
           />
 
           {aiIngredients.length > 0 && (
-            <View style={{ backgroundColor: '#0E843310', borderRadius: radius.md, padding: spacing.sm + 2, flexDirection: 'row', gap: 8 }}>
-              <View style={{ marginTop: 2 }}><Sparkles size={14} color="#0E8438" strokeWidth={2} /></View>
-              <Text style={{ color: '#0E8438', fontSize: fontSize.xs, flex: 1, lineHeight: 18 }}>
+            <View style={{ backgroundColor: colors.brand[50], borderRadius: radius.md, padding: spacing.sm + 2, flexDirection: 'row', gap: 8 }}>
+              <View style={{ marginTop: 2 }}><Sparkles size={14} color={colors.brand[500]} strokeWidth={2} /></View>
+              <Text style={{ color: colors.brand[500], fontSize: fontSize.xs, flex: 1, lineHeight: 18 }}>
                 After saving, open the item detail to link the AI-suggested ingredients to the recipe.
               </Text>
             </View>
@@ -536,24 +572,17 @@ Respond ONLY in this exact JSON format, nothing else:
             </Text>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* Fixed bottom save button */}
-      <View style={[styles.bottomBar, { backgroundColor: bg, borderTopColor: borderColor, paddingBottom: Math.max(insets.bottom + 12, 24) }]}>
-        <AppButton
-          label="Save Menu Item"
-          onPress={handleSubmit(onSubmit)}
-          loading={saving}
-        />
-      </View>
+        <StickyFooter>
+          <AppButton
+            label="Save Menu Item"
+            onPress={handleSubmit(onSubmit)}
+            loading={saving}
+            size="lg"
+          />
+        </StickyFooter>
+      </FormScreen>
     </AppScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  bottomBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-});
