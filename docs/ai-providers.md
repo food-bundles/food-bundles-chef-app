@@ -66,6 +66,7 @@ other rows call the primary first: a real failover logs `outcome=fallback` with 
 | Model refusal (`stop_reason: refusal`) | **No failover, never retried on Meta.** 422 `AI_REFUSED`; the app shows a localized "I can't help with that" | `refused` |
 | Both providers attempted and failed, or none available | 503 `AI_UNAVAILABLE`; the app shows "AI is temporarily unavailable" and manual flows work | `both_failed` |
 | Only Meta attempted (no key) and it fails | Same errors as before Phase 8: 504 `AI_TIMEOUT`, 422 `AI_BAD_OUTPUT`, 502 `AI_PROVIDER_ERROR` | the error kind |
+| **Classify:** Claude fails or times out (any reason except a refusal) | **No failover** (`policy=no_failover`). Claude gets the whole 15 s budget; on failure the endpoint returns 200 with `status: "classify_unavailable"` (kind, confidence and quality null) and the app asks the chef "What is this photo? Menu · Dish · Delivery note". Instant and always right, instead of waiting 8–12 s for Meta. When Claude is *skipped* (no key, disabled, kill switch, breaker open, budget) Meta still classifies as before | `outcome=<error kind>`, `policy=no_failover`, no `fallback_reason` |
 
 Retries are at most `AI_ROUTER_MAX_RETRIES` (capped at 2) per provider. They happen only
 before any output is returned, and only while the time budget allows. All routed calls
@@ -166,7 +167,15 @@ in `AI_MODEL_PRICES`.
 | `claude-haiku-5-5` | 0.10 | 0.50 | 0.01 | 0.125 |
 | `claude-sonnet-5-5` | 2.00 | 10.00 | 0.10 | 2.50 |
 | `claude-opus-5-5` | 4.00 | 20.00 | 0.20 | 5.00 |
-| Meta Muse Spark | 0 (not tracked) | | | Fill in from Meta's pricing page |
+| `muse-spark-1.3` / `1.2` / `1.1` (Standard mode) | 1.25 | 4.25 | 0.15 | 1.25 (no cache-write price listed; billed as input) |
+
+Meta prices come from <https://dev.meta.ai/docs/pricing-rate-limits>, fetched on
+2026-11-18. The page shows no effective date, so re-check it whenever the bill differs.
+These are **Standard-mode** prices (the mode this app uses); Contributor mode is cheaper
+but has different data-use terms and is not used. Speech-to-text (Muse Voice Transcribe)
+is billed per audio time, $0.18 per hour, and is not part of `ai_spend_daily`. A Meta
+model ID missing from `AI_MODEL_PRICES` (for example a custom `META_MUSE_SPARK_FAST_MODEL`)
+is recorded at $0.
 
 - Cost per call is calculated from the response `usage`: input, output, cache-read and
   cache-write tokens.
@@ -203,6 +212,8 @@ Each routed call logs one `ai_call` event with these fields:
   `skip_reason`), **fallback** (the primary was called and failed; see `fallback_reason`),
   schema_fail, timeout, refused, bad_request, both_failed or budget_blocked
 - `repaired`
+- `policy`: set for non-default routing (`no_failover` for classify, `meta_only` for
+  quality assessment)
 
 The chef's action (accepted, edited or rejected) is logged separately as `ai_feedback`.
 No prompts, images, answers or keys are logged.
@@ -232,7 +243,8 @@ Alerts:
 
 **Check status:** `curl -H "X-Ops-Token: $AI_OPS_TOKEN" https://<api>/api/v1/ai/health`. It
 shows configured, enabled, kill switch, breaker state, last success, p95 and the
-misconfiguration reason for each provider. It never shows key material.
+misconfiguration reason for each provider, plus `redis_connected` (Redis answered a ping
+within 0.5 s). It never shows key material.
 
 **Turn the primary off instantly (no deploy, no restart):**
 
@@ -241,7 +253,10 @@ curl -X PUT -H "X-Ops-Token: $AI_OPS_TOKEN" -H "Content-Type: application/json" 
   -d '{"on": true}' https://<api>/api/v1/ai/kill-switch/anthropic
 ```
 
-This takes effect on every instance within about 5 s; it needs Redis. To turn the primary
+This takes effect on every instance within about 5 s (measured: 4.9 s). **Redis is
+required in production** for this: without it (`redis_connected: false`) the switch only
+reaches the instance that received the request. Redis must not evict the key: use
+`volatile-lru` or `noeviction` (Docker Compose uses `volatile-lru`). To turn the primary
 back on, send `{"on": false}`. The permanent switch is `ANTHROPIC_ENABLED=false` followed
 by a restart.
 
@@ -274,6 +289,8 @@ Meta exactly as before Phase 8.
 - No chat streaming yet. Step 1b adds SSE with pre-first-token failover only; a
   mid-stream failure becomes "interrupted, retry".
 - The breaker and latency stats are per instance. Spend is shared through Postgres.
+- Eval parity (Step 2) is prepared in `ai-evals/parity.py`; rules and cases in
+  `ai-evals/PARITY.md`. Not run yet.
 - Quality assessment is routed but pinned to Meta (`meta_only`) until it has eval cases
   and passes parity.
 - The `/ai/health` p95 covers only this instance's last 200 calls.
