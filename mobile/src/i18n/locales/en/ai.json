@@ -25,7 +25,8 @@
       "bad_output": "The AI answer could not be read — try again or enter details manually.",
       "auth": "Your session expired — sign in again.",
       "server": "Something went wrong — try again.",
-      "too_small": "The menu or document is too small in the photo — move closer."
+      "too_small": "The menu or document is too small in the photo — move closer.",
+      "refused": "I can't help with that. Try asking about your menu, stock, sales or deliveries."
     },
     "consent": {
       "title": "AI help with photos and voice",

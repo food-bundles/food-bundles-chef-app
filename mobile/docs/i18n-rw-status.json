@@ -610,6 +610,10 @@
       "status": "needs-review",
       "en": "The menu or document is too small in the photo — move closer."
     },
+    "ai.errors.refused": {
+      "status": "needs-review",
+      "en": "I can't help with that. Try asking about your menu, stock, sales or deliveries."
+    },
     "ai.consent.title": {
       "status": "needs-review",
       "en": "AI help with photos and voice"

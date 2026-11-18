@@ -25,7 +25,8 @@
       "bad_output": "Igisubizo cya AI nticyasomwe — ongera ugerageze cyangwa wiyandikire.",
       "auth": "Igihe cyawe cyarangiye — ongera winjire.",
       "server": "Hari ikitagenze neza — ongera ugerageze.",
-      "too_small": "Menu cyangwa urupapuro ni bito cyane ku ifoto — egera hafi."
+      "too_small": "Menu cyangwa urupapuro ni bito cyane ku ifoto — egera hafi.",
+      "refused": "Sinshobora kugufasha kuri ibyo. Gerageza kubaza ibijyanye na menu, ububiko, ibyagurishijwe cyangwa ibyakiriwe."
     },
     "consent": {
       "title": "Ubufasha bwa AI ku mafoto n'amajwi",

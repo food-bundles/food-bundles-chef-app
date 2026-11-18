@@ -103,6 +103,7 @@ function turnErrorKey(err: unknown, timedOut: boolean): string {
     if (err.status === 504) return 'ai.errors.timeout';
     if (err.status === 413) return 'ai.errors.too_large';
     if (err.errorCode === 'AI_BAD_OUTPUT') return 'ai.errors.bad_output';
+    if (err.errorCode === 'AI_REFUSED') return 'ai.errors.refused';
   }
   return 'ai.errors.server';
 }

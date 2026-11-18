@@ -25,7 +25,8 @@
       "bad_output": "La réponse de l'IA est illisible — réessayez ou saisissez manuellement.",
       "auth": "Votre session a expiré — reconnectez-vous.",
       "server": "Une erreur s'est produite — réessayez.",
-      "too_small": "Le menu ou le document est trop petit sur la photo — rapprochez-vous."
+      "too_small": "Le menu ou le document est trop petit sur la photo — rapprochez-vous.",
+      "refused": "Je ne peux pas vous aider avec cela. Posez une question sur votre menu, votre stock, vos ventes ou vos livraisons."
     },
     "consent": {
       "title": "Aide de l'IA pour les photos et la voix",
