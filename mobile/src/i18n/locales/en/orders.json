@@ -70,6 +70,8 @@
     },
     "shareAsPdf": "Share as PDF",
     "sharePdfLabel": "Download or share the requisition PDF",
-    "submitOrderLabel": "Submit order"
+    "submitOrderLabel": "Submit order",
+    "onItsWay": "This order is on its way — contact Food Bundles support.",
+    "cancelFailed": "The order could not be cancelled. Try again."
   }
 }

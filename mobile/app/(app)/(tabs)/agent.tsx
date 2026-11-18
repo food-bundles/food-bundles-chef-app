@@ -44,6 +44,7 @@ import { useMenuItems } from '@/features/menu/useMenuItems';
 import { AI_TIMEOUTS, AiError, newRequestId } from '@/features/ai/ai-client';
 import { classifyImage, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
 import type { PickableKind } from '@/features/ai/PhotoKindPicker';
+import { ORDER_ON_ITS_WAY } from '@/features/orders/order-cancel';
 import { ImageTooLargeError, prepareImageForAi, type PreparedImage } from '@/features/ai/image-prep';
 import { getSpokenReplies } from '@/features/ai/consent';
 import { speakReply, stopSpeaking } from '@/features/ai/speak';
@@ -114,6 +115,7 @@ function turnErrorKey(err: unknown, timedOut: boolean): string {
 /** i18n key for a failed confirmation — the write is safe to retry with the same key. */
 function confirmErrorKey(err: unknown): string {
   if (err instanceof ApiError) {
+    if (err.errorCode === ORDER_ON_ITS_WAY) return 'orders.onItsWay';
     if (err.kind === 'transport') return 'agent.card.failedOffline';
     if (err.kind === 'conflict') return 'agent.card.failedConflict';
     if (err.kind === 'validation') return 'agent.card.failedInvalid';

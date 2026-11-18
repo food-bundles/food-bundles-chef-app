@@ -44,6 +44,13 @@ class ConflictError(AppError):
     message = "A conflict occurred with the current state of the resource."
 
 
+class OrderOnItsWayError(ConflictError):
+    """Cancel refused: the order is already on its way (status out_for_delivery)."""
+
+    error_code = "ORDER_ON_ITS_WAY"
+    message = "This order is on its way — contact Food Bundles support."
+
+
 class ValidationError(AppError):
     status_code = HTTPStatus.UNPROCESSABLE_ENTITY
     error_code = "VALIDATION_ERROR"

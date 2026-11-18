@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive".                                        |
 | AI                | AI          | Kept as the English acronym.                                              |
 
-Total keys: **997** — status as generated: 0 approved,
-997 needing review.
+Total keys: **999** — status as generated: 0 approved,
+999 needing review.
 
 ## agent (129)
 
@@ -781,7 +781,7 @@ Total keys: **997** — status as generated: 0 approved,
 | `editItem.removeConfirmTitle`                  | Remove menu item?                                                                                                                  | Gukuraho ifunguro?                                                                                                                                                            | ⚠ needs review |
 | `editItem.removeConfirmMessage`                | {{name}} will be removed from your menu. Past sales stay in your records.                                                          | {{name}} izakurwa kuri menu yawe. Ubucuruzi bwabaye buguma mu nyandiko zawe.                                                                                                  | ⚠ needs review |
 
-## orders (67)
+## orders (69)
 
 | Key                               | English source                                                                         | Kinyarwanda draft                                                            | Status         |
 | --------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------- |
@@ -852,6 +852,8 @@ Total keys: **997** — status as generated: 0 approved,
 | `orders.shareAsPdf`               | Share as PDF                                                                           | Sangiza nka PDF                                                              | ⚠ needs review |
 | `orders.sharePdfLabel`            | Download or share the requisition PDF                                                  | Kuramo cyangwa usangize urutonde rwo kugura muri PDF                         | ⚠ needs review |
 | `orders.submitOrderLabel`         | Submit order                                                                           | Ohereza itumiza                                                              | ⚠ needs review |
+| `orders.onItsWay`                 | This order is on its way — contact Food Bundles support.                               | Iki cyifuzo kiri mu nzira — vugana n'abakozi bafasha ba Food Bundles.        | ⚠ needs review |
+| `orders.cancelFailed`             | The order could not be cancelled. Try again.                                           | Ntibyashobotse guhagarika icyifuzo. Ongera ugerageze.                        | ⚠ needs review |
 
 ## profile (45)
 

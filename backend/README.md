@@ -227,6 +227,43 @@ Two order workflows must be supported as product requirements:
 
 The exact release phase and workflow ownership for restaurant approval must be documented as a product decision before implementation.
 
+#### Order cancellation (current rule) and dispatch/payment (open item)
+
+**Current rule (2026-11-18).** A chef can cancel an order while it is `draft`, `submitted` or
+`confirmed` (orders are created `confirmed`). Once it is `out_for_delivery`, cancel returns
+409 `ORDER_ON_ITS_WAY` and the app shows "This order is on its way — contact Food Bundles
+support" (EN/FR/RW). `delivered` and `cancelled` orders return a plain 409 `CONFLICT`.
+
+**Caveat.** `out_for_delivery` today means *the chef started receiving*
+(`POST /kitchens/{kitchen_id}/orders/{order_id}/receiving/start`), not a real dispatch by
+Food Bundles. Nothing records whether Food Bundles has dispatched or been paid for an order,
+and cancelling does not notify Food Bundles about an order that `order_sync` already sent
+(`external_order_id` set).
+
+**Open item: dispatch and payment from Food Bundles.** Once the Food Bundles order API
+contract exists, cancel becomes "allowed only while not dispatched and not paid". We will
+need from Food Bundles, for every order (`external_order_id`):
+
+| Field / event | Type | Used for |
+|---|---|---|
+| `order.status_changed` webhook (or a status endpoint to poll) | event | Keep our copy current without the chef |
+| `event_id` | string, unique | Idempotent processing (ignore replays) |
+| `occurred_at` and a per-order `version` / sequence | UTC timestamp, integer | Apply events in order; ignore stale ones |
+| `status` | `received`, `accepted`, `rejected`, `preparing`, `dispatched`, `delivered`, `cancelled` | Order timeline |
+| `dispatched_at` | UTC timestamp, null until dispatched | **Blocks cancel** |
+| `estimated_delivery_at` | UTC timestamp, optional | Show the chef when to expect it |
+| `payment_status` and `paid_at` | `unpaid`, `pending`, `paid`, `refunded`; UTC timestamp | **Blocks cancel** once `paid` |
+| `payment_reference` | string, optional | Support and reconciliation |
+| `cancelled_by` and `cancel_reason` | `chef`, `food_bundles`; text | Show why an order was cancelled |
+| Webhook signature (e.g. HMAC-SHA256 of the body with a shared secret, plus a timestamp header) | header | Reject forged or replayed calls |
+| `POST /orders/{external_order_id}/cancel` | API call with idempotency key; returns the new status or "too late" | Cancel on the Food Bundles side, not just ours |
+
+On our side this adds `orders.dispatched_at`, `orders.paid_at`, `orders.payment_status`,
+`orders.fb_status`, `orders.fb_status_updated_at` and a separate `receiving_started_at`, so
+`out_for_delivery` can mean a real dispatch again. The cancel rule then becomes: allowed
+when `dispatched_at` and `paid_at` are both null *and* the Food Bundles cancel call accepts
+it.
+
 ### 4.6 Delivery Receiving
 
 Delivery receiving is a central feature of the application.

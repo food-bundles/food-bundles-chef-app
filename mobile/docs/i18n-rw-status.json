@@ -3102,6 +3102,14 @@
       "status": "needs-review",
       "en": "Submit order"
     },
+    "orders.onItsWay": {
+      "status": "needs-review",
+      "en": "This order is on its way — contact Food Bundles support."
+    },
+    "orders.cancelFailed": {
+      "status": "needs-review",
+      "en": "The order could not be cancelled. Try again."
+    },
     "profile.title": {
       "status": "needs-review",
       "en": "Profile"

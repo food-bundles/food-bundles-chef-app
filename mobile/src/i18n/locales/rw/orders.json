@@ -70,6 +70,8 @@
     },
     "shareAsPdf": "Sangiza nka PDF",
     "sharePdfLabel": "Kuramo cyangwa usangize urutonde rwo kugura muri PDF",
-    "submitOrderLabel": "Ohereza itumiza"
+    "submitOrderLabel": "Ohereza itumiza",
+    "onItsWay": "Iki cyifuzo kiri mu nzira — vugana n'abakozi bafasha ba Food Bundles.",
+    "cancelFailed": "Ntibyashobotse guhagarika icyifuzo. Ongera ugerageze."
   }
 }

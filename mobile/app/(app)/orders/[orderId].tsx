@@ -5,6 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Package, Download, Share2 } from 'lucide-react-native';
 import { useOrderDetail, useCancelOrder, useSubmitOrder } from '@/features/orders/useOrders';
+import { cancelErrorKey, orderCancelState } from '@/features/orders/order-cancel';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -57,6 +58,8 @@ export default function OrderDetailScreen() {
   const { data: catalog = [] } = useCatalog();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const [sharing, setSharing] = useState(false);
+  /** i18n key of the last failed cancel (shown under the button). */
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const catalogImageMap = Object.fromEntries(
     catalog.filter((p) => p.image_url).map((p) => [p.id, p.image_url] as [string, string])
@@ -68,7 +71,8 @@ export default function OrderDetailScreen() {
   ) ?? 0;
 
   const canSubmit = order?.status === 'draft';
-  const canCancel = order && (order.status === 'draft' || order.status === 'submitted');
+  const cancelState = order ? orderCancelState(order.status) : 'not_cancellable';
+  const canCancel = cancelState === 'cancellable';
 
   const handleSharePdf = async () => {
     if (!order) return;
@@ -250,11 +254,24 @@ export default function OrderDetailScreen() {
           )}
 
           {/* Cancel action */}
+          {cancelState === 'on_its_way' && (
+            <Text
+              className="mt-2 text-surface-600 dark:text-surface-400 text-sm text-center"
+              accessibilityRole="text"
+            >
+              {t('orders.onItsWay')}
+            </Text>
+          )}
           {canCancel && (
             <Pressable
               onPress={async () => {
-                await cancelMutation.mutateAsync(order.id);
-                router.back();
+                setCancelError(null);
+                try {
+                  await cancelMutation.mutateAsync(order.id);
+                  router.back();
+                } catch (err) {
+                  setCancelError(cancelErrorKey(err));
+                }
               }}
               disabled={cancelMutation.isPending}
               accessibilityRole="button"
@@ -265,6 +282,11 @@ export default function OrderDetailScreen() {
                 {cancelMutation.isPending ? t('orders.cancelling') : t('orders.cancelOrder')}
               </Text>
             </Pressable>
+          )}
+          {cancelError && (
+            <Text className="mt-2 text-danger text-sm text-center" accessibilityRole="alert">
+              {t(cancelError)}
+            </Text>
           )}
         </ScrollView>
       )}
