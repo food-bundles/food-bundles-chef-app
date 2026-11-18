@@ -35,6 +35,9 @@ dependencies = [
     # HTTP client
     "httpx==0.28.0",
 
+    # Anthropic (Claude) SDK — primary AI provider (Phase 8). 2.x sends API version 2026-10-21.
+    "anthropic==2.10.0",
+
     # Structured logging
     "structlog==24.4.0",
 

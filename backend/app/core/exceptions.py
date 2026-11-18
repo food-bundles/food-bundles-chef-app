@@ -114,6 +114,27 @@ class AiRateLimitError(RateLimitError):
     message = "Daily AI request limit reached."
 
 
+class AiUnavailableError(AppError):
+    """Every configured AI provider failed or is switched off; manual flows still work."""
+
+    status_code = HTTPStatus.SERVICE_UNAVAILABLE
+    error_code = "AI_UNAVAILABLE"
+    message = "AI is temporarily unavailable."
+
+
+class AiRefusedError(AppError):
+    """The model declined the request. Never retried on another provider."""
+
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    error_code = "AI_REFUSED"
+    message = "The AI can't help with that request."
+
+
+class AiBudgetExceededError(RateLimitError):
+    error_code = "AI_BUDGET_EXCEEDED"
+    message = "Today's AI budget has been reached."
+
+
 class AiAudioTooLargeError(AppError):
     status_code = HTTPStatus.REQUEST_ENTITY_TOO_LARGE
     error_code = "AI_AUDIO_TOO_LARGE"

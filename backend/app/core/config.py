@@ -103,6 +103,74 @@ class Settings(BaseSettings):
     AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY: int = 0
     AI_MAX_REQUESTS_PER_CHEF_PER_DAY: int = 0
 
+    # ── Phase 8: provider routing (Anthropic primary, Meta fallback) ──────────
+    # Order is config, not code. Speech-to-text stays on Meta (Anthropic has no STT).
+    AI_PRIMARY_PROVIDER: Literal["anthropic", "meta"] = "anthropic"
+    AI_FALLBACK_PROVIDER: Literal["anthropic", "meta", "none"] = "meta"
+    ANTHROPIC_API_KEY: SecretStr = SecretStr("")
+    ANTHROPIC_ENABLED: bool = True
+    # Model IDs live here only. Verified against the Claude model list on 2026-11-18.
+    ANTHROPIC_MODEL_FAST: str = "claude-haiku-5-5"
+    ANTHROPIC_MODEL_STANDARD: str = "claude-sonnet-5-5"
+    ANTHROPIC_MODEL_ADVANCED: str = "claude-opus-5-5"
+    # Per-feature effort on Anthropic models that support it (low|medium|high).
+    # Classification stays low; the others are chosen from Step 2 eval results.
+    ANTHROPIC_EFFORT_CLASSIFY: str = "low"
+    ANTHROPIC_EFFORT_EXTRACT: str = "low"
+    ANTHROPIC_EFFORT_CHAT: str = "low"
+    # Per-model capabilities (JSON). Models not listed get the conservative default:
+    # no temperature, no effort. Temperature is NEVER sent unless supports_temperature.
+    AI_MODEL_CAPABILITIES: dict[str, dict[str, bool]] = {
+        "claude-haiku-5-5": {"supports_temperature": False, "supports_effort": True},
+        "claude-sonnet-5-5": {"supports_temperature": False, "supports_effort": True},
+        "claude-opus-5-5": {"supports_temperature": False, "supports_effort": True},
+    }
+    # USD per million tokens: input, output, cache_read, cache_write (5 min).
+    # Anthropic list prices verified 2026-11-18. Meta prices: fill in from
+    # https://dev.meta.ai/docs/pricing-rate-limits (0 = cost not tracked).
+    AI_MODEL_PRICES: dict[str, dict[str, float]] = {
+        "claude-haiku-5-5": {
+            "input": 0.10,
+            "output": 0.50,
+            "cache_read": 0.01,
+            "cache_write": 0.125,
+        },
+        "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cache_read": 0.10, "cache_write": 2.5},
+        "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_read": 0.20, "cache_write": 5.0},
+    }
+    # Total time budget per feature, INCLUDING the fallback attempt (enforced by the router).
+    # Classify is 15 s, not 10 s: Meta alone measured 7.6-9.8 s on 2026-11-18, so a 10 s
+    # total left no room for the fallback after a fast primary failure (pending approval).
+    AI_TIMEOUT_CLASSIFY_MS: int = 15_000
+    AI_TIMEOUT_EXTRACT_MS: int = 30_000
+    AI_TIMEOUT_CHAT_TTFT_MS: int = 8_000
+    # Share of the budget the primary may use, so the fallback still has time.
+    AI_PRIMARY_BUDGET_SHARE: float = 0.6
+    # Router retries per provider (0-2), only before any output and only for side-effect-free calls.
+    AI_ROUTER_MAX_RETRIES: int = 1
+    AI_BREAKER_FAILURE_THRESHOLD: int = 5
+    AI_BREAKER_COOLDOWN_MS: int = 30_000
+    # Daily cost caps (USD, 0 = no cap). Spend is persisted in ai_spend_daily.
+    AI_DAILY_BUDGET_USD: float = 0.0
+    AI_KITCHEN_DAILY_BUDGET_USD: float = 0.0
+    AI_BUDGET_EXCEEDED_ACTION: Literal["cheaper_tier", "fallback", "block"] = "fallback"
+    # Ops token for GET /api/v1/ai/health (no chef roles exist). Empty = endpoint disabled.
+    AI_OPS_TOKEN: SecretStr = SecretStr("")
+
+    @field_validator("AI_MODEL_CAPABILITIES", "AI_MODEL_PRICES", mode="before")
+    @classmethod
+    def parse_json_maps(cls, v: object) -> object:
+        if isinstance(v, str):
+            import json
+
+            return json.loads(v) if v.strip() else {}
+        return v
+
+    @field_validator("AI_ROUTER_MAX_RETRIES")
+    @classmethod
+    def cap_retries(cls, v: int) -> int:
+        return max(0, min(v, 2))
+
     # Food Bundles catalog
     FOOD_BUNDLES_CATALOG_PROVIDER: Literal["mock", "live"] = "mock"
     FOOD_BUNDLES_API_URL: str = ""

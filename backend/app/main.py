@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -34,6 +35,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         env=settings.APP_ENV,
         debug=settings.DEBUG,
     )
+    from app.modules.ai.providers.health import check_configuration
+    from app.modules.ai.providers.router import provider_router
+    check_configuration()
+    # Build the Anthropic SDK client now so the first chef request does not pay the import.
+    primary = provider_router.providers().get("anthropic")
+    if primary is not None and hasattr(primary, "warm_up"):
+        await asyncio.to_thread(primary.warm_up)
     await queue_connect()
     yield
     await queue_disconnect()
