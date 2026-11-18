@@ -29,8 +29,8 @@ class ExpoPushNotificationProvider(PushNotificationProvider):
             "Accept": "application/json",
             "Accept-Encoding": "gzip, deflate",
         }
-        if settings.EXPO_ACCESS_TOKEN:
-            headers["Authorization"] = f"Bearer {settings.EXPO_ACCESS_TOKEN}"
+        if settings.EXPO_ACCESS_TOKEN.get_secret_value():
+            headers["Authorization"] = f"Bearer {settings.EXPO_ACCESS_TOKEN.get_secret_value()}"
 
         async with httpx.AsyncClient(timeout=10.0, verify=_ssl_context) as client:
             for i in range(0, len(messages), _BATCH_SIZE):

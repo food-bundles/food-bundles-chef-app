@@ -26,7 +26,10 @@ import app.modules.recipes.models  # noqa: F401
 import app.modules.sales.models  # noqa: F401
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# "%" must be doubled for configparser interpolation (passwords may contain it).
+config.set_main_option(
+    "sqlalchemy.url", settings.DATABASE_URL.get_secret_value().replace("%", "%%")
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -226,7 +226,7 @@ class AgentService:
         request_id: str,
         chef_id: str | None = None,
     ) -> AgentResponse:
-        if not settings.AI_AGENT_ENABLED or not settings.MODEL_API_KEY:
+        if not settings.AI_AGENT_ENABLED or not settings.MODEL_API_KEY.get_secret_value():
             raise AiDisabledError("AI assistant is not enabled.")
         check_rate_limit(str(kitchen.id), chef_id)
 

@@ -16,7 +16,7 @@ from app.core.config import settings
 
 
 def _has_provider() -> bool:
-    return bool(settings.MODEL_API_KEY and settings.META_MUSE_SPARK_MODEL)
+    return bool(settings.MODEL_API_KEY.get_secret_value() and settings.META_MUSE_SPARK_MODEL)
 
 
 def quality_assessment_enabled() -> bool:
@@ -52,4 +52,4 @@ def document_scan_enabled() -> bool:
 
 
 def assistant_enabled() -> bool:
-    return settings.AI_AGENT_ENABLED and bool(settings.MODEL_API_KEY)
+    return settings.AI_AGENT_ENABLED and bool(settings.MODEL_API_KEY.get_secret_value())

@@ -26,7 +26,7 @@ async def sync_order_to_food_bundles(
     kitchen_id: str,
 ) -> None:
     """POST submitted order to Food Bundles API and update external_order_id."""
-    if not settings.FOOD_BUNDLES_API_URL or not settings.FOOD_BUNDLES_API_KEY:
+    if not settings.FOOD_BUNDLES_API_URL or not settings.FOOD_BUNDLES_API_KEY.get_secret_value():
         logger.warning("order_sync_skipped_no_config", order_id=order_id)
         return
 
@@ -61,7 +61,7 @@ async def _do_sync(db: AsyncSession, *, order_id: uuid.UUID, kitchen_id: uuid.UU
         ],
     }
     headers = {
-        "Authorization": f"Bearer {settings.FOOD_BUNDLES_API_KEY}",
+        "Authorization": f"Bearer {settings.FOOD_BUNDLES_API_KEY.get_secret_value()}",
         "Content-Type": "application/json",
     }
     url = f"{settings.FOOD_BUNDLES_API_URL.rstrip('/')}/api/v1/orders"

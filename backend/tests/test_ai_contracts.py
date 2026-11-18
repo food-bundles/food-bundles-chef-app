@@ -116,7 +116,7 @@ async def test_feature_flag_enabled_returns_mock_adapter(monkeypatch) -> None:
 
     monkeypatch.setattr(cfg.settings, "AI_ENABLED", True)
     monkeypatch.setattr(cfg.settings, "AI_QUALITY_ASSESSMENT_ENABLED", True)
-    monkeypatch.setattr(cfg.settings, "MODEL_API_KEY", "")
+    monkeypatch.setattr(cfg.settings, "MODEL_API_KEY", cfg.SecretStr(""))
 
     from app.modules.ai.routing.provider_router import get_quality_assessment_adapter
     from app.modules.ai.services.mock_provider import MockQualityAssessmentAdapter

@@ -22,12 +22,12 @@ async def refresh_catalog(ctx: dict) -> None:  # type: ignore[type-arg]
     if settings.FOOD_BUNDLES_CATALOG_PROVIDER != "live":
         logger.debug("catalog_refresh_skip_mock")
         return
-    if not settings.FOOD_BUNDLES_API_URL or not settings.FOOD_BUNDLES_API_KEY:
+    if not settings.FOOD_BUNDLES_API_URL or not settings.FOOD_BUNDLES_API_KEY.get_secret_value():
         logger.warning("catalog_refresh_no_config")
         return
 
     url = f"{settings.FOOD_BUNDLES_API_URL.rstrip('/')}/api/v1/products"
-    headers = {"Authorization": f"Bearer {settings.FOOD_BUNDLES_API_KEY}"}
+    headers = {"Authorization": f"Bearer {settings.FOOD_BUNDLES_API_KEY.get_secret_value()}"}
 
     try:
         async with httpx.AsyncClient(timeout=20.0, verify=_ssl_context) as client:

@@ -14,14 +14,14 @@ from app.core.config import settings
 
 def _engine_kwargs() -> dict:
     """Pool kwargs that only apply to real databases, not SQLite."""
-    url = settings.DATABASE_URL
+    url = settings.DATABASE_URL.get_secret_value()
     if url.startswith("sqlite"):
         return {}
     return {"pool_pre_ping": True, "pool_size": 10, "max_overflow": 20}
 
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.DATABASE_URL.get_secret_value(),
     echo=settings.DEBUG,
     **_engine_kwargs(),
 )
