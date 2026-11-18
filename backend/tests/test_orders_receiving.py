@@ -16,9 +16,10 @@ def _next_phone() -> str:
 
 
 async def _get_tokens(client: AsyncClient, monkeypatch, phone: str) -> dict:
-    import app.core.config as cfg
 
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "777777")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "777777"
+    )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
     resp = await client.post(
         "/api/v1/auth/otp/verify",
@@ -64,7 +65,8 @@ def _order_payload(ingredient_id: str | None = None) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def test_create_order_draft(client: AsyncClient, monkeypatch) -> None:
+async def test_create_order_starts_confirmed(client: AsyncClient, monkeypatch) -> None:
+    """Orders are created CONFIRMED (no separate submit step since ce8fc4f)."""
     tokens = await _get_tokens(client, monkeypatch, _next_phone())
     kitchen_id = await _setup_kitchen(client, tokens)
 
@@ -75,7 +77,7 @@ async def test_create_order_draft(client: AsyncClient, monkeypatch) -> None:
     )
     assert resp.status_code == 201
     body = resp.json()
-    assert body["status"] == "draft"
+    assert body["status"] == "confirmed"
     assert len(body["lines"]) == 1
     assert body["lines"][0]["product_name"] == "Tomatoes 1kg"
     assert body["kitchen_id"] == kitchen_id
@@ -129,7 +131,8 @@ async def test_get_order(client: AsyncClient, monkeypatch) -> None:
     assert resp.json()["id"] == order_id
 
 
-async def test_submit_order_changes_status(client: AsyncClient, monkeypatch) -> None:
+async def test_submit_confirmed_order_returns_conflict(client: AsyncClient, monkeypatch) -> None:
+    """A new order is already CONFIRMED, so submit is a conflict, not a status change."""
     tokens = await _get_tokens(client, monkeypatch, _next_phone())
     kitchen_id = await _setup_kitchen(client, tokens)
 
@@ -144,10 +147,8 @@ async def test_submit_order_changes_status(client: AsyncClient, monkeypatch) -> 
         f"/api/v1/kitchens/{kitchen_id}/orders/{order_id}/submit",
         headers=_auth(tokens),
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["status"] == "submitted"
-    assert body["order_id"] == order_id
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "CONFLICT"
 
 
 async def test_submit_order_twice_returns_conflict(
@@ -217,7 +218,11 @@ async def _create_confirmed_order(
 async def test_receive_delivery_requires_confirmed_status(
     client: AsyncClient, monkeypatch
 ) -> None:
-    """Receiving a DRAFT order must fail with 409."""
+    """Receiving needs a CONFIRMED/OUT_FOR_DELIVERY order: a DELIVERED one is a 409.
+
+    Orders are created CONFIRMED (ce8fc4f), so the first receipt succeeds and moves the
+    order to DELIVERED; receiving it again must be rejected.
+    """
     tokens = await _get_tokens(client, monkeypatch, _next_phone())
     kitchen_id = await _setup_kitchen(client, tokens)
     order_id = await _create_confirmed_order(client, tokens, kitchen_id)
@@ -242,7 +247,22 @@ async def test_receive_delivery_requires_confirmed_status(
         },
         headers=_auth(tokens),
     )
-    assert resp.status_code == 409
+    assert resp.status_code == 201, resp.text
+
+    again = await client.post(
+        f"/api/v1/kitchens/{kitchen_id}/orders/{order_id}/receiving",
+        json={
+            "lines": [
+                {
+                    "order_line_id": line_id,
+                    "quantity_received": "10.000",
+                    "decision": "accepted",
+                }
+            ]
+        },
+        headers=_auth(tokens),
+    )
+    assert again.status_code == 409
 
 
 async def test_receive_delivery_wrong_kitchen_returns_404(

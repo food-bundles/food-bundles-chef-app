@@ -1,7 +1,6 @@
 """Catalog product listing and lookup tests (BE020)."""
 from __future__ import annotations
 
-import uuid
 from decimal import Decimal
 
 import pytest
@@ -14,9 +13,10 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _get_tokens(client: AsyncClient, monkeypatch, phone: str) -> dict:
-    import app.core.config as cfg
 
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "888888")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "888888"
+    )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
     resp = await client.post(
         "/api/v1/auth/otp/verify",

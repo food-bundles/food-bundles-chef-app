@@ -10,7 +10,7 @@ logger = structlog.get_logger(__name__)
 class MockSmsProvider(SmsProvider):
     """Development-only provider. Logs OTP to console; never sends real SMS.
 
-    Set MOCK_OTP_CODE in .env to pin a fixed code for automated tests.
+    Tests pin the code by patching app.modules.authentication.service.generate_otp.
     Never use in production.
     """
 

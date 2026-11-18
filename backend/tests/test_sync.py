@@ -18,8 +18,9 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _auth(client: AsyncClient, monkeypatch, phone: str) -> dict:
-    import app.core.config as cfg
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "444444")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "444444"
+    )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
     r = await client.post(
         "/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "444444"}
