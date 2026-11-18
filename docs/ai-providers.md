@@ -294,3 +294,18 @@ Meta exactly as before Phase 8.
 - Quality assessment is routed but pinned to Meta (`meta_only`) until it has eval cases
   and passes parity.
 - The `/ai/health` p95 covers only this instance's last 200 calls.
+
+## Open items
+
+The single list of what is still open for Phase 8 and around it. Update it when an item
+moves; close an item by deleting its row and noting the commit.
+
+| Item | Owner | Status (2026-11-19) | Blocks | Where |
+|---|---|---|---|---|
+| **Rotate the Meta key leaked in `41c7efc`** | Product owner | Pending. The key is still active; `.gitleaksignore` allowlists the finding marked "PENDING ROTATION — key still active". After rotating, update that comment, then verify the Meta path with the new key | Nothing in code; it is a live credential exposure until rotated | `docs/security/secret-history-purge.md`, `.gitleaksignore` |
+| **Decide on the Git history purge** | Product owner | Not decided. Commands prepared, not run. Rotation makes the leaked value useless; a purge only removes it from history and needs a coordinated force-push | — | `docs/security/secret-history-purge.md` |
+| **Step 1b: Assistant streaming (SSE)** | Engineering | Planned, not started. Pre-first-token failover only; a mid-stream failure shows "interrupted, retry"; 8 s time-to-first-token budget; mobile streaming client | **Required before the Assistant uses Claude for real users** | Plan in the Step 1 review; `AI_TIMEOUT_CHAT_TTFT_MS` |
+| **Step 2: eval parity** | Engineering + product owner | Harness ready; 20 photos filed as draft answer keys, waiting for review (`ai-evals/review.html`) and "answers verified". Then 3 runs × meta / claude-low / claude-medium, hard cap $25 | Step 3 canary per feature | `ai-evals/PARITY.md` |
+| **Step 3: rollout** | Engineering | Not started. Staging with the full suite green, optional shadow mode, then canary 10 % → 50 % → 100 % of kitchens per feature. Classify, menu, dish and document may start after they pass the Step 2 bar; the Assistant waits for Step 1b. Rollback: kill switch or `ANTHROPIC_ENABLED=false`, verified without a deploy | — | This document, "Runbook" |
+| **Food Bundles order status and payment API contract** | Product owner with Food Bundles | No contract yet. Needed for real `dispatched_at` / `paid_at` (cancel rule), status webhooks and cancelling on the Food Bundles side. Today `out_for_delivery` means "chef started receiving" | Correct order-cancel rule after dispatch or payment | `backend/README.md` section 4.5 (fields and events listed) |
+| **mypy typing debt** | Engineering | 144 strict-mode errors in 39 files (`cd backend && mypy app`, measured 2026-11-18). The pre-commit hook checks staged files only (`--follow-imports=silent`), so each touched file must be fixed when it is next committed | Turning on a full `mypy app` CI gate | `backend/.pre-commit-config.yaml`, `backend/pyproject.toml` |
