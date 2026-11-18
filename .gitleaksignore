@@ -1,0 +1,4 @@
+# Known leak: Meta MODEL_API_KEY committed in backend/.env.example (41c7efc).
+# PENDING ROTATION — key still active. The owner will rotate it at the provider.
+# Purge steps: docs/security/secret-history-purge.md. Remove this line after the purge.
+41c7efc274c865ea5f72398cde091d2369166db5:backend/.env.example:env-assigned-provider-key:37
