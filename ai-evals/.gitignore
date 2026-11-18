@@ -1,0 +1,6 @@
+# Eval runs: raw model responses, per-arm SQLite databases and reports stay local.
+# Copy a report into docs/ when it should be kept.
+results/*
+!results/.gitkeep
+__pycache__/
+*.pyc

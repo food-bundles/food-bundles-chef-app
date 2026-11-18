@@ -1,5 +1,8 @@
 # AI evals — Food Bundles Chef
 
+> **Phase 8 (Claude vs Meta parity):** see [PARITY.md](PARITY.md) and `parity.py`. Its cases live
+> in `cases/` (one folder per image, `cases/assistant/cases.jsonl` for the Assistant).
+
 Measures the AI features through the **real backend AI gateway** (the same endpoints the app calls),
 so a prompt or model change can be checked against the release bar before it ships.
 

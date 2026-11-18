@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -56,7 +57,9 @@ def seed_kitchen(client: httpx.Client, run_id: str, fixture: Path) -> dict:
 def snapshot(client: httpx.Client, kitchen_id: str) -> dict:
     """Stock levels and today's sales — compared before/after the chat suite (0 unconfirmed writes)."""
     stock = _ok(client.get(f"/kitchens/{kitchen_id}/inventory")).json()
-    sales = _ok(client.get(f"/kitchens/{kitchen_id}/sales/daily-summary")).json()
+    # Kitchen-local day (Kigali, UTC+2); the endpoint requires ?date=YYYY-MM-DD.
+    today = (datetime.now(UTC) + timedelta(hours=2)).date().isoformat()
+    sales = _ok(client.get(f"/kitchens/{kitchen_id}/sales/daily-summary", params={"date": today})).json()
     return {
         "stock": {row["ingredient_id"]: row["current_stock"] for row in stock},
         "portions_today": sales.get("portions"),
