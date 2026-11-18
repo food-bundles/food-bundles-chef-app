@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from app.modules.kitchens.service import KitchenService
 from app.modules.sales.schemas import (
     DailySaleRecordRequest,
     DailySaleRecordResponse,
+    DailySalesSummary,
     WeeklySalesSummary,
 )
 from app.modules.sales.service import SalesService
@@ -38,6 +40,18 @@ async def record_sale(
     svc = SalesService(db)
     record = await svc.record_sale(kitchen, current_chef.id, body)
     return DailySaleRecordResponse.model_validate(record)
+
+
+@router.get("/daily-summary", response_model=DailySalesSummary)
+async def daily_summary(
+    day: date = Query(..., alias="date", description="Kitchen-local calendar day, YYYY-MM-DD"),
+    kitchen=Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> DailySalesSummary:
+    """Portions and revenue (RWF, at current menu prices) recorded for one day."""
+    svc = SalesService(db)
+    portions, revenue = await svc.daily_revenue(kitchen, day)
+    return DailySalesSummary(day=day, portions=portions, revenue=revenue)
 
 
 @router.get("/{menu_item_id}/weekly", response_model=WeeklySalesSummary)

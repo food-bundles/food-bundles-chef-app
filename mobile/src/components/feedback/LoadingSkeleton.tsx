@@ -1,5 +1,6 @@
 import { View, StyleSheet, type ViewStyle } from 'react-native';
-import { colors, radius } from '@/lib/theme';
+import { radius } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface LoadingSkeletonProps {
   width?: number | `${number}%`;
@@ -10,11 +11,12 @@ export interface LoadingSkeletonProps {
 
 /** Skeleton loading placeholder — single unanimated bar for reduced-motion compatibility */
 export function LoadingSkeleton({ width = '100%', height = 20, style, rounded = false }: LoadingSkeletonProps) {
+  const tokens = useTheme();
   return (
     <View
       style={[
         styles.skeleton,
-        { width, height, borderRadius: rounded ? height / 2 : radius.sm },
+        { width, height, borderRadius: rounded ? height / 2 : radius.sm, backgroundColor: tokens.border },
         style,
       ]}
       accessibilityElementsHidden
@@ -25,8 +27,9 @@ export function LoadingSkeleton({ width = '100%', height = 20, style, rounded = 
 
 /** Multi-line skeleton for card loading */
 export function CardSkeleton() {
+  const tokens = useTheme();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border }]}>
       <LoadingSkeleton width="60%" height={16} />
       <LoadingSkeleton width="90%" height={13} style={{ marginTop: 8 }} />
       <LoadingSkeleton width="40%" height={13} style={{ marginTop: 6 }} />
@@ -36,13 +39,11 @@ export function CardSkeleton() {
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: colors.surface[700],
     overflow: 'hidden',
   },
   card: {
-    backgroundColor: colors.surface[800],
     borderRadius: radius.lg,
+    borderWidth: 1,
     padding: 16,
-    gap: 0,
   },
 });

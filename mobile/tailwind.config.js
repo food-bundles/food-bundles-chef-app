@@ -2,40 +2,44 @@
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   presets: [require('nativewind/preset')],
+  // 'media' follows Appearance, which ThemeProvider overrides from the in-app preference
   darkMode: 'media',
   theme: {
     extend: {
       colors: {
         // Brand — deep teal/green kitchen palette
         brand: {
-          50: '#E6F9F4',
-          100: '#C0F0E2',
-          200: '#8BE3CC',
-          300: '#56D4B4',
-          400: '#1DB954',
-          500: '#159E45',
-          600: '#0E8438',
-          700: '#0A6A2C',
-          800: '#075122',
-          900: '#043817',
+          50: '#E8F5EE',
+          100: '#C3E6D2',
+          200: '#8FCFAA',
+          300: '#4DB87A',
+          400: '#0E8438',
+          500: '#0E8438',
+          600: '#0A6A2C',
+          700: '#064E20',
+          800: '#043817',
+          900: '#022510',
         },
-        // Neutrals — warm off-white / charcoal for kitchen feel
+        // Neutrals — green-tinted greys (keep in sync with src/lib/theme.ts)
         surface: {
-          50: '#FAFAF8',
-          100: '#F5F4F0',
-          200: '#EAE9E4',
-          300: '#D4D2CB',
-          400: '#B3B0A6',
-          500: '#8C897E',
-          600: '#6B6860',
-          700: '#4D4B45',
-          800: '#32302C',
-          900: '#1A1916',
+          50: '#F4F7F5',
+          100: '#EDF2EF',
+          200: '#DDE5E0',
+          300: '#C4CFC8',
+          400: '#97A59C',
+          500: '#66746B',
+          600: '#4B5A52',
+          700: '#33403A',
+          800: '#1D2621',
+          850: '#18201B',
+          900: '#111813',
+          950: '#0B0F0C',
         },
         // Semantic
-        success: '#1DB954',
+        action: '#22C55E',
+        success: '#0E8438',
         warning: '#F59E0B',
-        danger: '#EF4444',
+        danger: '#DC2626',
         info: '#3B82F6',
       },
       fontFamily: {

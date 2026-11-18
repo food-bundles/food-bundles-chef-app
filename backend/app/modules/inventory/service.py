@@ -41,15 +41,33 @@ class InventoryService:
         if ingredient is None:
             raise NotFoundError("Ingredient not found in this kitchen.")
 
+        new_level = await self.resolve_new_level(
+            kitchen.id, data.ingredient_id, data.change, data.quantity
+        )
         entry = InventoryEntry(
             kitchen_id=kitchen.id,
             ingredient_id=data.ingredient_id,
-            quantity=data.quantity,
+            quantity=new_level,
             entry_type=data.entry_type,
             notes=data.notes,
             recorded_by=chef_id,
         )
         return await self._repo.create(entry)
+
+    async def resolve_new_level(
+        self,
+        kitchen_id: uuid.UUID,
+        ingredient_id: uuid.UUID,
+        change: str,
+        quantity: Decimal,
+    ) -> Decimal:
+        """Resulting stock level for a set/add/remove change (never negative)."""
+        if change == "set":
+            return quantity
+        current = await self._repo.current_stock(kitchen_id, ingredient_id)
+        if change == "add":
+            return current + quantity
+        return max(current - quantity, Decimal("0"))
 
     async def get_stock_levels(self, kitchen: Kitchen) -> list[StockLevelResponse]:
         """Return current stock level + derived metrics for all active ingredients."""

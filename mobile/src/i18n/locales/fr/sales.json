@@ -1,0 +1,17 @@
+{
+  "sales": {
+    "title": "Saisie des ventes",
+    "recordToday": "Enregistrer les portions vendues aujourd'hui ({{date}}).",
+    "noActiveItems": "Aucun plat actif. Ajoutez d'abord des plats au menu.",
+    "saveSales": "Enregistrer les ventes",
+    "saving": "Enregistrement…",
+    "savedSnack": "Ventes enregistrées · Stock mis à jour",
+    "anomalyWarning": "semble beaucoup plus élevé que d'habitude — veuillez confirmer avant d'enregistrer.",
+    "anomalyWarningPlural": "semblent beaucoup plus élevés que d'habitude — veuillez confirmer avant d'enregistrer.",
+    "saveError_one": "{{count}} article n'a pas pu être enregistré. Vérifiez votre connexion et réessayez.",
+    "saveError_other": "{{count}} articles n'ont pas pu être enregistrés. Vérifiez votre connexion et réessayez.",
+    "enterPortionsHint": "Ajoutez des portions vendues pour enregistrer.",
+    "portions": "portions",
+    "portionsLabel": "{{name}}, portions vendues"
+  }
+}

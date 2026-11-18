@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "boundary": {
+      "title": "Une erreur s'est produite",
+      "body": "L'application a rencontré un problème inattendu. Vos données enregistrées sont en sécurité.",
+      "retry": "Réessayer"
+    }
+  }
+}

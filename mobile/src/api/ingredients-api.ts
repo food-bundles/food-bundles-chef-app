@@ -1,4 +1,4 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -55,11 +55,13 @@ export function getIngredient(kitchenId: string, ingredientId: string): Promise<
 
 export function createIngredient(
   kitchenId: string,
-  body: IngredientCreateBody
+  body: IngredientCreateBody,
+  opts: WriteOptions = {}
 ): Promise<IngredientDto> {
   return request<IngredientDto>(`/kitchens/${kitchenId}/ingredients`, {
     method: 'POST',
     body,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 

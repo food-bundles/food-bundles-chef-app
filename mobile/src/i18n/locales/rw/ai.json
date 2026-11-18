@@ -1,0 +1,38 @@
+{
+  "ai": {
+    "badge": "AI",
+    "retry": "Ongera ugerageze",
+    "enterManually": "Andika ubwawe",
+    "unavailable": "AI ntiboneka by'agateganyo. Ushobora kwiyandikira byose.",
+    "estimateWarning": "Igereranya rya AI — genzura ingano n'igiciro mbere yo kubika.",
+    "status": {
+      "preparing": "Turimo gutegura ifoto…",
+      "uploading": "Ifoto iroherezwa… {{percent}}%",
+      "analysing": "Turimo gusesengura…",
+      "usuallyTakes": "Ubusanzwe bimara amasegonda 5–10.",
+      "stillWorking": "Biracyakorwa…",
+      "retryingIn": "Turongera kugerageza mu masegonda {{seconds}}."
+    },
+    "errors": {
+      "offline": "Nta murandasi — tuzongera kugerageza nugaruka ku murandasi.",
+      "timeout": "Byatwaye igihe kirekire — ongera ugerageze.",
+      "cancelled": "Byahagaritswe.",
+      "unavailable": "AI ntiboneka by'agateganyo. Ushobora kwiyandikira amakuru.",
+      "rate_limited": "Wasabye AI inshuro nyinshi uyu munsi — ongera ugerageze nyuma cyangwa wiyandikire.",
+      "too_large": "Iyi foto ni nini cyane — gerageza indi foto.",
+      "too_dark": "Ifoto yijimye cyane — ongera urumuri.",
+      "blurry": "Ifoto ntigaragara neza — fata telefoni neza wongere uyifate.",
+      "bad_output": "Igisubizo cya AI nticyasomwe — ongera ugerageze cyangwa wiyandikire.",
+      "auth": "Igihe cyawe cyarangiye — ongera winjire.",
+      "server": "Hari ikitagenze neza — ongera ugerageze.",
+      "too_small": "Menu cyangwa urupapuro ni bito cyane ku ifoto — egera hafi."
+    },
+    "consent": {
+      "title": "Ubufasha bwa AI ku mafoto n'amajwi",
+      "body": "Amafoto n'amajwi wohereza asesengurwa na serivisi ya AI kugira ngo isome menu, amafunguro n'impapuro z'ibyakiriwe. Food Bundles ntibibika nyuma yo kubisesengura. Nta kibikwa utabyemeje.",
+      "accept": "Komeza",
+      "decline": "Si ubu",
+      "policy": "Politiki y'ibanga"
+    }
+  }
+}

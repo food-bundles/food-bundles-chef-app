@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Gutegereza…",
+    "error": "Habaye ikibazo",
+    "retry": "Ongera ugerageze",
+    "cancel": "Hagarika",
+    "confirm": "Emeza",
+    "save": "Bika",
+    "back": "Subira",
+    "continue": "Komeza",
+    "done": "Byarangiye",
+    "edit": "Hindura",
+    "delete": "Siba",
+    "archive": "Shyira mu bubiko",
+    "search": "Shakisha",
+    "noResults": "Nta bisubizo byaboneka",
+    "add": "Ongeraho",
+    "share": "Sangira",
+    "close": "Funga",
+    "tryAgain": "Ongera ugerageze",
+    "openSettings": "Fungura Igenamiterere",
+    "enable": "Fungura",
+    "seeAll": "Reba byose",
+    "camera": "Kamera",
+    "gallery": "Ububiko bw'amafoto",
+    "undo": "Subira inyuma",
+    "appName": "Food Bundles Chef",
+    "sync": {
+      "saved": "Byabitswe",
+      "pending": "Bitegereje",
+      "pendingCount_one": "Impinduka {{count}} itegereje guhuzwa",
+      "pendingCount_other": "Impinduka {{count}} zitegereje guhuzwa",
+      "syncing": "Birimo guhuzwa",
+      "failed": "Guhuza byanze",
+      "conflict": "Bivuguruzanya"
+    },
+    "searchPlaceholder": "Shakisha…",
+    "clearSearch": "Siba ibyo washakishije",
+    "quantity": "Ingano",
+    "decrease": "Gabanya: {{subject}}",
+    "increase": "Ongera: {{subject}}",
+    "dismissDialog": "Funga idirishya"
+  },
+  "tabs": {
+    "dashboard": "Ikibaho",
+    "menu": "Menu",
+    "purchasing": "Kugura",
+    "stock": "Bubiko",
+    "profile": "Umwirondoro"
+  }
+}

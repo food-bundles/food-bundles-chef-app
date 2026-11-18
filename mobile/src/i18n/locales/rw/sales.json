@@ -1,0 +1,17 @@
+{
+  "sales": {
+    "title": "Kwandika ubuguzi",
+    "recordToday": "Andika amashami aguzwe uyu munsi ({{date}}).",
+    "noActiveItems": "Nta biribwa bikoreshwa. Banza ongeraho ibiribwa kuri menu.",
+    "saveSales": "Bika ubuguzi",
+    "saving": "Kubika…",
+    "savedSnack": "Ubuguzi bubitswe · Ububiko buravuguruwe",
+    "anomalyWarning": "biragaragara ko birenzeho bisanzwe — nyamuneka emeza mbere yo kubika.",
+    "anomalyWarningPlural": "biragaragara ko birenzeho bisanzwe — nyamuneka emeza mbere yo kubika.",
+    "saveError_one": "Ikintu {{count}} nticyabitswe. Genzura murandasi wongere ubike.",
+    "saveError_other": "Ibintu {{count}} ntibyabitswe. Genzura murandasi wongere ubike.",
+    "enterPortionsHint": "Ongeraho amasahani yagurishijwe kugira ngo ubike.",
+    "portions": "amasahani",
+    "portionsLabel": "{{name}}, amasahani yagurishijwe"
+  }
+}

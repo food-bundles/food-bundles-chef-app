@@ -1,4 +1,4 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -39,19 +39,22 @@ export interface ReceivingLineDto {
 export function startDelivery(
   kitchenId: string,
   orderId: string,
+  opts: WriteOptions = {},
 ): Promise<{ order_id: string; status: string; message: string }> {
   return request(`/kitchens/${kitchenId}/orders/${orderId}/receiving/start`, {
     method: 'POST',
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 
 export function receiveDelivery(
   kitchenId: string,
   orderId: string,
-  body: BulkReceivingBody
+  body: BulkReceivingBody,
+  opts: WriteOptions = {}
 ): Promise<ReceivingLineDto[]> {
   return request<ReceivingLineDto[]>(
     `/kitchens/${kitchenId}/orders/${orderId}/receiving`,
-    { method: 'POST', body }
+    { method: 'POST', body, idempotencyKey: opts.idempotencyKey }
   );
 }

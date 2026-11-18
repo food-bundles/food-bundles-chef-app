@@ -1,6 +1,8 @@
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppButton } from './AppButton';
-import { colors, radius, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { radius, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface ConfirmationDialogProps {
   visible: boolean;
@@ -17,12 +19,16 @@ export function ConfirmationDialog({
   visible,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps) {
+  const tokens = useTheme();
+  const { t } = useTranslation();
+  const confirmText = confirmLabel ?? t('common.confirm');
+  const cancelText = cancelLabel ?? t('common.cancel');
   return (
     <Modal
       visible={visible}
@@ -31,17 +37,17 @@ export function ConfirmationDialog({
       onRequestClose={onCancel}
       accessibilityViewIsModal
     >
-      <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel="Dismiss dialog">
-        <Pressable style={styles.sheet} onPress={() => {}} accessibilityRole="alertdialog">
-          <Text style={styles.title} accessibilityRole="header">{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+      <Pressable style={[styles.backdrop, { backgroundColor: tokens.overlay }]} onPress={onCancel} accessibilityLabel={t('common.dismissDialog')}>
+        <Pressable style={[styles.sheet, { backgroundColor: tokens.surfaceRaised }]} onPress={() => {}} accessibilityRole="alertdialog">
+          <Text style={[styles.title, { color: tokens.text }]} accessibilityRole="header">{title}</Text>
+          <Text style={[styles.message, { color: tokens.textMuted }]}>{message}</Text>
           <View style={styles.actions}>
             <View style={styles.cancelBtn}>
-              <AppButton label={cancelLabel} onPress={onCancel} variant="ghost" />
+              <AppButton label={cancelText} onPress={onCancel} variant="ghost" />
             </View>
             <View style={styles.confirmBtn}>
               <AppButton
-                label={confirmLabel}
+                label={confirmText}
                 onPress={onConfirm}
                 variant={destructive ? 'danger' : 'primary'}
               />
@@ -56,25 +62,21 @@ export function ConfirmationDialog({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
   sheet: {
     width: '100%',
-    backgroundColor: colors.surface[850],
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.md,
   },
   title: {
-    color: colors.white,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
   },
   message: {
-    color: colors.surface[400],
     fontSize: fontSize.base,
     lineHeight: 22,
   },

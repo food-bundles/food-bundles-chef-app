@@ -19,6 +19,8 @@ export type ActionType =
   | 'cancel_order'
   | 'start_delivery'
   | 'receive_delivery'
+  | 'add_menu_item'
+  | 'link_recipe_ingredient'
   | 'undo';
 
 export interface ActionProposal {
@@ -36,6 +38,8 @@ export interface ClarifyingQuestion {
 export interface AgentRequest {
   messages: AgentMessage[];
   last_confirmed_action?: ActionProposal | null;
+  /** Language the assistant must reply in. */
+  language?: 'en' | 'fr' | 'rw';
 }
 
 export interface AgentResponse {
@@ -43,6 +47,8 @@ export interface AgentResponse {
   clarification: ClarifyingQuestion | null;
   reply_text: string;
   last_action: ActionProposal | null;
+  /** Kigali time (HH:MM) the kitchen data behind this reply was read. */
+  as_of?: string | null;
 }
 
 // ── Typed param shapes (used by the confirmation executor) ────────────────────
@@ -59,7 +65,8 @@ export interface RecordInventoryParams {
   ingredient_name: string;
   quantity: string;
   unit: string;
-  entry_type: 'adjustment' | 'daily_use' | 'waste' | 'purchase';
+  /** set = counted stock; add/remove = change from current. */
+  change: 'set' | 'add' | 'remove';
   notes?: string | null;
 }
 
@@ -97,9 +104,16 @@ export interface ReceiveDeliveryParams {
 
 // ── API call ──────────────────────────────────────────────────────────────────
 
-export function agentTurn(kitchenId: string, body: AgentRequest): Promise<AgentResponse> {
+export function agentTurn(
+  kitchenId: string,
+  body: AgentRequest,
+  signal?: AbortSignal,
+  requestId?: string,
+): Promise<AgentResponse> {
   return request<AgentResponse>(`/kitchens/${kitchenId}/ai/agent`, {
     method: 'POST',
     body,
+    signal,
+    requestId,
   });
 }

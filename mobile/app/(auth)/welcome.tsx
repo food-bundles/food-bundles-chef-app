@@ -1,10 +1,14 @@
-import { View, Text, Pressable, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import { AppPressable } from '@/components/ui/AppPressable';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { authPalette, colors } from '@/lib/theme';
 
 const LOGO_URI = 'https://res.cloudinary.com/dzxyelclu/image/upload/v1760111270/Food_bundle_logo_cfsnsw.png';
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   return (
@@ -19,28 +23,28 @@ export default function WelcomeScreen() {
               source={{ uri: LOGO_URI }}
               style={styles.logo}
               resizeMode="cover"
-              accessibilityLabel="Food Bundles"
+              accessibilityLabel={t('common.appName')}
             />
           </View>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Chef App</Text>
+            <Text style={styles.badgeText}>{t('auth.badge')}</Text>
           </View>
         </View>
 
         <View style={styles.divider} />
 
         {/* Hero */}
-        <Text style={styles.headline}>Run your{'\n'}kitchen{'\n'}smarter.</Text>
-        <Text style={styles.sub}>Order right. Receive right.{'\n'}Know your stock before service.</Text>
+        <Text style={styles.headline}>{t('auth.headline')}</Text>
+        <Text style={styles.sub}>{t('auth.taglineSub')}</Text>
 
         {/* Features */}
         <View style={styles.features}>
           {[
-            { icon: '📦', title: 'Smart Purchasing', desc: 'AI suggests what to buy before you run out' },
-            { icon: '🚚', title: 'Delivery Receiving', desc: 'Verify and log deliveries in seconds' },
-            { icon: '📊', title: 'Kitchen Insights', desc: 'Real-time stock and sales at a glance' },
-          ].map(({ icon, title, desc }) => (
-            <View key={title} style={styles.card}>
+            { key: 'purchasing', icon: '📦', title: t('auth.features.purchasingTitle'), desc: t('auth.features.purchasingDesc') },
+            { key: 'receiving', icon: '🚚', title: t('auth.features.receivingTitle'), desc: t('auth.features.receivingDesc') },
+            { key: 'insights', icon: '📊', title: t('auth.features.insightsTitle'), desc: t('auth.features.insightsDesc') },
+          ].map(({ key, icon, title, desc }) => (
+            <View key={key} style={styles.card} accessible accessibilityLabel={`${title}. ${desc}`}>
               <View style={styles.cardIconWrap}>
                 <Text style={styles.cardIcon}>{icon}</Text>
               </View>
@@ -56,17 +60,17 @@ export default function WelcomeScreen() {
 
       {/* CTA — fixed at bottom, always visible */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 32) }]}>
-        <Pressable
+        <AppPressable
           onPress={() => router.push('/(auth)/phone-number')}
           accessibilityRole="button"
-          accessibilityLabel="Get started"
+          accessibilityLabel={t('auth.getStartedLabel')}
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <View style={styles.btn}>
-            <Text style={styles.btnText}>Get Started  →</Text>
+            <Text style={styles.btnText}>{t('auth.getStarted')}</Text>
           </View>
-        </Pressable>
-        <Text style={styles.hint}>For restaurants, hotels & schools in Rwanda</Text>
+        </AppPressable>
+        <Text style={styles.hint}>{t('auth.hint')}</Text>
       </View>
 
 
@@ -77,7 +81,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0A1F10',
+    backgroundColor: authPalette.bgAlt,
   },
   scroll: {
     paddingHorizontal: 24,
@@ -97,23 +101,23 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#22C55E',
+    borderColor: colors.white,
+    backgroundColor: colors.action,
   },
   logo: {
     width: 56,
     height: 56,
   },
   badge: {
-    backgroundColor: '#112B18',
+    backgroundColor: authPalette.card,
     borderWidth: 1,
-    borderColor: '#1E4028',
+    borderColor: authPalette.border,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
   badgeText: {
-    color: '#4ADE80',
+    color: authPalette.highlight,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -122,13 +126,13 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: '#1A3522',
+    backgroundColor: authPalette.ctaBar,
     marginVertical: 24,
   },
 
   // Hero
   headline: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 46,
     fontWeight: '800',
     lineHeight: 54,
@@ -136,7 +140,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sub: {
-    color: '#6B9966',
+    color: authPalette.muted,
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 32,
@@ -149,9 +153,9 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0E2516',
+    backgroundColor: authPalette.input,
     borderWidth: 1,
-    borderColor: '#1C3D24',
+    borderColor: authPalette.inputBorder,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -161,22 +165,22 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#132E1A',
+    backgroundColor: authPalette.cardAlt,
     borderWidth: 1,
-    borderColor: '#1E4028',
+    borderColor: authPalette.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardIcon: { fontSize: 20 },
   cardBody: { flex: 1 },
   cardTitle: {
-    color: '#E8F5E5',
+    color: authPalette.paleText,
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 3,
   },
   cardDesc: {
-    color: '#4D7549',
+    color: authPalette.mutedDim,
     fontSize: 12,
     lineHeight: 17,
   },
@@ -185,35 +189,35 @@ const styles = StyleSheet.create({
   cta: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    backgroundColor: '#0A1F10',
+    backgroundColor: authPalette.bgAlt,
     borderTopWidth: 1,
-    borderTopColor: '#1A3522',
+    borderTopColor: authPalette.ctaBar,
     gap: 12,
   },
   btn: {
     width: '80%',
     alignSelf: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.action,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#22C55E',
+    shadowColor: colors.action,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.6,
     shadowRadius: 16,
     elevation: 12,
   },
   btnText: {
-    color: '#000000',
+    color: colors.black,
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: 0.3,
   },
   hint: {
-    color: '#2E5229',
+    color: authPalette.divider,
     textAlign: 'center',
     fontSize: 12,
   },

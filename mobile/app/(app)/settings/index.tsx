@@ -1,145 +1,457 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Switch, Pressable, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, BellOff, ChevronLeft } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
+  Bell,
+  BellOff,
+  Bot,
+  Check,
+  ChevronLeft,
+  Globe,
+  LogOut,
+  MessageSquare,
+  Moon,
+  RefreshCw,
+  Shield,
+  Smartphone,
+  Sun,
+  Trash2,
+  Volume2,
+} from 'lucide-react-native';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppPressable } from '@/components/ui/AppPressable';
+import { ListRow } from '@/components/ui/ListRow';
+import { Snackbar } from '@/components/ui/Snackbar';
+import { useSessionStore } from '@/store/session-store';
+import { useThemePreference, useTheme } from '@/providers/ThemeProvider';
+import type { ThemePreference } from '@/lib/theme-preference';
+import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
+import { currentLanguage, LANGUAGE_NAMES, setAppLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/language';
+import { getSpokenReplies, hasAiConsent, privacyPolicyUrl, revokeAiConsent, setSpokenReplies } from '@/features/ai/consent';
+import {
+  cancelDailyLowStockReminder,
   getNotificationPermissionStatus,
   requestNotificationPermission,
   scheduleDailyLowStockReminder,
-  cancelDailyLowStockReminder,
   type NotificationPermissionStatus,
 } from '@/services/notifications';
 
+const SUPPORT_EMAIL = 'support@foodbundles.rw';
+
 export default function SettingsScreen() {
+  const { t } = useTranslation();
+  const tokens = useTheme();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
+  const signOut = useSessionStore((s) => s.signOut);
+  const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
+
   const [permStatus, setPermStatus] = useState<NotificationPermissionStatus>('undetermined');
-  const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [dailyReminder, setDailyReminder] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [language, setLanguage] = useState<SupportedLanguage>(currentLanguage());
+  const [spoken, setSpoken] = useState(false);
+  const [aiConsent, setAiConsent] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [snack, setSnack] = useState<string | null>(null);
+
+  const policyUrl = privacyPolicyUrl();
+  const version = Constants.expoConfig?.version ?? '';
+
+  useEffect(() => {
+    void getSpokenReplies().then(setSpoken);
+    void hasAiConsent().then(setAiConsent);
+  }, []);
 
   const refreshPermStatus = useCallback(async () => {
-    const status = await getNotificationPermissionStatus();
-    setPermStatus(status);
+    setPermStatus(await getNotificationPermissionStatus());
   }, []);
 
   useEffect(() => {
-    void refreshPermStatus();
+    let active = true;
+    void getNotificationPermissionStatus().then((status) => {
+      if (active) setPermStatus(status);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Re-check permission when returning from the device settings (#19).
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (appStateRef.current !== 'active' && next === 'active') void refreshPermStatus();
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
   }, [refreshPermStatus]);
 
-  const handleRequestPermission = async () => {
-    setLoading(true);
-    const status = await requestNotificationPermission();
-    setPermStatus(status);
-    setLoading(false);
+  const changeLanguage = async (lang: SupportedLanguage) => {
+    setLanguage(lang);
+    await setAppLanguage(lang);
   };
 
-  const handleDailyReminderToggle = async (value: boolean) => {
-    setDailyReminderEnabled(value);
+  const requestPermission = async () => {
+    setRequesting(true);
+    setPermStatus(await requestNotificationPermission());
+    setRequesting(false);
+  };
+
+  const toggleDailyReminder = async (value: boolean) => {
+    setDailyReminder(value);
+    if (value) await scheduleDailyLowStockReminder(7, 0);
+    else await cancelDailyLowStockReminder();
+  };
+
+  const toggleSpoken = async (value: boolean) => {
+    setSpoken(value);
+    await setSpokenReplies(value);
+  };
+
+  const toggleAiConsent = async (value: boolean) => {
     if (value) {
-      await scheduleDailyLowStockReminder(7, 0);
-    } else {
-      await cancelDailyLowStockReminder();
+      // Consent is given through the notice itself, on the next AI use.
+      setSnack(t('settings.ai.consentNextUse'));
+      return;
+    }
+    await revokeAiConsent();
+    setAiConsent(false);
+  };
+
+  // Real refresh: refetch everything the app is showing (no simulated "sync").
+  const refreshData = async () => {
+    setRefreshing(true);
+    try {
+      await qc.invalidateQueries();
+      await qc.refetchQueries({ type: 'active' });
+      setSnack(t('settings.refreshDone'));
+    } catch {
+      setSnack(t('settings.refreshFailed'));
+    } finally {
+      setRefreshing(false);
     }
   };
 
+  const confirmSignOut = () =>
+    Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMsg'), [
+      { text: t('profile.signOutConfirmCancel'), style: 'cancel' },
+      {
+        text: t('profile.signOutConfirmAction'),
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/welcome');
+        },
+      },
+    ]);
+
+  const explainDeleteAccount = () =>
+    Alert.alert(t('settings.deleteAccount'), t('settings.deleteAccountBody', { email: SUPPORT_EMAIL }), [
+      { text: t('common.close'), style: 'cancel' },
+      { text: t('settings.contactSupport'), onPress: () => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`) },
+    ]);
+
+  const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+    { value: 'light', label: t('settings.themeLight'), Icon: Sun },
+    { value: 'dark', label: t('settings.themeDark'), Icon: Moon },
+    { value: 'system', label: t('settings.themeSystem'), Icon: Smartphone },
+  ];
+
   return (
-    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center gap-3">
-        <Pressable
+    <View style={[styles.root, { backgroundColor: tokens.surface, paddingTop: insets.top }]}>
+      <View style={[styles.header, { borderBottomColor: tokens.border, backgroundColor: tokens.surfaceRaised }]}>
+        <AppPressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={t('common.back')}
+          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         >
-          <ChevronLeft size={24} color="#9CA3AF" strokeWidth={2} />
-        </Pressable>
-        <Text className="text-surface-900 dark:text-white text-lg font-bold">Settings</Text>
+          <ChevronLeft size={24} color={tokens.text} strokeWidth={2} />
+        </AppPressable>
+        <Text style={[styles.headerTitle, { color: tokens.text }]} accessibilityRole="header">
+          {t('settings.title')}
+        </Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Notifications section */}
-        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1">
-          Notifications
-        </Text>
-
-        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl overflow-hidden">
-          {/* Permission row */}
-          <View className="px-4 py-4 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-700">
-            <View className="flex-row items-center gap-3 flex-1">
-              {permStatus === 'granted' ? (
-                <Bell size={20} color="#1DB954" strokeWidth={2} />
-              ) : (
-                <BellOff size={20} color="#9CA3AF" strokeWidth={2} />
-              )}
-              <View className="flex-1">
-                <Text className="text-surface-900 dark:text-white font-medium">Push Notifications</Text>
-                <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
-                  {permStatus === 'granted'
-                    ? 'Enabled'
-                    : permStatus === 'denied'
-                    ? 'Denied — change in system settings'
-                    : 'Not yet enabled'}
-                </Text>
-              </View>
-            </View>
-            {permStatus !== 'granted' && permStatus !== 'denied' && (
-              <Pressable
-                onPress={handleRequestPermission}
-                disabled={loading}
-                accessibilityRole="button"
-                accessibilityLabel="Enable notifications"
-                className="bg-brand-500 rounded-lg px-3 py-1.5 active:opacity-80"
-              >
-                <Text className="text-white text-sm font-semibold">Enable</Text>
-              </Pressable>
-            )}
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]} showsVerticalScrollIndicator={false}>
+        {/* Notifications */}
+        <Section title={t('settings.sectionNotifications')}>
+          <ListRow
+            icon={permStatus === 'granted' ? <Bell size={18} color={tokens.link} /> : <BellOff size={18} color={tokens.textMuted} />}
+            iconBg={tokens.primaryTint}
+            title={t('settings.pushNotifications')}
+            subtitle={
+              permStatus === 'granted'
+                ? t('settings.notificationsOn')
+                : permStatus === 'denied'
+                  ? t('settings.notificationsDenied')
+                  : t('settings.notificationsOff')
+            }
+            trailing={
+              permStatus === 'undetermined' ? (
+                <View style={styles.inlineButton}>
+                  <AppButton label={t('settings.enableNotifications')} onPress={() => void requestPermission()} loading={requesting} />
+                </View>
+              ) : undefined
+            }
+            chevron={false}
+          />
+          <ListRow
+            title={t('settings.dailyStockReminder')}
+            subtitle={t('settings.dailyStockReminderSub')}
+            trailing={
+              <Switch
+                value={dailyReminder}
+                onValueChange={(v) => void toggleDailyReminder(v)}
+                disabled={permStatus !== 'granted'}
+                trackColor={{ false: tokens.border, true: tokens.primary }}
+                thumbColor={tokens.surfaceRaised}
+                ios_backgroundColor={tokens.border}
+                accessibilityLabel={t('settings.dailyStockReminder')}
+              />
+            }
+            chevron={false}
+            separator={false}
+          />
+        </Section>
+        {permStatus === 'denied' ? (
+          <View style={[styles.banner, { backgroundColor: tokens.warningTint }]}>
+            <Text style={[styles.bannerTitle, { color: tokens.warningText }]}>{t('settings.notificationsBlocked')}</Text>
+            <Text style={[styles.bannerBody, { color: tokens.text }]}>{t('settings.notificationsBlockedBody')}</Text>
+            <AppButton label={t('settings.openSettings')} variant="secondary" onPress={() => void Linking.openSettings()} />
           </View>
+        ) : null}
 
-          {/* Daily reminder row */}
-          <View className="px-4 py-4 flex-row items-center justify-between">
-            <View className="flex-1 mr-3">
-              <Text className="text-surface-900 dark:text-white font-medium">Daily Stock Reminder</Text>
-              <Text className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">
-                Reminder at 7:00 AM to review low-stock ingredients
-              </Text>
+        {/* Kitchen */}
+        <Section title={t('settings.sectionKitchen')}>
+          <ListRow
+            icon={<Globe size={18} color={tokens.link} />}
+            iconBg={tokens.primaryTint}
+            title={t('settings.manageKitchens')}
+            subtitle={t('settings.manageKitchensSub')}
+            onPress={() => router.push('/(app)/kitchens')}
+          />
+          <ListRow
+            icon={<RefreshCw size={18} color={tokens.link} />}
+            iconBg={tokens.primaryTint}
+            title={refreshing ? t('settings.refreshing') : t('settings.syncData')}
+            subtitle={t('settings.syncDataSub')}
+            onPress={() => void refreshData()}
+            disabled={refreshing}
+            chevron={false}
+            separator={false}
+          />
+        </Section>
+
+        {/* Appearance */}
+        <Section title={t('settings.sectionAppearance')}>
+          <View style={styles.segmentWrap}>
+            <Text style={[styles.rowTitle, { color: tokens.text }]}>{t('settings.theme')}</Text>
+            <View style={styles.segment} accessibilityRole="radiogroup">
+              {themeOptions.map(({ value, label, Icon }) => {
+                const active = themePreference === value;
+                return (
+                  <AppPressable
+                    key={value}
+                    onPress={() => void setThemePreference(value)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={label}
+                    accessibilityState={{ checked: active }}
+                    style={({ pressed }) => [
+                      styles.segmentItem,
+                      { borderColor: active ? tokens.primary : tokens.border, backgroundColor: active ? tokens.primary : 'transparent' },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Icon size={16} color={active ? tokens.onPrimary : tokens.text} />
+                    <Text style={[styles.segmentText, { color: active ? tokens.onPrimary : tokens.text }]}>{label}</Text>
+                  </AppPressable>
+                );
+              })}
             </View>
-            <Switch
-              value={dailyReminderEnabled}
-              onValueChange={handleDailyReminderToggle}
-              disabled={permStatus !== 'granted'}
-              trackColor={{ false: '#374151', true: '#1DB954' }}
-              thumbColor={dailyReminderEnabled ? '#ffffff' : '#9CA3AF'}
-              accessibilityLabel="Daily stock reminder toggle"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: dailyReminderEnabled }}
+          </View>
+        </Section>
+
+        {/* Language — each name in its own language, never truncated */}
+        <Section title={t('settings.language')}>
+          <View accessibilityRole="radiogroup">
+            {SUPPORTED_LANGUAGES.map((lang, i) => (
+              <ListRow
+                key={lang}
+                title={LANGUAGE_NAMES[lang]}
+                onPress={() => void changeLanguage(lang)}
+                trailing={language === lang ? <Check size={20} color={tokens.link} /> : undefined}
+                chevron={false}
+                separator={i < SUPPORTED_LANGUAGES.length - 1}
+                accessibilityLabel={`${LANGUAGE_NAMES[lang]}${language === lang ? `, ${t('settings.selected')}` : ''}`}
+              />
+            ))}
+          </View>
+        </Section>
+
+        {/* Assistant & AI */}
+        <Section title={t('settings.sectionAi')}>
+          <ListRow
+            icon={<Volume2 size={18} color={tokens.link} />}
+            iconBg={tokens.primaryTint}
+            title={t('settings.ai.spokenReplies')}
+            subtitle={language === 'rw' ? t('settings.ai.spokenRepliesNoRw') : t('settings.ai.spokenRepliesSub')}
+            trailing={
+              <Switch
+                value={spoken}
+                onValueChange={(v) => void toggleSpoken(v)}
+                trackColor={{ false: tokens.border, true: tokens.primary }}
+                thumbColor={tokens.surfaceRaised}
+                ios_backgroundColor={tokens.border}
+                accessibilityLabel={t('settings.ai.spokenReplies')}
+              />
+            }
+            chevron={false}
+          />
+          <ListRow
+            icon={<Bot size={18} color={tokens.link} />}
+            iconBg={tokens.primaryTint}
+            title={t('settings.ai.photosVoice')}
+            subtitle={t('settings.ai.photosVoiceSub')}
+            trailing={
+              <Switch
+                value={aiConsent}
+                onValueChange={(v) => void toggleAiConsent(v)}
+                trackColor={{ false: tokens.border, true: tokens.primary }}
+                thumbColor={tokens.surfaceRaised}
+                ios_backgroundColor={tokens.border}
+                accessibilityLabel={t('settings.ai.photosVoice')}
+              />
+            }
+            chevron={false}
+            separator={false}
+          />
+        </Section>
+
+        {/* Support */}
+        <Section title={t('settings.sectionSupport')}>
+          <ListRow
+            icon={<MessageSquare size={18} color={tokens.link} />}
+            iconBg={tokens.primaryTint}
+            title={t('settings.contactSupport')}
+            subtitle={SUPPORT_EMAIL}
+            onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+            separator={Boolean(policyUrl)}
+          />
+          {policyUrl ? (
+            <ListRow
+              icon={<Shield size={18} color={tokens.link} />}
+              iconBg={tokens.primaryTint}
+              title={t('settings.privacyPolicy')}
+              subtitle={t('settings.privacyPolicySub')}
+              onPress={() => void Linking.openURL(policyUrl)}
+              separator={false}
             />
-          </View>
-        </View>
+          ) : null}
+        </Section>
 
-        {permStatus === 'denied' && (
-          <View className="bg-warning/10 border border-warning/30 rounded-xl p-4">
-            <Text className="text-warning text-sm font-medium mb-1">Notifications blocked</Text>
-            <Text className="text-surface-700 dark:text-surface-300 text-sm">
-              Open your device Settings → Food Bundles Chef → Notifications and enable them there.
-            </Text>
-          </View>
-        )}
+        {/* Account */}
+        <Section title={t('settings.sectionAccount')}>
+          <ListRow
+            icon={<LogOut size={18} color={tokens.danger} />}
+            iconBg={tokens.dangerTint}
+            title={t('settings.signOut')}
+            onPress={confirmSignOut}
+            destructive
+            chevron={false}
+          />
+          <ListRow
+            icon={<Trash2 size={18} color={tokens.danger} />}
+            iconBg={tokens.dangerTint}
+            title={t('settings.deleteAccount')}
+            subtitle={t('settings.deleteAccountSub')}
+            onPress={explainDeleteAccount}
+            destructive
+            chevron={false}
+            separator={false}
+          />
+        </Section>
 
-        {/* App info section */}
-        <Text className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wider px-1 mt-2">
-          App
-        </Text>
-        <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl px-4 py-4">
-          <View className="flex-row justify-between">
-            <Text className="text-surface-600 dark:text-surface-400 text-sm">Version</Text>
-            <Text className="text-surface-900 dark:text-white text-sm">1.0.0 (Phase 08)</Text>
-          </View>
+        {/* Footer — long-press the version to open the UI gallery (development builds only) */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerName, { color: tokens.text }]}>{t('common.appName')}</Text>
+          <AppPressable
+            onLongPress={__DEV__ ? () => router.push('/(dev)/ui-gallery') : undefined}
+            accessibilityRole="text"
+            accessibilityHint={__DEV__ ? t('settings.galleryHint') : undefined}
+            hitSlop={{ top: 12, bottom: 12, left: 32, right: 32 }}
+          >
+            <Text style={[styles.footerMuted, { color: tokens.textMuted }]}>{t('settings.version', { version })}</Text>
+          </AppPressable>
+          <Text style={[styles.footerMuted, { color: tokens.textMuted }]}>{t('profile.footerTagline')}</Text>
         </View>
       </ScrollView>
+
+      <Snackbar visible={snack !== null} message={snack ?? ''} onDismiss={() => setSnack(null)} />
     </View>
   );
 }
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  const tokens = useTheme();
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: tokens.textMuted }]} accessibilityRole="header">
+        {title}
+      </Text>
+      <View style={[styles.card, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border }]}>{children}</View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
+  pressed: { opacity: 0.7 },
+  content: { padding: spacing.md, gap: spacing.lg },
+  section: { gap: spacing.sm },
+  sectionTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  card: { borderRadius: radius.lg, borderWidth: 1, overflow: 'hidden' },
+  inlineButton: { minWidth: 96 },
+  banner: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
+  bannerTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
+  bannerBody: { fontSize: fontSize.sm, lineHeight: 20 },
+  segmentWrap: { padding: spacing.md, gap: spacing.sm },
+  rowTitle: { fontSize: fontSize.base, fontWeight: fontWeight.medium },
+  segment: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  segmentItem: {
+    flexGrow: 1,
+    flexBasis: 90,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+  },
+  segmentText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
+  footer: { alignItems: 'center', gap: 4, paddingTop: spacing.sm },
+  footerName: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, textTransform: 'uppercase', letterSpacing: 1.5 },
+  footerMuted: { fontSize: fontSize.xs },
+});

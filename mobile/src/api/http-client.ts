@@ -34,6 +34,15 @@ export interface RequestOptions {
   /** Skip the transparent 401 refresh retry (used by refresh endpoint itself). */
   skipRefresh?: boolean;
   signal?: AbortSignal;
+  /** Server replays the first successful response for a repeated key (no double writes). */
+  idempotencyKey?: string;
+  /** Sent as X-Request-ID so one call can be traced across app and server logs. */
+  requestId?: string;
+}
+
+/** Options accepted by write helpers that may be retried (e.g. AI-confirmed actions). */
+export interface WriteOptions {
+  idempotencyKey?: string;
 }
 
 /**
@@ -47,11 +56,15 @@ export interface RequestOptions {
  * - Maps all errors to typed ApiError
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, skipAuth = false, skipRefresh = false, signal } = options;
+  const { method = 'GET', body, skipAuth = false, skipRefresh = false, signal, idempotencyKey, requestId } = options;
+  const extraHeaders: Record<string, string> = {
+    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+    ...(requestId ? { 'X-Request-ID': requestId } : {}),
+  };
 
   const accessToken = skipAuth ? null : (await _tokenProvider?.getAccessToken()) ?? null;
 
-  const response = await executeRequest(path, method, body, accessToken, signal);
+  const response = await executeRequest(path, method, body, accessToken, signal, extraHeaders);
 
   // Transparent refresh on 401
   if (response.status === 401 && !skipAuth && !skipRefresh && _tokenProvider) {
@@ -60,7 +73,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       try {
         const refreshed = await refreshAccessToken(refreshToken);
         await _tokenProvider.onTokensRefreshed(refreshed.access_token, refreshed.refresh_token);
-        const retryResponse = await executeRequest(path, method, body, refreshed.access_token, signal);
+        const retryResponse = await executeRequest(path, method, body, refreshed.access_token, signal, extraHeaders);
         if (!retryResponse.ok) throw await responseToApiError(retryResponse);
         return (await retryResponse.json()) as T;
       } catch (err) {
@@ -84,7 +97,8 @@ async function executeRequest(
   method: string,
   body: unknown,
   accessToken: string | null,
-  externalSignal?: AbortSignal
+  externalSignal?: AbortSignal,
+  extraHeaders: Record<string, string> = {}
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -97,6 +111,7 @@ async function executeRequest(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    ...extraHeaders,
   };
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;

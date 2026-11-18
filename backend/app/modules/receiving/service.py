@@ -9,10 +9,13 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import SHORT_DELIVERY_THRESHOLD
 from app.core.exceptions import ConflictError, NotFoundError
+from app.domain.calculations import convert_quantity
+from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.models import InventoryEntry
 from app.modules.inventory.repository import InventoryRepository
 from app.modules.kitchens.models import Kitchen
@@ -23,13 +26,64 @@ from app.modules.receiving.models import DeliveryReceiving
 from app.modules.receiving.schemas import BulkReceivingRequest, ReceivingResponse
 from app.shared.enums import OrderStatus, ReceivingDecision
 
+logger = structlog.get_logger(__name__)
+
 
 class ReceivingService:
     def __init__(self, db: AsyncSession) -> None:
         self._order_repo = OrderRepository(db)
         self._line_repo = OrderLineRepository(db)
         self._inv_repo = InventoryRepository(db)
+        self._ingredient_repo = IngredientRepository(db)
         self._db = db
+
+    async def _add_delivery_to_stock(
+        self,
+        kitchen_id: uuid.UUID,
+        chef_id: uuid.UUID,
+        order_id: uuid.UUID,
+        order_line: OrderLine,
+        accepted_qty: Decimal,
+    ) -> None:
+        """Add the accepted quantity to the ingredient's current stock.
+
+        Walk-in lines without an ingredient mapping are matched by name. Lines whose
+        unit cannot be converted to the ingredient's unit are skipped, never guessed.
+        """
+        ingredient = None
+        if order_line.ingredient_id is not None:
+            ingredient = await self._ingredient_repo.get_by_id_and_kitchen(
+                order_line.ingredient_id, kitchen_id
+            )
+        if ingredient is None:
+            ingredient = await self._ingredient_repo.find_by_name(
+                kitchen_id, order_line.product_name
+            )
+        if ingredient is None:
+            return
+
+        qty = convert_quantity(accepted_qty, order_line.unit, ingredient.unit)
+        if qty is None:
+            logger.warning(
+                "delivery_unit_mismatch",
+                kitchen_id=str(kitchen_id),
+                ingredient_id=str(ingredient.id),
+            )
+            return
+
+        current = await self._inv_repo.current_stock(kitchen_id, ingredient.id)
+        self._db.add(
+            InventoryEntry(
+                kitchen_id=kitchen_id,
+                ingredient_id=ingredient.id,
+                quantity=current + qty,
+                entry_type="delivery",
+                notes=f"Delivery from order {order_id}: +{qty} {ingredient.unit}",
+                recorded_by=chef_id,
+            )
+        )
+        # Flush so a second line for the same ingredient reads this new level.
+        await self._db.flush()
 
     async def start_delivery(
         self,
@@ -71,7 +125,7 @@ class ReceivingService:
                 "Order must be CONFIRMED or OUT_FOR_DELIVERY."
             )
 
-        line_map: dict[uuid.UUID, OrderLine] = {l.id: l for l in order.lines}
+        line_map: dict[uuid.UUID, OrderLine] = {line.id: line for line in order.lines}
         responses: list[ReceivingResponse] = []
 
         for req_line in data.lines:
@@ -99,16 +153,10 @@ class ReceivingService:
             await self._db.flush()
             await self._db.refresh(receiving)
 
-            if accepted_qty > Decimal("0") and order_line.ingredient_id is not None:
-                entry = InventoryEntry(
-                    kitchen_id=kitchen.id,
-                    ingredient_id=order_line.ingredient_id,
-                    quantity=accepted_qty,
-                    entry_type="delivery",
-                    notes=f"Delivery from order {order_id}",
-                    recorded_by=chef_id,
+            if accepted_qty > Decimal("0"):
+                await self._add_delivery_to_stock(
+                    kitchen.id, chef_id, order_id, order_line, accepted_qty
                 )
-                self._db.add(entry)
 
             responses.append(ReceivingResponse.model_validate(receiving))
 

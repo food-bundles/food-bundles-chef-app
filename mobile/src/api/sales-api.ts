@@ -1,4 +1,4 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -30,15 +30,31 @@ export interface WeeklySalesSummaryDto {
   weeks: WeeklyTotalDto[];
 }
 
+/** Same-day total; revenue is priced at each item's current selling price. */
+export interface DailySalesSummaryDto {
+  day: string;
+  portions: number;
+  revenue: string; // decimal string, RWF
+  currency: 'RWF';
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
+
+export function getDailySalesSummary(kitchenId: string, day: string): Promise<DailySalesSummaryDto> {
+  return request<DailySalesSummaryDto>(
+    `/kitchens/${kitchenId}/sales/daily-summary?date=${encodeURIComponent(day)}`
+  );
+}
 
 export function recordSale(
   kitchenId: string,
-  body: SaleRecordCreateBody
+  body: SaleRecordCreateBody,
+  opts: WriteOptions = {}
 ): Promise<SaleRecordDto> {
   return request<SaleRecordDto>(`/kitchens/${kitchenId}/sales`, {
     method: 'POST',
     body,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 

@@ -9,7 +9,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AgentRole(StrEnum):
@@ -34,6 +34,8 @@ class ActionType(StrEnum):
     CANCEL_ORDER = "cancel_order"
     START_DELIVERY = "start_delivery"
     RECEIVE_DELIVERY = "receive_delivery"
+    ADD_MENU_ITEM = "add_menu_item"
+    LINK_RECIPE_INGREDIENT = "link_recipe_ingredient"
     UNDO = "undo"
 
 
@@ -48,11 +50,31 @@ class RecordSaleParams(BaseModel):
 
 class RecordInventoryParams(BaseModel):
     ingredient_id: str
-    ingredient_name: str
-    quantity: Decimal
-    unit: str
-    entry_type: Literal["adjustment", "daily_use", "waste", "purchase"]
+    ingredient_name: str = ""
+    quantity: Decimal = Field(..., ge=0)
+    unit: str = ""
+    change: Literal["set", "add", "remove"]
     notes: str | None = None
+
+
+class CreateIngredientParams(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    unit: str = Field(..., min_length=1, max_length=30)
+
+
+class AddMenuItemParams(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    selling_price: Decimal = Field(..., ge=0)
+    category: Literal["main", "side", "drink", "dessert"] | None = None
+
+
+class LinkRecipeIngredientParams(BaseModel):
+    menu_item_id: str
+    menu_item_name: str = ""
+    ingredient_id: str
+    ingredient_name: str = ""
+    qty_per_portion: Decimal = Field(..., gt=0)
+    unit: str = Field(..., min_length=1, max_length=30)
 
 
 class OrderLineParams(BaseModel):
@@ -120,6 +142,49 @@ class AgentRequest(BaseModel):
     messages: list[AgentMessage] = Field(..., min_length=1)
     # Optional: tracks the last confirmed action so the agent can offer undo
     last_confirmed_action: ActionProposal | None = None
+    # Reply language selected in the app
+    language: Literal["en", "fr", "rw"] = "en"
+
+
+# Params schema each action must satisfy before it reaches the chef as an action card.
+ACTION_PARAMS: dict[ActionType, type[BaseModel]] = {
+    ActionType.RECORD_SALE: RecordSaleParams,
+    ActionType.RECORD_INVENTORY: RecordInventoryParams,
+    ActionType.CREATE_INGREDIENT: CreateIngredientParams,
+    ActionType.ADD_MENU_ITEM: AddMenuItemParams,
+    ActionType.LINK_RECIPE_INGREDIENT: LinkRecipeIngredientParams,
+    ActionType.CREATE_ORDER: CreateOrderParams,
+    ActionType.SUBMIT_ORDER: OrderIdParams,
+    ActionType.CANCEL_ORDER: OrderIdParams,
+    ActionType.START_DELIVERY: OrderIdParams,
+    ActionType.RECEIVE_DELIVERY: ReceiveDeliveryParams,
+}
+
+
+class ModelAgentTurn(BaseModel):
+    """What the model must return for one assistant turn (validated, repaired once)."""
+
+    type: Literal["proposal", "clarification", "answer"]
+    reply_text: str = Field(..., min_length=1, max_length=2000)
+    action_type: ActionType | None = None
+    summary: str | None = Field(default=None, max_length=200)
+    params: dict[str, Any] | None = None
+    question: str | None = Field(default=None, max_length=500)
+    options: list[str] | None = Field(default=None, max_length=6)
+
+    @model_validator(mode="after")
+    def _check_shape(self) -> ModelAgentTurn:
+        if self.type == "proposal":
+            if self.action_type is None or self.action_type == ActionType.UNDO or not self.summary:
+                raise ValueError("a proposal needs action_type and summary")
+            params_model = ACTION_PARAMS.get(self.action_type)
+            if params_model is None:
+                raise ValueError(f"unsupported action_type {self.action_type}")
+            # Normalise params through the typed model (raises on bad shape).
+            self.params = params_model.model_validate(self.params or {}).model_dump(mode="json")
+        if self.type == "clarification" and not self.question:
+            raise ValueError("a clarification needs a question")
+        return self
 
 
 class AgentResponse(BaseModel):
@@ -130,3 +195,5 @@ class AgentResponse(BaseModel):
     reply_text: str
     # Echo last action for undo chaining
     last_action: ActionProposal | None = None
+    # Kigali time (HH:MM) the kitchen data behind this reply was read
+    as_of: str | None = None

@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
-from app.domain.calculations import recipe_cost
+from app.domain.calculations import convert_quantity, recipe_cost
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.kitchens.models import Kitchen
 from app.modules.menus.repository import MenuItemRepository
@@ -96,13 +96,13 @@ class RecipeService:
             ing = line.ingredient
             yld = line.yield_fraction_override or ing.yield_fraction
             cost = ing.cost_per_unit
+            # cost_per_unit is per ingredient unit, so express the recipe quantity in it first
+            qty_in_ing_unit = convert_quantity(line.qty_per_portion, line.unit, ing.unit)
 
             line_cost: Decimal | None = None
-            if cost is not None and yld > Decimal("0"):
-                line_cost = (line.qty_per_portion / yld * cost).quantize(
-                    Decimal("0.01")
-                )
-                cost_lines.append((line.qty_per_portion, yld, cost))
+            if cost is not None and yld > Decimal("0") and qty_in_ing_unit is not None:
+                line_cost = (qty_in_ing_unit / yld * cost).quantize(Decimal("0.01"))
+                cost_lines.append((qty_in_ing_unit, yld, cost))
 
             details.append(
                 RecipeLineCostDetail(

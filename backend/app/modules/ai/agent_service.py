@@ -1,156 +1,181 @@
 """AI agent service — plans actions on behalf of the chef.
 
-The agent PLANS only. It never writes to the database.
-Every proposed action must be confirmed by the chef on mobile before
-the real API endpoint is called.
+The agent PLANS only. It never writes to the database. Every proposed action is
+schema-validated here and shown to the chef as an action card on mobile; the mobile
+app calls the real endpoint only after the chef confirms.
 
 Flow:
-  1. Build kitchen context (stock, open orders, menu items)
-  2. Build conversation history for Muse Spark
-  3. Call Muse Spark → parse structured JSON response
-  4. Return either ClarifyingQuestion or ActionProposal
+  1. Build kitchen context (stock, today's sales, menu + recipe cost, open orders),
+     stamped with the time it was read (Kigali time)
+  2. Cap the conversation (last turns only, newest image only)
+  3. Structured model call → validate → one repair attempt → typed error
 """
+
 from __future__ import annotations
 
-import json
-import re
-import uuid
-from datetime import date
-from typing import Any
+import base64
+from dataclasses import dataclass, field
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import AiDisabledError, AiProviderError
-from app.integrations.meta_model_api.client import chat
+from app.core.exceptions import AiDisabledError
+from app.modules.ai.gateway.core import (
+    check_rate_limit,
+    language_name,
+    load_prompt,
+    structured_call,
+    validate_image,
+)
 from app.modules.ai.schemas.agent import (
     ActionProposal,
     ActionType,
-    AgentMessage,
     AgentRequest,
     AgentResponse,
     ClarifyingQuestion,
+    ModelAgentTurn,
 )
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.service import InventoryService
 from app.modules.kitchens.models import Kitchen
 from app.modules.menus.repository import MenuItemRepository
 from app.modules.orders.repository import OrderRepository
+from app.modules.recipes.service import RecipeService
+from app.modules.sales.repository import SalesRepository
 from app.shared.enums import OrderStatus
 
 logger = structlog.get_logger(__name__)
 
-_SYSTEM_PROMPT_TEMPLATE = """You are the Food Bundles kitchen assistant for chef {chef_name}.
-You act on behalf of the chef — you plan actions and they confirm once. Be decisive and helpful.
-
-KITCHEN CONTEXT:
-{kitchen_context}
-
-RULES:
-1. You NEVER write to the database — you only propose actions. The chef confirms once.
-2. ACT on the first message if you have enough information. Do NOT ask for things you already know.
-3. Only ask a clarifying question when a critical piece of information is genuinely absent (e.g. the chef says "order bananas" with no quantity at all). Ask at most ONE question.
-4. If quantities, items, or action are clear from the conversation — propose immediately without asking again.
-5. When the chef says "yes", "yeah", "proceed", "go ahead", "confirm", "do it" — treat that as confirmation of the last proposal and proceed with the action.
-8. If the conversation history shows "Action executed: <something>" — that action is DONE. Do not re-propose it. Acknowledge it and ask what's next.
-9. If the chef wants to adjust stock for an ingredient that is NOT listed in the kitchen context, propose create_ingredient first. After it is confirmed, propose record_inventory using the new ingredient's id.
-6. Be concise. Talk like a kitchen colleague, not a corporate assistant. No filler phrases.
-7. Quantities must be numbers. Dates must be ISO format (YYYY-MM-DD). Today is {today}.
-
-AVAILABLE ACTIONS AND THEIR PARAMS:
-
-record_sale — record portions sold for a menu item
-  params: {{ "menu_item_id": "<id from context>", "portions_sold": <number>, "date": "<YYYY-MM-DD>" }}
-
-record_inventory — adjust stock quantity
-  params: {{ "ingredient_id": "<id from context>", "quantity": "<number as string>", "entry_type": "adjustment|delivery|waste", "notes": "<optional string or null>" }}
-
-create_ingredient — add a new ingredient to this kitchen (use this FIRST if no matching ingredient exists before record_inventory)
-  params: {{ "name": "<ingredient name>", "unit": "<kg|pieces|litres|bunches|etc>" }}
-
-create_order — create a purchase order
-  params: {{ "delivery_date": "<YYYY-MM-DD or null>", "notes": "<string or null>",
-    "lines": [
-      {{ "catalog_product_id": "manual", "product_name": "<item name>", "unit": "<kg|pieces|litres|etc>", "quantity_ordered": "<number>", "unit_price": "0", "ingredient_id": null }}
-    ]
-  }}
-  IMPORTANT: Always use "manual" for catalog_product_id and "0" for unit_price. Use the product name the chef gave you. Never refuse to create an order because a product is not in the catalog.
-
-submit_order — submit a draft order to supplier
-  params: {{ "order_id": "<id from context>" }}
-
-cancel_order — cancel a draft or submitted order
-  params: {{ "order_id": "<id from context>" }}
-
-start_delivery — mark a confirmed order as out for delivery
-  params: {{ "order_id": "<id from context>" }}
-
-receive_delivery — record received items
-  params: {{ "order_id": "<id from context>", "lines": [{{ "order_line_id": "<id>", "quantity_received": "<number>", "decision": "accepted|partially-accepted|rejected", "rejection_reason": null }}] }}
-
-undo — reverse last action
-  params: {{}}
-
-RESPONSE FORMAT — respond with ONLY a raw JSON object, no markdown, no code fences, no text before or after:
-
-Propose an action (use this whenever you have enough information):
-{{"type":"proposal","reply_text":"<friendly 1-2 sentence explanation>","action_type":"<action>","summary":"<short human-readable summary>","params":{{...}},"reversible":true}}
-
-Ask for missing critical info (only when truly needed):
-{{"type":"clarification","reply_text":"<what you understood>","question":"<single specific question>","options":["<opt1>","<opt2>"]}}
-
-Cannot help:
-{{"type":"none","reply_text":"<brief explanation of what you can and cannot do>"}}
-"""
+AGENT_PROMPT = ("agent", "v2")
+KIGALI = ZoneInfo("Africa/Kigali")
+# Context window guard: only the most recent turns are sent to the model.
+MAX_HISTORY_MESSAGES = 20
+MAX_MESSAGE_CHARS = 2000
 
 
-async def _build_kitchen_context(
-    kitchen: Kitchen,
-    db: AsyncSession,
-) -> str:
-    """Fetch current stock, open orders and menu items for the system prompt."""
+@dataclass
+class KnownIds:
+    """Records of the active kitchen (id → name) — proposals may only reference these."""
+
+    ingredients: dict[str, str] = field(default_factory=dict)
+    menu_items: dict[str, str] = field(default_factory=dict)
+    orders: dict[str, str] = field(default_factory=dict)
+
+
+# (id param, record bucket, name param to overwrite with the real name or None)
+_REFERENCES: dict[ActionType, list[tuple[str, str, str | None]]] = {
+    ActionType.RECORD_SALE: [("menu_item_id", "menu_items", "menu_item_name")],
+    ActionType.RECORD_INVENTORY: [("ingredient_id", "ingredients", "ingredient_name")],
+    ActionType.LINK_RECIPE_INGREDIENT: [
+        ("menu_item_id", "menu_items", "menu_item_name"),
+        ("ingredient_id", "ingredients", "ingredient_name"),
+    ],
+    ActionType.SUBMIT_ORDER: [("order_id", "orders", None)],
+    ActionType.CANCEL_ORDER: [("order_id", "orders", None)],
+    ActionType.START_DELIVERY: [("order_id", "orders", None)],
+    ActionType.RECEIVE_DELIVERY: [("order_id", "orders", None)],
+}
+
+# Shown instead of an action card when the model referenced something outside this kitchen.
+_UNKNOWN_REFERENCE_REPLY = {
+    "en": "I couldn't match that to this kitchen's data.",
+    "fr": "Je n'ai pas trouvé cet élément dans les données de cette cuisine.",
+    "rw": "Sinabonye icyo kintu mu makuru y'iki gikoni.",
+}
+_UNKNOWN_REFERENCE_QUESTION = {
+    "en": "Which dish, ingredient or order did you mean?",
+    "fr": "De quel plat, ingrédient ou commande parlez-vous ?",
+    # Draft — pending native-speaker review (see mobile/docs/i18n-rw-review.md).
+    "rw": "Ni iki washakaga kuvuga?",
+}
+
+
+def resolve_references(
+    action_type: ActionType, params: dict, known: KnownIds
+) -> tuple[dict, list[str]]:
+    """Check every referenced id belongs to the active kitchen and use the real record names.
+
+    Returns (params with canonical names, names of params whose ids are unknown).
+    """
+    resolved = dict(params)
+    bad: list[str] = []
+    for id_param, bucket, name_param in _REFERENCES.get(action_type, []):
+        records: dict[str, str] = getattr(known, bucket)
+        value = params.get(id_param)
+        if not isinstance(value, str) or value not in records:
+            bad.append(id_param)
+        elif name_param is not None:
+            resolved[name_param] = records[value]
+    return resolved, bad
+
+
+async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[str, KnownIds]:
+    """Current stock, today's sales, menu with recipe cost, and open orders — plus their ids."""
     lines: list[str] = [f"Kitchen: {kitchen.name}"]
+    known = KnownIds()
 
-    # Ingredients with IDs (needed for record_inventory params)
-    ing_repo = IngredientRepository(db)
     try:
-        ingredients = await ing_repo.list_for_kitchen(kitchen.id)
+        ingredients = await IngredientRepository(db).list_for_kitchen(kitchen.id)
+        known.ingredients = {str(ing.id): ing.name for ing in ingredients}
         if ingredients:
-            lines.append("\nIngredients (use id for record_inventory):")
-            for ing in ingredients[:30]:
-                lines.append(f"  - {ing.name} id={ing.id} unit={ing.unit}")
+            lines.append("\nIngredients (id | name | unit | cost per unit RWF):")
+            for ing in ingredients[:40]:
+                cost = f"{ing.cost_per_unit}" if ing.cost_per_unit is not None else "unknown"
+                lines.append(f"  - {ing.id} | {ing.name} | {ing.unit} | {cost}")
         else:
             lines.append("\nNo ingredients configured yet.")
     except Exception:
         lines.append("\nIngredient data unavailable.")
 
-    # Stock levels
-    inv_service = InventoryService(db)
     try:
-        stock_levels = await inv_service.get_stock_levels(kitchen)
-        if stock_levels:
-            lines.append("\nCurrent stock:")
-            for s in stock_levels[:20]:
-                lines.append(
-                    f"  - {s.ingredient_name}: {s.current_stock} {s.unit} "
-                    f"({s.days_cover} days cover)"
-                )
+        levels = await InventoryService(db).get_stock_levels(kitchen)
+        if levels:
+            lines.append("\nCurrent stock (name: quantity unit, days of cover):")
+            for s in levels[:40]:
+                cover = f"{s.days_cover} days" if s.days_cover is not None else "no usage data"
+                low = " LOW" if s.is_low_stock else ""
+                lines.append(f"  - {s.ingredient_name}: {s.current_stock} {s.unit} ({cover}){low}")
         else:
             lines.append("\nNo stock recorded yet.")
     except Exception:
         lines.append("\nStock data unavailable.")
 
-    # Open orders
-    order_repo = OrderRepository(db)
     try:
-        open_orders = await order_repo.list_for_kitchen(
-            kitchen.id,
-            status=None,
-        )
+        items = await MenuItemRepository(db).list_for_menu_all(kitchen.id)
+        known.menu_items = {str(item.id): item.name for item in items}
+        today = datetime.now(KIGALI).date()
+        sold = dict(await SalesRepository(db).item_portions_for_day(kitchen.id, today))
+        recipes = RecipeService(db)
+        if items:
+            lines.append(
+                "\nMenu items (id | name | price RWF | food cost per portion RWF | sold today):"
+            )
+            for item in items[:30]:
+                try:
+                    cost = await recipes.calculate_cost(kitchen, item.id)
+                    has_cost = any(line.line_cost is not None for line in cost.lines)
+                    cost_text = f"{cost.total_cost}" if has_cost else "unknown"
+                except Exception:
+                    cost_text = "unknown"
+                sold_today = sold.get(item.id, 0)
+                row = f"{item.id} | {item.name} | {item.selling_price} | {cost_text} | {sold_today}"
+                lines.append(f"  - {row}")
+        else:
+            lines.append("\nNo menu items.")
+    except Exception:
+        lines.append("\nMenu data unavailable.")
+
+    try:
+        orders = await OrderRepository(db).list_for_kitchen(kitchen.id, status=None)
+        known.orders = {str(o.id): o.status.value for o in orders}
         active = [
-            o for o in open_orders
-            if o.status in (
+            o
+            for o in orders
+            if o.status
+            in (
                 OrderStatus.DRAFT,
                 OrderStatus.SUBMITTED,
                 OrderStatus.CONFIRMED,
@@ -161,137 +186,32 @@ async def _build_kitchen_context(
             lines.append("\nOpen orders:")
             for o in active[:10]:
                 lines.append(
-                    f"  - Order {o.id} status={o.status.value} "
-                    f"delivery={o.delivery_date or 'TBD'}"
+                    f"  - Order {o.id} status={o.status.value} delivery={o.delivery_date or 'TBD'}"
                 )
         else:
             lines.append("\nNo open orders.")
     except Exception as exc:
-        logger.warning("agent_context_orders_failed", error=str(exc))
+        logger.warning("agent_context_orders_failed", error_type=type(exc).__name__)
         lines.append("\nOrder data unavailable.")
 
-    # Menu items
-    item_repo = MenuItemRepository(db)
-    try:
-        items = await item_repo.list_for_menu_all(kitchen.id)
-        if items:
-            lines.append("\nMenu items:")
-            for item in items[:20]:
-                lines.append(
-                    f"  - {item.name} (id={item.id}) price={item.selling_price}"
-                )
-        else:
-            lines.append("\nNo menu items.")
-    except Exception:
-        lines.append("\nMenu data unavailable.")
-
-    return "\n".join(lines)
+    return "\n".join(lines), known
 
 
-def _build_messages(
-    agent_request: AgentRequest,
-) -> list[dict]:
-    """Convert AgentMessage list to messages format for Muse Spark.
-
-    When a chef message carries image_data (base64 JPEG), the content
-    is sent as a multimodal array: image_url first, then the text.
-    """
-    result = []
-    for msg in agent_request.messages:
+def _conversation(request: AgentRequest) -> tuple[list[dict], str, bytes | None]:
+    """Prior turns (capped), the final user text, and the newest image if any."""
+    msgs = request.messages[-MAX_HISTORY_MESSAGES:]
+    history: list[dict] = []
+    for msg in msgs[:-1]:
         role = "user" if msg.role.value == "chef" else "assistant"
-        if msg.image_data and msg.role.value == "chef":
-            content = [
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{msg.image_data}",
-                    },
-                },
-                {"type": "text", "text": msg.content},
-            ]
-        else:
-            content = msg.content
-        result.append({"role": role, "content": content})
-    return result
-
-
-def _extract_json(raw: str) -> str:
-    """Pull the first {...} block from a string that may have preamble or markdown fences."""
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
-    if fenced:
-        return fenced.group(1)
-    # Find first { ... } that spans to the matching closing brace
-    start = raw.find("{")
-    if start == -1:
-        return raw
-    depth = 0
-    for i, ch in enumerate(raw[start:], start):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return raw[start : i + 1]
-    return raw[start:]
-
-
-def _parse_llm_response(raw: str, last_action: ActionProposal | None) -> AgentResponse:
-    """Parse Muse Spark's JSON response into AgentResponse."""
-    try:
-        data: dict[str, Any] = json.loads(_extract_json(raw))
-    except json.JSONDecodeError:
-        # Model returned non-JSON plain text — show it directly
-        return AgentResponse(
-            reply_text=raw.strip(),
-            proposal=None,
-            clarification=None,
-            last_action=last_action,
-        )
-
-    resp_type = data.get("type", "none")
-    reply_text = str(data.get("reply_text", ""))
-
-    if resp_type == "clarification":
-        return AgentResponse(
-            reply_text=reply_text,
-            clarification=ClarifyingQuestion(
-                question=str(data.get("question", "")),
-                options=data.get("options"),
-            ),
-            proposal=None,
-            last_action=last_action,
-        )
-
-    if resp_type == "proposal":
+        history.append({"role": role, "content": msg.content[:MAX_MESSAGE_CHARS]})
+    last = msgs[-1]
+    image: bytes | None = None
+    if last.image_data:
         try:
-            action_type = ActionType(data["action_type"])
-        except (KeyError, ValueError):
-            return AgentResponse(
-                reply_text=f"I tried to plan an action but got an unrecognised type: {data.get('action_type')}. Please try again.",
-                proposal=None,
-                clarification=None,
-                last_action=last_action,
-            )
-        proposal = ActionProposal(
-            action_type=action_type,
-            summary=str(data.get("summary", "")),
-            params=data.get("params", {}),
-            reversible=bool(data.get("reversible", True)),
-        )
-        return AgentResponse(
-            reply_text=reply_text,
-            proposal=proposal,
-            clarification=None,
-            last_action=proposal,  # update last_action so next turn can undo
-        )
-
-    # type == "none" or unknown
-    return AgentResponse(
-        reply_text=reply_text or "I couldn't help with that request.",
-        proposal=None,
-        clarification=None,
-        last_action=last_action,
-    )
+            image = base64.b64decode(last.image_data, validate=True)
+        except ValueError:
+            image = None
+    return history, last.content[:MAX_MESSAGE_CHARS], image
 
 
 class AgentService:
@@ -303,32 +223,87 @@ class AgentService:
         kitchen: Kitchen,
         chef_name: str,
         request: AgentRequest,
+        request_id: str,
+        chef_id: str | None = None,
     ) -> AgentResponse:
-        if not settings.AI_AGENT_ENABLED:
-            raise AiDisabledError("AI agent is not enabled.")
+        if not settings.AI_AGENT_ENABLED or not settings.MODEL_API_KEY:
+            raise AiDisabledError("AI assistant is not enabled.")
+        check_rate_limit(str(kitchen.id), chef_id)
 
-        if not settings.MODEL_API_KEY:
-            raise AiDisabledError("No LLM API key configured for the agent.")
-
-        kitchen_context = await _build_kitchen_context(kitchen, self._db)
-
-        system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(
+        prompt = load_prompt(*AGENT_PROMPT)
+        # Kitchen data is read now; the reply is stamped with this time ("as of 14:05").
+        now = datetime.now(KIGALI)
+        as_of = now.strftime("%H:%M")
+        kitchen_context, known = await _build_kitchen_context(kitchen, self._db)
+        system = prompt.render(
             chef_name=chef_name,
+            language=language_name(request.language),
+            as_of=as_of,
+            today=now.date().isoformat(),
             kitchen_context=kitchen_context,
-            today=date.today().isoformat(),
+        )
+        history, user_text, image = _conversation(request)
+        image_mime = validate_image(image) if image is not None else None
+
+        turn = await structured_call(
+            feature="assistant",
+            prompt=prompt,
+            system=system,
+            user_text=user_text,
+            schema=ModelAgentTurn,
+            timeout_seconds=settings.AI_CHAT_TIMEOUT_SECONDS,
+            request_id=request_id,
+            kitchen_id=str(kitchen.id),
+            image=image,
+            image_mime=image_mime,
+            conversation=history,
         )
 
-        messages = _build_messages(request)
-
-        try:
-            raw = await chat(system_prompt=system_prompt, messages=messages)
-        except Exception as exc:
-            logger.warning(
-                "agent_meta_call_failed",
-                kitchen_id=str(kitchen.id),
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
+        if turn.type == "proposal" and turn.action_type is not None:
+            params, bad = resolve_references(turn.action_type, turn.params or {}, known)
+            if bad:
+                # Never show an action card for a record outside the active kitchen.
+                logger.info(
+                    "agent_proposal_rejected",
+                    reason="unknown_reference",
+                    action_type=turn.action_type.value,
+                    params=bad,
+                    request_id=request_id,
+                )
+                return AgentResponse(
+                    reply_text=_UNKNOWN_REFERENCE_REPLY[request.language],
+                    proposal=None,
+                    clarification=ClarifyingQuestion(
+                        question=_UNKNOWN_REFERENCE_QUESTION[request.language], options=None
+                    ),
+                    last_action=request.last_confirmed_action,
+                    as_of=as_of,
+                )
+            proposal = ActionProposal(
+                action_type=turn.action_type,
+                summary=turn.summary or "",
+                params=params,
+                reversible=True,
             )
-            raise AiProviderError(f"LLM call failed: {type(exc).__name__}: {exc}") from exc
-
-        return _parse_llm_response(raw, last_action=request.last_confirmed_action)
+            return AgentResponse(
+                reply_text=turn.reply_text,
+                proposal=proposal,
+                clarification=None,
+                last_action=proposal,
+                as_of=as_of,
+            )
+        if turn.type == "clarification" and turn.question:
+            return AgentResponse(
+                reply_text=turn.reply_text,
+                proposal=None,
+                clarification=ClarifyingQuestion(question=turn.question, options=turn.options),
+                last_action=request.last_confirmed_action,
+                as_of=as_of,
+            )
+        return AgentResponse(
+            reply_text=turn.reply_text,
+            proposal=None,
+            clarification=None,
+            last_action=request.last_confirmed_action,
+            as_of=as_of,
+        )

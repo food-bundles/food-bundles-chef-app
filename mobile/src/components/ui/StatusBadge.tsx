@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, useColorScheme } from 'react-native';
-import { colors, radius, fontSize, fontWeight, spacing } from '@/lib/theme';
+import { colors, radius, fontSize, fontWeight, spacing, statusPalette } from '@/lib/theme';
 
 export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -8,11 +8,12 @@ export interface StatusBadgeProps {
   variant?: BadgeVariant;
 }
 
+// Solid fills with white text — passes WCAG AA (≥4.5:1) unlike 10% opacity fills
 const SEMANTIC_VARIANTS: Record<Exclude<BadgeVariant, 'neutral'>, { bg: string; text: string }> = {
-  success: { bg: `${colors.success}1A`, text: colors.success },
-  warning: { bg: `${colors.warning}1A`, text: colors.warning },
-  danger: { bg: `${colors.danger}1A`, text: colors.danger },
-  info: { bg: `${colors.info}1A`, text: colors.info },
+  success: { bg: statusPalette.success, text: colors.white },
+  warning: { bg: statusPalette.warning, text: colors.white },
+  danger: { bg: statusPalette.danger, text: colors.white },
+  info: { bg: statusPalette.info, text: colors.white },
 };
 
 /** Small status pill badge. Does not rely on color alone — label is always visible. */

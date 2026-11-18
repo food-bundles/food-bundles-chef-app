@@ -1,12 +1,17 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
-export type InventoryEntryType = 'opening' | 'adjustment' | 'closing' | 'delivery';
+export type InventoryEntryType = 'opening' | 'adjustment' | 'closing' | 'delivery' | 'waste';
+
+/** How `quantity` applies: `set` = counted stock, `add`/`remove` = change from current (never below 0). */
+export type StockChange = 'set' | 'add' | 'remove';
 
 export interface InventoryEntryCreateBody {
   ingredient_id: string;
   quantity: string;              // decimal string, >= 0
+  /** Defaults to `set` on the server. Every stored entry is the resulting stock level. */
+  change?: StockChange;
   entry_type?: InventoryEntryType;
   notes?: string | null;
 }
@@ -41,11 +46,13 @@ export function getStockLevels(kitchenId: string): Promise<StockLevelDto[]> {
 
 export function recordInventoryEntry(
   kitchenId: string,
-  body: InventoryEntryCreateBody
+  body: InventoryEntryCreateBody,
+  opts: WriteOptions = {}
 ): Promise<InventoryEntryDto> {
   return request<InventoryEntryDto>(`/kitchens/${kitchenId}/inventory`, {
     method: 'POST',
     body,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 

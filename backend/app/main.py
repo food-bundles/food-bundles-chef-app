@@ -17,7 +17,7 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
-from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.middleware import IdempotencyMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware
 from app.core.rate_limit import limiter
 
 configure_logging()
@@ -58,6 +58,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # SecurityHeaders wraps everything so headers are on every response including errors.
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SlowAPIMiddleware)
+# Inside RequestId so replays still carry a request id and are logged.
+app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(RequestIdMiddleware)
 # When CORS_ORIGINS=["*"], allow_credentials must be False (browser spec).
 # For specific origins, credentials (Authorization header) are allowed.

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, timedelta
+from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.menus.models import MenuItem
 from app.modules.sales.models import DailySaleRecord
 
 
@@ -41,6 +43,39 @@ class SalesRepository:
         await self._db.flush()
         await self._db.refresh(record)
         return record
+
+    async def portions_for_day(
+        self, kitchen_id: uuid.UUID, menu_item_id: uuid.UUID, sale_date: date
+    ) -> int:
+        """Portions already recorded for this item and day (0 if none)."""
+        existing = await self._get_exact(kitchen_id, menu_item_id, sale_date)
+        return existing.portions_sold if existing is not None else 0
+
+    async def item_portions_for_day(
+        self, kitchen_id: uuid.UUID, sale_date: date
+    ) -> list[tuple[uuid.UUID, int]]:
+        """(menu_item_id, portions_sold) recorded on `sale_date`."""
+        result = await self._db.execute(
+            select(DailySaleRecord.menu_item_id, DailySaleRecord.portions_sold).where(
+                DailySaleRecord.kitchen_id == kitchen_id,
+                DailySaleRecord.sale_date == sale_date,
+            )
+        )
+        return [(item_id, int(p)) for item_id, p in result.all()]
+
+    async def day_totals_with_price(
+        self, kitchen_id: uuid.UUID, sale_date: date
+    ) -> list[tuple[int, Decimal]]:
+        """(portions_sold, current selling_price) for every item sold on `sale_date`."""
+        result = await self._db.execute(
+            select(DailySaleRecord.portions_sold, MenuItem.selling_price)
+            .join(MenuItem, MenuItem.id == DailySaleRecord.menu_item_id)
+            .where(
+                DailySaleRecord.kitchen_id == kitchen_id,
+                DailySaleRecord.sale_date == sale_date,
+            )
+        )
+        return [(int(p), Decimal(price)) for p, price in result.all()]
 
     async def weekly_totals(
         self,

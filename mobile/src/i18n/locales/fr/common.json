@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "continue": "Continuer",
+    "done": "Terminé",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "archive": "Archiver",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat trouvé",
+    "add": "Ajouter",
+    "share": "Partager",
+    "close": "Fermer",
+    "tryAgain": "Réessayer",
+    "openSettings": "Ouvrir les réglages",
+    "enable": "Activer",
+    "seeAll": "Voir tout",
+    "camera": "Appareil photo",
+    "gallery": "Galerie",
+    "undo": "Annuler",
+    "appName": "Food Bundles Chef",
+    "sync": {
+      "saved": "Enregistré",
+      "pending": "En attente",
+      "pendingCount_one": "{{count}} modification en attente de synchronisation",
+      "pendingCount_other": "{{count}} modifications en attente de synchronisation",
+      "syncing": "Synchronisation",
+      "failed": "Échec de la synchronisation",
+      "conflict": "Conflit"
+    },
+    "searchPlaceholder": "Rechercher…",
+    "clearSearch": "Effacer la recherche",
+    "quantity": "Quantité",
+    "decrease": "Diminuer : {{subject}}",
+    "increase": "Augmenter : {{subject}}",
+    "dismissDialog": "Fermer la boîte de dialogue"
+  },
+  "tabs": {
+    "dashboard": "Tableau de bord",
+    "menu": "Menu",
+    "purchasing": "Achats",
+    "stock": "Stock",
+    "profile": "Profil"
+  }
+}

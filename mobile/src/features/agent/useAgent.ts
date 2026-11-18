@@ -4,7 +4,7 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { queryKeys } from '@/api/query-keys';
 import { agentTurn } from '@/api/agent-api';
 import { executeAction } from './executeAction';
-import type { AgentRequest, AgentResponse, ActionProposal } from '@/api/agent-api';
+import type { AgentRequest, ActionProposal } from '@/api/agent-api';
 
 function useAgentContext() {
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
@@ -12,50 +12,54 @@ function useAgentContext() {
   return { chefId, kitchenId: activeKitchen?.id ?? '' };
 }
 
-/** Send one conversation turn to the agent. Returns proposal or clarification. */
+/** Send one conversation turn to the assistant (cancellable via `signal`). */
 export function useAgentTurn() {
   const { kitchenId } = useAgentContext();
 
   return useMutation({
-    mutationFn: (body: AgentRequest) => agentTurn(kitchenId, body),
+    mutationFn: ({ body, signal, requestId }: { body: AgentRequest; signal?: AbortSignal; requestId?: string }) =>
+      agentTurn(kitchenId, body, signal, requestId),
   });
 }
 
-/** Confirm and execute an ActionProposal. Invalidates all relevant caches. */
+/** Execute a proposal the chef confirmed. The key makes retries safe (no double writes). */
 export function useConfirmAction() {
   const { chefId, kitchenId } = useAgentContext();
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (proposal: ActionProposal) => executeAction(kitchenId, proposal),
-    onSuccess: (_data, proposal) => {
-      // Invalidate caches depending on what was changed
+    mutationFn: ({ proposal, idempotencyKey }: { proposal: ActionProposal; idempotencyKey: string }) =>
+      executeAction(kitchenId, proposal, idempotencyKey),
+    onSuccess: (_data, { proposal }) => {
       const type = proposal.action_type;
+      const invalidate = (queryKey: readonly unknown[]) => void qc.invalidateQueries({ queryKey });
 
       if (type === 'record_sale') {
-        void qc.invalidateQueries({ queryKey: queryKeys.sales.records(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.purchasing.suggestions(chefId, kitchenId) });
+        invalidate(queryKeys.sales.records(chefId, kitchenId));
+        invalidate(queryKeys.inventory.stock(chefId, kitchenId));
+        invalidate(queryKeys.purchasing.suggestions(chefId, kitchenId));
       }
-
       if (type === 'record_inventory') {
-        void qc.invalidateQueries({ queryKey: queryKeys.inventory.stock(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.purchasing.suggestions(chefId, kitchenId) });
+        invalidate(queryKeys.inventory.stock(chefId, kitchenId));
+        invalidate(['inventory', 'history', chefId, kitchenId]);
+        invalidate(queryKeys.purchasing.suggestions(chefId, kitchenId));
       }
-
       if (type === 'create_ingredient') {
-        void qc.invalidateQueries({ queryKey: queryKeys.catalog.ingredients(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.inventory.stock(chefId, kitchenId) });
+        invalidate(queryKeys.catalog.ingredients(chefId, kitchenId));
+        invalidate(queryKeys.inventory.stock(chefId, kitchenId));
       }
-
+      if (type === 'add_menu_item' || type === 'link_recipe_ingredient') {
+        invalidate(queryKeys.menu.items(chefId, kitchenId));
+        invalidate(['menu', 'recipe', chefId, kitchenId]);
+      }
       if (type === 'create_order' || type === 'submit_order' || type === 'cancel_order') {
-        void qc.invalidateQueries({ queryKey: queryKeys.orders.list(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.deliveries.list(chefId, kitchenId) });
+        invalidate(queryKeys.orders.list(chefId, kitchenId));
+        invalidate(queryKeys.deliveries.list(chefId, kitchenId));
       }
-
       if (type === 'start_delivery' || type === 'receive_delivery') {
-        void qc.invalidateQueries({ queryKey: queryKeys.deliveries.list(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.orders.list(chefId, kitchenId) });
-        void qc.invalidateQueries({ queryKey: queryKeys.inventory.stock(chefId, kitchenId) });
+        invalidate(queryKeys.deliveries.list(chefId, kitchenId));
+        invalidate(queryKeys.orders.list(chefId, kitchenId));
+        invalidate(queryKeys.inventory.stock(chefId, kitchenId));
       }
     },
   });

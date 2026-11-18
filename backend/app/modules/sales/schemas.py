@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -34,3 +35,12 @@ class WeeklySalesSummary(BaseModel):
 class WeeklyTotal(BaseModel):
     week_start: date
     total_portions: int
+
+
+class DailySalesSummary(BaseModel):
+    """Same-day sales total; revenue uses each item's current selling price."""
+
+    day: date
+    portions: int
+    revenue: Decimal
+    currency: str = "RWF"

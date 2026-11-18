@@ -75,11 +75,31 @@ class Settings(BaseSettings):
     AI_MAX_RETRIES: int = 1
     AI_MAX_IMAGE_SIZE_BYTES: int = 1_048_576  # 1 MB
     AI_LOG_CONTENT: bool = False  # never log raw media or prompts
-    # Per-capability flags — require AI_ENABLED=True AND individual flag=True
+    # Per-capability flags — require AI_ENABLED=True AND individual flag=True.
+    # Flipping one off (and restarting) is the kill switch; the mobile app reads
+    # GET /kitchens/{id}/ai/features and falls back to manual entry.
     AI_QUALITY_ASSESSMENT_ENABLED: bool = False
     AI_TRANSCRIPTION_ENABLED: bool = False
-    # Per-kitchen daily request limits (0 = no limit configured)
+    AI_IMAGE_CLASSIFY_ENABLED: bool = False
+    AI_MENU_SCAN_ENABLED: bool = False
+    AI_DISH_ANALYSIS_ENABLED: bool = False
+    AI_DOCUMENT_SCAN_ENABLED: bool = False
+    # Comma-separated languages whose speech-to-text passed evaluation (e.g. "en,fr").
+    # Kinyarwanda stays off until a provider is evaluated for it.
+    AI_TRANSCRIPTION_LANGUAGES: str = ""
+    # Per-task timeouts (seconds)
+    AI_CLASSIFY_TIMEOUT_SECONDS: int = 10
+    AI_EXTRACT_TIMEOUT_SECONDS: int = 30
+    AI_CHAT_TIMEOUT_SECONDS: int = 30
+    # Cheaper model for image classification; falls back to META_MUSE_SPARK_MODEL when empty
+    META_MUSE_SPARK_FAST_MODEL: str = ""
+    # Dish price suggestion: target food-cost share of the selling price
+    AI_TARGET_FOOD_COST_LOW: float = 0.25
+    AI_TARGET_FOOD_COST_HIGH: float = 0.35
+    # Daily AI request budgets (0 = no limit configured). Both apply: a chef with
+    # several kitchens cannot multiply their budget by switching kitchens.
     AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY: int = 0
+    AI_MAX_REQUESTS_PER_CHEF_PER_DAY: int = 0
 
     # Food Bundles catalog
     FOOD_BUNDLES_CATALOG_PROVIDER: Literal["mock", "live"] = "mock"

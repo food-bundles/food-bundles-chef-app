@@ -1,134 +1,167 @@
 /**
  * Execute a confirmed ActionProposal by calling the real API endpoint.
  *
- * This is the ONLY place where an agent action hits the database.
- * Every call here is the result of an explicit chef confirmation.
+ * This is the ONLY place where an agent action hits the database, and only after the
+ * chef pressed Confirm on the action card. Every write carries an idempotency key
+ * derived from the proposal, so a retried confirmation never writes twice.
  */
 import { recordSale } from '@/api/sales-api';
 import { recordInventoryEntry } from '@/api/inventory-api';
 import { createIngredient } from '@/api/ingredients-api';
 import { createOrder, submitOrder, cancelOrder } from '@/api/orders-api';
-import { ApiError } from '@/api/errors';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
-import type { ActionProposal, ActionType } from '@/api/agent-api';
-import type { SaleRecordCreateBody } from '@/api/sales-api';
-import type { InventoryEntryCreateBody } from '@/api/inventory-api';
-import type { IngredientCreateBody } from '@/api/ingredients-api';
-import type { OrderCreateBody } from '@/api/orders-api';
-import type { BulkReceivingBody } from '@/api/receiving-api';
+import { addRecipeLine, createMenu, createMenuItem, listMenus, MENU_ITEM_CATEGORIES } from '@/api/menus-api';
+import { ApiError } from '@/api/errors';
+import { localISODate } from '@/lib/format';
+import type { ActionProposal } from '@/api/agent-api';
 
-export async function executeAction(
-  kitchenId: string,
-  proposal: ActionProposal,
-): Promise<void> {
+type Params = Record<string, unknown>;
+
+function str(p: Params, key: string, fallback = ''): string {
+  const v = p[key];
+  return typeof v === 'string' ? v : typeof v === 'number' ? String(v) : fallback;
+}
+
+function num(p: Params, key: string): number {
+  const v = p[key];
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN;
+  if (!Number.isFinite(n)) throw new Error(`Invalid number for ${key}`);
+  return n;
+}
+
+function list(p: Params, key: string): Params[] {
+  const v = p[key];
+  return Array.isArray(v) ? v.filter((x): x is Params => typeof x === 'object' && x !== null) : [];
+}
+
+export async function executeAction(kitchenId: string, proposal: ActionProposal, idempotencyKey: string): Promise<void> {
   const p = proposal.params;
+  const opts = { idempotencyKey };
 
-  switch (proposal.action_type as ActionType) {
-    case 'record_sale': {
-      const body: SaleRecordCreateBody = {
-        menu_item_id: p.menu_item_id as string,
-        sale_date: (p.date as string) ?? new Date().toISOString().slice(0, 10),
-        portions_sold: p.portions_sold as number,
-      };
-      await recordSale(kitchenId, body);
+  switch (proposal.action_type) {
+    case 'record_sale':
+      await recordSale(
+        kitchenId,
+        {
+          menu_item_id: str(p, 'menu_item_id'),
+          sale_date: str(p, 'date') || localISODate(),
+          portions_sold: Math.round(num(p, 'portions_sold')),
+        },
+        opts,
+      );
       return;
-    }
 
     case 'record_inventory': {
-      const body: InventoryEntryCreateBody = {
-        ingredient_id: p.ingredient_id as string,
-        quantity: p.quantity as string,
-        entry_type: p.entry_type as InventoryEntryCreateBody['entry_type'],
-        notes: (p.notes as string | null) ?? null,
-      };
-      await recordInventoryEntry(kitchenId, body);
+      const change = str(p, 'change', 'set');
+      await recordInventoryEntry(
+        kitchenId,
+        {
+          ingredient_id: str(p, 'ingredient_id'),
+          quantity: String(num(p, 'quantity')),
+          change: change === 'add' || change === 'remove' ? change : 'set',
+          entry_type: 'adjustment',
+          notes: str(p, 'notes') || null,
+        },
+        opts,
+      );
       return;
     }
 
-    case 'create_ingredient': {
-      const body: IngredientCreateBody = {
-        name: p.name as string,
-        unit: p.unit as string,
-      };
-      await createIngredient(kitchenId, body);
+    case 'create_ingredient':
+      await createIngredient(kitchenId, { name: str(p, 'name'), unit: str(p, 'unit') }, opts);
+      return;
+
+    case 'add_menu_item': {
+      const menus = await listMenus(kitchenId);
+      const menuId =
+        menus.find((m) => m.is_active)?.id ??
+        (await createMenu(kitchenId, { name: 'Main Menu' })).id;
+      const category = MENU_ITEM_CATEGORIES.find((c) => c === str(p, 'category')) ?? null;
+      await createMenuItem(
+        kitchenId,
+        menuId,
+        { name: str(p, 'name'), selling_price: String(Math.round(num(p, 'selling_price'))), category },
+        opts,
+      );
       return;
     }
 
-    case 'create_order': {
-      const lines = (p.lines as Array<Record<string, unknown>>).map((l) => ({
-        catalog_product_id: l.catalog_product_id as string,
-        product_name: l.product_name as string,
-        unit: l.unit as string,
-        quantity_ordered: String(l.quantity_ordered),
-        unit_price: String(l.unit_price),
-        ingredient_id: (l.ingredient_id as string | null) ?? null,
-      }));
-      const body: OrderCreateBody = {
-        delivery_date: (p.delivery_date as string | null) ?? null,
-        notes: (p.notes as string | null) ?? null,
-        lines,
-      };
-      await createOrder(kitchenId, body);
+    case 'link_recipe_ingredient':
+      await addRecipeLine(
+        kitchenId,
+        str(p, 'menu_item_id'),
+        { ingredient_id: str(p, 'ingredient_id'), qty_per_portion: String(num(p, 'qty_per_portion')), unit: str(p, 'unit') },
+        opts,
+      );
       return;
-    }
 
-    case 'submit_order': {
+    case 'create_order':
+      await createOrder(
+        kitchenId,
+        {
+          delivery_date: str(p, 'delivery_date') || null,
+          notes: str(p, 'notes') || null,
+          lines: list(p, 'lines').map((l) => ({
+            catalog_product_id: str(l, 'catalog_product_id', 'manual'),
+            product_name: str(l, 'product_name'),
+            unit: str(l, 'unit'),
+            quantity_ordered: String(num(l, 'quantity_ordered')),
+            unit_price: str(l, 'unit_price', '0'),
+            ingredient_id: str(l, 'ingredient_id') || null,
+          })),
+        },
+        opts,
+      );
+      return;
+
+    case 'submit_order':
       try {
-        await submitOrder(kitchenId, p.order_id as string);
+        await submitOrder(kitchenId, str(p, 'order_id'), opts);
       } catch (err: unknown) {
-        // Order already confirmed — treat as success
+        // Already submitted/confirmed — the intended state is reached.
         if (err instanceof ApiError && err.kind === 'conflict') return;
         throw err;
       }
       return;
-    }
 
-    case 'cancel_order': {
-      await cancelOrder(kitchenId, p.order_id as string);
+    case 'cancel_order':
+      await cancelOrder(kitchenId, str(p, 'order_id'), opts);
       return;
-    }
 
-    case 'start_delivery': {
-      await startDelivery(kitchenId, p.order_id as string);
+    case 'start_delivery':
+      await startDelivery(kitchenId, str(p, 'order_id'), opts);
       return;
-    }
 
-    case 'receive_delivery': {
-      const lines = (p.lines as Array<Record<string, unknown>>).map((l) => ({
-        order_line_id: l.order_line_id as string,
-        quantity_received: String(l.quantity_received),
-        decision: l.decision as 'accepted' | 'partially-accepted' | 'rejected',
-        rejection_reason: (l.rejection_reason as string | null) ?? null,
-      }));
-      const body: BulkReceivingBody = { lines };
-      await receiveDelivery(kitchenId, p.order_id as string, body);
+    case 'receive_delivery':
+      await receiveDelivery(
+        kitchenId,
+        str(p, 'order_id'),
+        {
+          lines: list(p, 'lines').map((l) => {
+            const decision = str(l, 'decision');
+            return {
+              order_line_id: str(l, 'order_line_id'),
+              quantity_received: String(num(l, 'quantity_received')),
+              decision: decision === 'rejected' || decision === 'partially-accepted' ? decision : 'accepted',
+              rejection_reason: str(l, 'rejection_reason') || null,
+            };
+          }),
+        },
+        opts,
+      );
       return;
-    }
 
     case 'undo': {
-      // The agent proposes undo with params: { action_type, resource_id }.
-      // We map the original action_type to its reversal call.
-      const originalType = p.action_type as string;
-      const resourceId = p.resource_id as string | undefined;
-
+      const originalType = str(p, 'action_type');
+      const resourceId = str(p, 'resource_id');
       if ((originalType === 'create_order' || originalType === 'submit_order') && resourceId) {
-        await cancelOrder(kitchenId, resourceId);
+        await cancelOrder(kitchenId, resourceId, opts);
         return;
       }
-      if (originalType === 'cancel_order' && resourceId) {
-        // No "uncancel" endpoint — nothing to do, treat as success
-        return;
-      }
-      if (originalType === 'submit_order' && resourceId) {
-        await cancelOrder(kitchenId, resourceId);
-        return;
-      }
-      // For other action types, the agent should re-plan — surface a clear error
       throw new Error(`Cannot undo action type "${originalType}" — no reversal available.`);
     }
 
-    default: {
-      throw new Error(`Unknown action type: ${proposal.action_type}`);
-    }
+    default:
+      throw new Error(`Unknown action type: ${String(proposal.action_type)}`);
   }
 }

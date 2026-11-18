@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI eval manifest line (one JSON object per line in datasets/<suite>/manifest.jsonl)",
+  "type": "object",
+  "required": ["id", "file", "language", "expected"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9-]{3,40}$", "description": "Letters, digits and dashes only (used in X-Request-ID)." },
+    "file": { "type": "string", "description": "Path relative to the suite folder, e.g. images/menu-001.jpg" },
+    "language": { "enum": ["en", "fr", "rw"] },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "e.g. printed, handwritten, blurry, angled, multi-language, rwf-k, clear, noisy, chicken-dish-regression"
+    },
+    "consent": { "type": "string", "description": "Who gave consent to use this sample and when. Required before committing a sample." },
+    "expected": {
+      "oneOf": [
+        {
+          "title": "menu",
+          "type": "object",
+          "required": ["kind", "items"],
+          "properties": {
+            "kind": { "const": "menu" },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "description": "Exactly as written on the menu" },
+                  "price": { "type": ["integer", "null"], "description": "Whole RWF, null if not shown" },
+                  "category": { "enum": ["main", "side", "drink", "dessert", null] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "dish",
+          "type": "object",
+          "required": ["kind", "ingredients"],
+          "properties": {
+            "kind": { "const": "dish" },
+            "dish_name": { "type": "string" },
+            "category": { "enum": ["main", "side", "drink", "dessert", null] },
+            "ingredients": { "type": "array", "items": { "type": "string" }, "description": "Ingredients a chef would list for this dish" }
+          }
+        },
+        {
+          "title": "document",
+          "type": "object",
+          "required": ["kind", "lines"],
+          "properties": {
+            "kind": { "enum": ["receipt", "delivery_note"] },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "quantity": { "type": ["string", "null"] },
+                  "unit": { "type": ["string", "null"] },
+                  "unit_price": { "type": ["integer", "null"] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "voice",
+          "type": "object",
+          "required": ["transcript"],
+          "properties": { "transcript": { "type": "string", "description": "What was actually said, in the clip's language" } }
+        },
+        {
+          "title": "other photo (classification only)",
+          "type": "object",
+          "required": ["kind"],
+          "properties": { "kind": { "enum": ["menu", "dish", "receipt", "delivery_note", "stock_shelf", "other"] } }
+        }
+      ]
+    }
+  }
+}

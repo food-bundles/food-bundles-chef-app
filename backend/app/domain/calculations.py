@@ -21,6 +21,7 @@ Key formulas (from INTEGRATION_DESIGN.md § Business Formulas):
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Sequence
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -182,6 +183,138 @@ def opening_stock(
     """
     result = prev_closing_stock + accepted_deliveries - expected_use
     return max(result, _ZERO)
+
+
+# ── Units ──────────────────────────────────────────────────────────────────────
+
+# Factor to the family base unit (g for mass, ml for volume, 1 for discrete counts).
+_UNIT_FACTORS: dict[str, tuple[str, Decimal]] = {
+    "kg": ("mass", Decimal("1000")),
+    "g": ("mass", Decimal("1")),
+    "mg": ("mass", Decimal("0.001")),
+    "l": ("volume", Decimal("1000")),
+    "litre": ("volume", Decimal("1000")),
+    "litres": ("volume", Decimal("1000")),
+    "liter": ("volume", Decimal("1000")),
+    "liters": ("volume", Decimal("1000")),
+    "ml": ("volume", Decimal("1")),
+}
+
+
+def convert_quantity(qty: Decimal, from_unit: str, to_unit: str) -> Decimal | None:
+    """Convert `qty` between units of the same family (kg↔g↔mg, l↔ml).
+
+    Identical units (case-insensitive) convert 1:1, including discrete units such as
+    "pieces". Returns None when the units are incompatible (e.g. kg → pieces), so the
+    caller can skip the line instead of guessing.
+    """
+    f, t = from_unit.strip().lower(), to_unit.strip().lower()
+    if f == t:
+        return qty
+    src, dst = _UNIT_FACTORS.get(f), _UNIT_FACTORS.get(t)
+    if src is None or dst is None or src[0] != dst[0]:
+        return None
+    return qty * src[1] / dst[1]
+
+
+def portion_usage(
+    portions: Decimal,
+    qty_per_portion: Decimal,
+    yield_fraction: Decimal,
+) -> Decimal:
+    """Raw ingredient used by `portions` portions (in the ingredient's unit).
+
+    = portions * qty_per_portion / yield_fraction, rounded to 4 dp.
+    `portions` may be negative (a corrected-down sale returns stock).
+    """
+    if yield_fraction <= _ZERO:
+        raise ValueError(f"yield_fraction must be > 0, got {yield_fraction}")
+    result = portions * qty_per_portion / yield_fraction
+    return result.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+# ── Menu prices (RWF) ──────────────────────────────────────────────────────────
+
+_CURRENCY_RE = re.compile(r"(?i)\b(rwf|frw|frs?|rwandan francs?)\b|/=|=/")
+_PRICE_RE = re.compile(r"(?i)^(\d+(?:[.,\s]\d+)*)\s*(k)?$")
+
+
+def parse_rwf_price(text: str | None) -> int | None:
+    """Parse a menu price as written into whole RWF, or None when unreadable.
+
+    Handles "3,500", "3 500", "3.500" (thousands), "3500/=", "Frw 3500", "3500 RWF",
+    and "k" shorthand ("2.5k" = 2500, "3k" = 3000). Ambiguous text returns None so
+    the chef fills it in; prices are never guessed.
+    """
+    if not text:
+        return None
+    cleaned = _CURRENCY_RE.sub(" ", text).strip()
+    match = _PRICE_RE.match(cleaned)
+    if not match:
+        return None
+    number, k = match.group(1), match.group(2)
+    if k:
+        # "2.5k" / "2,5k": the separator is a decimal point
+        value = Decimal(number.replace(",", ".").replace(" ", "")) * 1000
+    else:
+        groups = re.split(r"[.,\s]", number)
+        if len(groups) > 1 and all(len(g) == 3 for g in groups[1:]):
+            value = Decimal("".join(groups))  # thousands separators
+        elif len(groups) == 1:
+            value = Decimal(number)
+        else:
+            return None  # e.g. "3.50" — not a whole-RWF menu price
+    if value <= _ZERO or value > Decimal("10000000"):
+        return None
+    return int(value.to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def round_up_price(value: Decimal, step: int = 100) -> int:
+    """Round a price up to the next multiple of `step` RWF (menus use round prices)."""
+    if value <= _ZERO:
+        return 0
+    return int(math.ceil(value / Decimal(step)) * step)
+
+
+# ── Quantities written on delivery notes ───────────────────────────────────────
+
+_QTY_DECIMAL_RE = re.compile(r"^\d+(?:[.,]\d+)?$")
+_QTY_FRACTION_RE = re.compile(r"^(?:(\d+)\s+)?(\d+)\s*/\s*(\d+)$")
+
+
+def parse_quantity(text: str | None) -> Decimal | None:
+    """Parse a delivered quantity as written ("25", "2.5", "2,5", "1/2", "1 1/2").
+
+    Thousands separators are not accepted (a delivery line of "1,500 kg" is ambiguous
+    between 1.5 and 1500), so ambiguous or unreadable text returns None and the chef
+    types the quantity. Result is > 0 and rounded to 3 dp.
+    """
+    if not text:
+        return None
+    cleaned = text.strip()
+    value: Decimal | None = None
+    if _QTY_DECIMAL_RE.match(cleaned):
+        whole, _, frac = cleaned.replace(",", ".").partition(".")
+        if "," in cleaned and len(frac) == 3:
+            return None  # "1,500" — thousands separator or decimal comma? Do not guess.
+        value = Decimal(f"{whole}.{frac}" if frac else whole)
+    else:
+        fraction = _QTY_FRACTION_RE.match(cleaned)
+        if fraction:
+            whole, num, den = fraction.groups()
+            if int(den) == 0:
+                return None
+            value = Decimal(whole or 0) + Decimal(num) / Decimal(den)
+    if value is None or value <= _ZERO or value > Decimal("1000000"):
+        return None
+    return value.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+
+
+def unit_price_from_total(line_total: int | None, quantity: Decimal | None) -> int | None:
+    """Whole-RWF unit price derived from a line total and quantity, or None."""
+    if line_total is None or quantity is None or quantity <= _ZERO:
+        return None
+    return int((Decimal(line_total) / quantity).to_integral_value(rounding=ROUND_HALF_UP))
 
 
 # ── Recipe cost ────────────────────────────────────────────────────────────────

@@ -1,0 +1,38 @@
+{
+  "ai": {
+    "badge": "IA",
+    "retry": "Réessayer",
+    "enterManually": "Saisir manuellement",
+    "unavailable": "L'IA est temporairement indisponible. Vous pouvez tout saisir à la main.",
+    "estimateWarning": "Estimation de l'IA — vérifiez les quantités et le prix avant d'enregistrer.",
+    "status": {
+      "preparing": "Préparation de la photo…",
+      "uploading": "Envoi de la photo… {{percent}} %",
+      "analysing": "Analyse en cours…",
+      "usuallyTakes": "Cela prend généralement 5 à 10 secondes.",
+      "stillWorking": "Toujours en cours…",
+      "retryingIn": "Nouvel essai dans {{seconds}} s."
+    },
+    "errors": {
+      "offline": "Pas de connexion — nous réessaierons dès votre retour en ligne.",
+      "timeout": "C'est trop long — réessayez.",
+      "cancelled": "Annulé.",
+      "unavailable": "L'IA est temporairement indisponible. Vous pouvez saisir les détails manuellement.",
+      "rate_limited": "Trop de demandes à l'IA aujourd'hui — réessayez plus tard ou saisissez manuellement.",
+      "too_large": "Cette photo est trop lourde — essayez une autre photo.",
+      "too_dark": "Photo trop sombre — ajoutez de la lumière.",
+      "blurry": "Photo floue — tenez l'appareil stable et reprenez-la.",
+      "bad_output": "La réponse de l'IA est illisible — réessayez ou saisissez manuellement.",
+      "auth": "Votre session a expiré — reconnectez-vous.",
+      "server": "Une erreur s'est produite — réessayez.",
+      "too_small": "Le menu ou le document est trop petit sur la photo — rapprochez-vous."
+    },
+    "consent": {
+      "title": "Aide de l'IA pour les photos et la voix",
+      "body": "Les photos et les messages vocaux que vous envoyez sont traités par un service d'IA pour lire les menus, les plats et les bons de livraison. Food Bundles ne les conserve pas après traitement. Rien n'est enregistré sans votre confirmation.",
+      "accept": "Continuer",
+      "decline": "Pas maintenant",
+      "policy": "Politique de confidentialité"
+    }
+  }
+}

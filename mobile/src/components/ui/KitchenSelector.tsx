@@ -1,13 +1,17 @@
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useKitchenStore } from '@/store/kitchen-store';
-import { colors, radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
+import { radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 /** Horizontal pill list for switching active kitchen */
 export function KitchenSelector() {
   const kitchens = useKitchenStore((s) => s.kitchens);
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const setActiveKitchen = useKitchenStore((s) => s.setActiveKitchen);
+  const tokens = useTheme();
+  const { t } = useTranslation();
 
   if (kitchens.length <= 1) return null;
 
@@ -17,7 +21,7 @@ export function KitchenSelector() {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.list}
       accessibilityRole="tablist"
-      accessibilityLabel="Kitchen selector"
+      accessibilityLabel={t('kitchens.selectorLabel')}
     >
       {kitchens.map((k) => {
         const active = k.id === activeKitchen?.id;
@@ -28,12 +32,20 @@ export function KitchenSelector() {
             accessibilityRole="tab"
             accessibilityLabel={k.name}
             accessibilityState={{ selected: active }}
-            style={[styles.pill, active && styles.pillActive]}
+            style={[
+              styles.pill,
+              active
+                ? { backgroundColor: tokens.primary, borderColor: tokens.primary }
+                : { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border },
+            ]}
           >
             {active ? (
-              <Check size={12} color={colors.surface[950]} strokeWidth={2.5} />
+              <Check size={12} color={tokens.onPrimary} strokeWidth={2.5} />
             ) : null}
-            <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
+            <Text
+              style={[styles.label, { color: active ? tokens.onPrimary : tokens.textMuted }, active && styles.labelActive]}
+              numberOfLines={1}
+            >
               {k.name}
             </Text>
           </Pressable>
@@ -58,21 +70,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.surface[800],
     borderWidth: 1,
-    borderColor: colors.surface[700],
-  },
-  pillActive: {
-    backgroundColor: colors.brand[500],
-    borderColor: colors.brand[500],
   },
   label: {
-    color: colors.surface[400],
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
   },
   labelActive: {
-    color: colors.surface[950],
     fontWeight: fontWeight.semibold,
   },
 });

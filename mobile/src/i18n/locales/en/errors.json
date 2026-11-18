@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "boundary": {
+      "title": "Something went wrong",
+      "body": "The app hit an unexpected problem. Your saved data is safe.",
+      "retry": "Try again"
+    }
+  }
+}

@@ -93,3 +93,34 @@ class AiDisabledError(AppError):
     status_code = HTTPStatus.SERVICE_UNAVAILABLE
     error_code = "AI_DISABLED"
     message = "AI features are not enabled in this environment."
+
+
+class AiBadOutputError(AppError):
+    """The model answer failed schema validation twice (original + one repair attempt)."""
+
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    error_code = "AI_BAD_OUTPUT"
+    message = "The AI answer could not be read."
+
+
+class AiTimeoutError(AppError):
+    status_code = HTTPStatus.GATEWAY_TIMEOUT
+    error_code = "AI_TIMEOUT"
+    message = "The AI took too long to answer."
+
+
+class AiRateLimitError(RateLimitError):
+    error_code = "AI_RATE_LIMITED"
+    message = "Daily AI request limit reached."
+
+
+class AiAudioTooLargeError(AppError):
+    status_code = HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+    error_code = "AI_AUDIO_TOO_LARGE"
+    message = "The voice clip is too long."
+
+
+class AiImageInvalidError(AppError):
+    status_code = HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+    error_code = "AI_IMAGE_INVALID"
+    message = "The image is missing, too large or not a supported format."

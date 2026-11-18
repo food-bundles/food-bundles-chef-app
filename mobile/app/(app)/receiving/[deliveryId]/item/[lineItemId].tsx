@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Image,
-  Alert,
-  KeyboardAvoidingView,
-  ActivityIndicator,
-  StyleSheet,
-  TextInput,
-  useWindowDimensions,
-} from 'react-native';
+  View, Text, ScrollView, Pressable, Image, Alert, KeyboardAvoidingView, ActivityIndicator, StyleSheet, useWindowDimensions } from 'react-native';
+import { ThemedTextInput } from '@/components/ui/ThemedTextInput';
+import { useTheme } from '@/providers/ThemeProvider';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,6 +19,7 @@ import { ApiError } from '@/api/errors';
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { MAX_PHOTO_SIZE_BYTES } from '@/constants';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
+import { formatQuantity, formatRWF } from '@/lib/format';
 import type { QualityAssessmentResponseDto, QualityResult, QualityDimensionResult } from '@/api/ai-api';
 import type { ReceivingDecision } from '@/api/receiving-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
@@ -40,6 +33,8 @@ const QUALITY_VARIANT: Record<QualityResult, BadgeVariant> = {
 };
 
 export default function LineItemReceiveScreen() {
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
   const { deliveryId, lineItemId } = useLocalSearchParams<{ deliveryId: string; lineItemId: string }>();
   const { data: order } = useDeliveryDetail(deliveryId ?? '');
   const line = order?.lines.find((l) => l.id === lineItemId);
@@ -61,9 +56,9 @@ export default function LineItemReceiveScreen() {
   if (!line || !order) {
     return (
       <AppScreen>
-        <AppHeader title="Receive Item" showBack />
+        <AppHeader title={t('receiving.receiveItemTitle')} showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.surface[400] }}>Item not found.</Text>
+          <Text style={{ color: tk.textMuted }}>{t('receiving.itemNotFound')}</Text>
         </View>
       </AppScreen>
     );
@@ -87,7 +82,7 @@ export default function LineItemReceiveScreen() {
 
       const blob = await (await fetch(compressed.uri)).blob();
       if (blob.size > MAX_PHOTO_SIZE_BYTES) {
-        Alert.alert('Image too large', 'Could not compress image below 1 MB. Please try again.');
+        Alert.alert(t('receiving.imageTooLarge'), t('receiving.imageTooLargeDesc'));
         return;
       }
 
@@ -95,14 +90,14 @@ export default function LineItemReceiveScreen() {
       setAnnotation('');
       setStep('annotate');
     } catch {
-      Alert.alert('Camera error', 'Could not capture photo. Please try again.');
+      Alert.alert(t('receiving.cameraError'), t('receiving.cameraErrorDesc'));
     }
   };
 
   const handlePickFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Gallery access is needed to upload a photo.');
+      Alert.alert(t('receiving.permissionRequired'), t('receiving.galleryPermissionDesc'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -120,14 +115,14 @@ export default function LineItemReceiveScreen() {
       );
       const blob = await (await fetch(compressed.uri)).blob();
       if (blob.size > MAX_PHOTO_SIZE_BYTES) {
-        Alert.alert('Image too large', 'Could not compress image below 1 MB. Please choose a smaller photo.');
+        Alert.alert(t('receiving.imageTooLarge'), t('receiving.imageTooLargeGallery'));
         return;
       }
       setPhotoUri(compressed.uri);
       setAnnotation('');
       setStep('annotate');
     } catch {
-      Alert.alert('Upload error', 'Could not load the selected photo. Please try again.');
+      Alert.alert(t('receiving.uploadError'), t('receiving.uploadErrorDesc'));
     }
   };
 
@@ -160,8 +155,8 @@ export default function LineItemReceiveScreen() {
       const is503 = err instanceof ApiError && err.status === 503;
       setAssessError(
         is503
-          ? 'AI assessment is unavailable. Please enter values manually.'
-          : 'Assessment failed. Please enter values manually.',
+          ? t('receiving.aiUnavailable')
+          : t('receiving.assessmentFailed'),
       );
     } finally {
       setAssessing(false);
@@ -192,7 +187,7 @@ export default function LineItemReceiveScreen() {
     if (!permission) {
       return (
         <AppScreen>
-          <AppHeader title="Receive Item" showBack />
+          <AppHeader title={t('receiving.receiveItemTitle')} showBack />
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator color={colors.brand[500]} />
           </View>
@@ -203,18 +198,18 @@ export default function LineItemReceiveScreen() {
     if (!permission.granted) {
       return (
         <AppScreen>
-          <AppHeader title="Receive Item" showBack />
+          <AppHeader title={t('receiving.receiveItemTitle')} showBack />
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl }}>
-            <Camera size={48} color={colors.surface[600]} strokeWidth={1.5} />
-            <Text style={{ color: colors.white, fontSize: fontSize.lg, fontWeight: fontWeight.semibold, marginTop: spacing.md, textAlign: 'center' }}>
-              Camera Access Needed
+            <Camera size={48} color={tk.textMuted} strokeWidth={1.5} />
+            <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: fontWeight.semibold, marginTop: spacing.md, textAlign: 'center' }}>
+              {t('receiving.cameraAccessTitle')}
             </Text>
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.base, textAlign: 'center', marginTop: spacing.sm }}>
-              To assess delivery quality, the app needs camera access. You can also skip and enter values manually.
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.base, textAlign: 'center', marginTop: spacing.sm }}>
+              {t('receiving.cameraAccessDesc')}
             </Text>
             <View style={{ marginTop: spacing.lg, width: '100%', gap: spacing.sm }}>
-              <AppButton label="Grant Camera Access" onPress={requestPermission} />
-              <AppButton label="Skip — Enter Manually" onPress={handleSkipCamera} variant="ghost" />
+              <AppButton label={t('receiving.grantCamera')} onPress={requestPermission} />
+              <AppButton label={t('receiving.skipManual')} onPress={handleSkipCamera} variant="ghost" />
             </View>
           </View>
         </AppScreen>
@@ -224,7 +219,7 @@ export default function LineItemReceiveScreen() {
     return (
       <AppScreen edges={['bottom']}>
         <AppHeader title={line.product_name} showBack />
-        <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <View style={{ flex: 1, backgroundColor: colors.black }}>
           <CameraView
             ref={setCameraRef}
             style={{ flex: 1 }}
@@ -237,7 +232,7 @@ export default function LineItemReceiveScreen() {
               <Pressable
                 onPress={handlePickFromGallery}
                 accessibilityRole="button"
-                accessibilityLabel="Choose from gallery"
+                accessibilityLabel={t('receiving.chooseFromGallery')}
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.15)',
                   height: 48,
@@ -254,7 +249,7 @@ export default function LineItemReceiveScreen() {
               <Pressable
                 onPress={handleCapture}
                 accessibilityRole="button"
-                accessibilityLabel="Take photo"
+                accessibilityLabel={t('receiving.takePhoto')}
                 style={{
                   backgroundColor: colors.white,
                   height: 64,
@@ -272,9 +267,9 @@ export default function LineItemReceiveScreen() {
             </View>
 
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: fontSize.xs, textAlign: 'center' }}>
-              Take a photo or choose from gallery
+              {t('receiving.takePhotoOrGallery')}
             </Text>
-            <AppButton label="Skip Photo — Enter Manually" onPress={handleSkipCamera} variant="ghost" />
+            <AppButton label={t('receiving.skipPhotoManual')} onPress={handleSkipCamera} variant="ghost" />
           </View>
         </View>
       </AppScreen>
@@ -289,11 +284,11 @@ export default function LineItemReceiveScreen() {
     return (
       <AppScreen>
         <AppHeader
-          title="Add Note to Photo"
+          title={t('receiving.addNoteTitle')}
           showBack
           right={
-            <Pressable onPress={handleRetakePhoto} accessibilityRole="button" accessibilityLabel="Retake photo" hitSlop={8}>
-              <RotateCcw size={18} color={colors.surface[400]} />
+            <Pressable onPress={handleRetakePhoto} accessibilityRole="button" accessibilityLabel={t('receiving.retakePhoto')} hitSlop={8}>
+              <RotateCcw size={18} color={tk.textMuted} />
             </Pressable>
           }
         />
@@ -303,13 +298,13 @@ export default function LineItemReceiveScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* Photo with annotation overlay */}
-            <View style={{ width: imgWidth, height: imgHeight, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface[900] }}>
+            <View style={{ width: imgWidth, height: imgHeight, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: tk.surfaceSunken }}>
               {photoUri && (
                 <Image
                   source={{ uri: photoUri }}
                   style={{ position: 'absolute', width: imgWidth, height: imgHeight }}
                   resizeMode="cover"
-                  accessibilityLabel="Captured delivery photo"
+                  accessibilityLabel={t('receiving.capturedPhoto')}
                 />
               )}
               {/* Annotation text rendered on top of photo */}
@@ -321,49 +316,49 @@ export default function LineItemReceiveScreen() {
             </View>
 
             {/* Annotation input */}
-            <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.md, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: tk.surfaceRaised, borderRadius: radius.md, overflow: 'hidden' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, gap: spacing.xs }}>
-                <Pencil size={14} color={colors.surface[400]} />
-                <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                  Add a note (optional)
+                <Pencil size={14} color={tk.textMuted} />
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: fontWeight.medium, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  {t('receiving.addNoteOptional')}
                 </Text>
               </View>
-              <TextInput
+              <ThemedTextInput
                 value={annotation}
                 onChangeText={setAnnotation}
-                placeholder="e.g. 2 bags damaged, rest OK"
-                placeholderTextColor={colors.surface[600]}
+                placeholder={t('receiving.annotationPlaceholder')}
+                placeholderTextColor={tk.placeholder}
                 multiline
                 numberOfLines={3}
                 style={{
-                  color: colors.white,
+                  color: tk.text,
                   fontSize: fontSize.base,
                   paddingHorizontal: spacing.md,
                   paddingVertical: spacing.sm,
                   minHeight: 72,
                   textAlignVertical: 'top',
                 }}
-                accessibilityLabel="Annotation note"
+                accessibilityLabel={t('receiving.annotationNote')}
               />
             </View>
 
-            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, textAlign: 'center' }}>
-              Your note will be shown on the photo and sent to AI as extra context.
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, textAlign: 'center' }}>
+              {t('receiving.annotationHint')}
             </Text>
 
             <View style={{ gap: spacing.sm }}>
               <AppButton
-                label="Assess with AI"
+                label={t('receiving.assessWithAI')}
                 onPress={handleProceedFromAnnotation}
-                accessibilityLabel="Run AI assessment"
+                accessibilityLabel={t('receiving.assessWithAI')}
               />
               <AppButton
-                label="Skip AI — Enter Manually"
+                label={t('receiving.skipAIManual')}
                 onPress={handleProceedToEntry}
                 variant="ghost"
               />
               <AppButton
-                label="Retake Photo"
+                label={t('receiving.retakePhoto')}
                 onPress={handleRetakePhoto}
                 variant="secondary"
               />
@@ -385,7 +380,7 @@ export default function LineItemReceiveScreen() {
               <Image
                 source={{ uri: photoUri }}
                 style={{ width: '100%', aspectRatio: 4 / 3 }}
-                accessibilityLabel="Captured delivery photo"
+                accessibilityLabel={t('receiving.capturedPhoto')}
               />
               {annotation.trim() ? (
                 <View style={styles.annotationOverlay}>
@@ -396,11 +391,11 @@ export default function LineItemReceiveScreen() {
           )}
 
           {assessing && (
-            <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.lg, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{ backgroundColor: tk.surfaceRaised, borderRadius: radius.lg, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <ActivityIndicator color={colors.brand[500]} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.white, fontWeight: fontWeight.medium }}>AI Assessment Running</Text>
-                <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, marginTop: 2 }}>Advisory only — you can override all values</Text>
+                <Text style={{ color: tk.text, fontWeight: fontWeight.medium }}>{t('receiving.aiRunning')}</Text>
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>{t('receiving.aiAdvisory')}</Text>
               </View>
             </View>
           )}
@@ -413,17 +408,17 @@ export default function LineItemReceiveScreen() {
           )}
 
           {assessment && !assessing && (
-            <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.lg, padding: spacing.md, gap: spacing.md }}>
+            <View style={{ backgroundColor: tk.surfaceRaised, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <Bot size={16} color={colors.surface[400]} />
-                <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  AI Quality Assessment (Advisory)
+                <Bot size={16} color={tk.textMuted} />
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  {t('receiving.aiAssessmentTitle')}
                 </Text>
               </View>
 
               {assessment.dimensions.map((dim: QualityDimensionResult) => (
                 <View key={dim.dimension} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.surface[300], fontSize: fontSize.sm, textTransform: 'capitalize' }}>
+                  <Text style={{ color: tk.text, fontSize: fontSize.sm, textTransform: 'capitalize' }}>
                     {dim.dimension.replace(/_/g, ' ')}
                   </Text>
                   <StatusBadge
@@ -433,13 +428,13 @@ export default function LineItemReceiveScreen() {
                 </View>
               ))}
 
-              <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.surface[700], paddingTop: spacing.sm }}>
-                <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
-                  AI estimated quantity:{' '}
-                  <Text style={{ color: colors.surface[300] }}>
+              <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tk.border, paddingTop: spacing.sm }}>
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>
+                  {t('receiving.aiEstimatedQty')}{' '}
+                  <Text style={{ color: tk.text }}>
                     {assessment.quantity_estimate?.estimated_quantity !== null && assessment.quantity_estimate?.estimated_quantity !== undefined
-                      ? `~${assessment.quantity_estimate.estimated_quantity} ${line.unit} (advisory — enter actual below)`
-                      : 'Not visible in image — enter manually'}
+                      ? t('receiving.aiQuantityEstimate', { qty: formatQuantity(assessment.quantity_estimate.estimated_quantity, i18n.language), unit: line.unit })
+                      : t('receiving.aiNotVisible')}
                   </Text>
                 </Text>
               </View>
@@ -448,10 +443,10 @@ export default function LineItemReceiveScreen() {
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <View style={{ flex: 1 }}>
-              <AppButton label="Retake Photo" onPress={handleRetakePhoto} variant="secondary" />
+              <AppButton label={t('receiving.retakePhoto')} onPress={handleRetakePhoto} variant="secondary" />
             </View>
             <View style={{ flex: 1 }}>
-              <AppButton label="Enter Values" onPress={handleProceedToEntry} />
+              <AppButton label={t('receiving.enterValues')} onPress={handleProceedToEntry} />
             </View>
           </View>
         </ScrollView>
@@ -475,7 +470,7 @@ export default function LineItemReceiveScreen() {
                 source={{ uri: photoUri }}
                 style={{ width: '100%', aspectRatio: 16 / 9 }}
                 resizeMode="cover"
-                accessibilityLabel="Delivery photo"
+                accessibilityLabel={t('receiving.deliveryPhoto')}
               />
               {annotation.trim() ? (
                 <View style={styles.annotationOverlay}>
@@ -486,37 +481,37 @@ export default function LineItemReceiveScreen() {
           )}
 
           {/* Order reference */}
-          <View style={{ backgroundColor: colors.surface[800], borderRadius: radius.md, padding: spacing.md }}>
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
-              Ordered
+          <View style={{ backgroundColor: tk.surfaceRaised, borderRadius: radius.md, padding: spacing.md }}>
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+              {t('receiving.orderedLabel')}
             </Text>
-            <Text style={{ color: colors.white, fontWeight: fontWeight.semibold }}>
+            <Text style={{ color: tk.text, fontWeight: fontWeight.semibold }}>
               {line.quantity_ordered} {line.unit}
             </Text>
-            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
-              Ref price: {line.unit_price} RWF/{line.unit}
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
+              {t('receiving.refPriceLine', { price: formatRWF(line.unit_price, i18n.language), unit: line.unit })}
             </Text>
           </View>
 
           <View>
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
-              Accepted Quantity (actual)
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
+              {t('receiving.acceptedQtyLabel')}
             </Text>
-            <TextInput
+            <ThemedTextInput
               value={acceptedQty}
               onChangeText={setAcceptedQty}
               placeholder={`e.g. ${line.quantity_ordered}`}
-              placeholderTextColor={colors.surface[600]}
+              placeholderTextColor={tk.placeholder}
               keyboardType="decimal-pad"
               style={{
-                backgroundColor: colors.surface[800],
+                backgroundColor: tk.surfaceRaised,
                 borderRadius: radius.md,
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
-                color: colors.white,
+                color: tk.text,
                 fontSize: fontSize.base,
               }}
-              accessibilityLabel="Accepted quantity"
+              accessibilityLabel={t('receiving.acceptedQuantity')}
             />
           </View>
 
@@ -524,45 +519,45 @@ export default function LineItemReceiveScreen() {
             <View style={{ backgroundColor: `${colors.warning}1A`, borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', gap: spacing.sm }}>
               <AlertTriangle size={16} color={colors.warning} />
               <Text style={{ color: colors.warning, flex: 1, fontSize: fontSize.sm }}>
-                Short delivery: accepted is more than 5% below ordered.
+                {t('receiving.shortDeliveryWarning')}
               </Text>
             </View>
           )}
 
           <View>
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
-              Discrepancy Reason (optional)
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: fontWeight.medium, marginBottom: 6 }}>
+              {t('receiving.discrepancyLabel')}
             </Text>
-            <TextInput
+            <ThemedTextInput
               value={discrepancyReason}
               onChangeText={setDiscrepancyReason}
-              placeholder="e.g. Two bags had visible mold"
-              placeholderTextColor={colors.surface[600]}
+              placeholder={t('receiving.discrepancyPlaceholder')}
+              placeholderTextColor={tk.placeholder}
               multiline
               numberOfLines={2}
               style={{
-                backgroundColor: colors.surface[800],
+                backgroundColor: tk.surfaceRaised,
                 borderRadius: radius.md,
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
-                color: colors.white,
+                color: tk.text,
                 fontSize: fontSize.base,
                 minHeight: 60,
                 textAlignVertical: 'top',
               }}
-              accessibilityLabel="Discrepancy reason"
+              accessibilityLabel={t('receiving.discrepancyReason')}
             />
           </View>
 
-          <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-            Decision
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            {t('receiving.decisionLabel')}
           </Text>
 
           <View style={{ gap: spacing.sm }}>
             <Pressable
               onPress={() => handleConfirm('accepted')}
               accessibilityRole="button"
-              accessibilityLabel="Accept delivery"
+              accessibilityLabel={t('receiving.acceptLabel')}
               disabled={acceptedQtyNum <= 0}
               style={[
                 { borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: `${colors.success}1A`, borderWidth: 1, borderColor: `${colors.success}40` },
@@ -570,13 +565,13 @@ export default function LineItemReceiveScreen() {
               ]}
             >
               <CheckCircle size={18} color={colors.success} />
-              <Text style={{ color: colors.success, fontWeight: fontWeight.semibold }}>Accept</Text>
+              <Text style={{ color: colors.success, fontWeight: fontWeight.semibold }}>{t('receiving.accept')}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => handleConfirm('partially-accepted')}
               accessibilityRole="button"
-              accessibilityLabel="Partially accept delivery"
+              accessibilityLabel={t('receiving.partialLabel')}
               disabled={acceptedQtyNum <= 0}
               style={[
                 { borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: `${colors.warning}1A`, borderWidth: 1, borderColor: `${colors.warning}40` },
@@ -584,17 +579,17 @@ export default function LineItemReceiveScreen() {
               ]}
             >
               <AlertTriangle size={18} color={colors.warning} />
-              <Text style={{ color: colors.warning, fontWeight: fontWeight.semibold }}>Partially Accept</Text>
+              <Text style={{ color: colors.warning, fontWeight: fontWeight.semibold }}>{t('receiving.partiallyAccept')}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => handleConfirm('rejected')}
               accessibilityRole="button"
-              accessibilityLabel="Reject delivery"
+              accessibilityLabel={t('receiving.rejectLabel')}
               style={{ borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: `${colors.danger}1A`, borderWidth: 1, borderColor: `${colors.danger}40` }}
             >
               <XCircle size={18} color={colors.danger} />
-              <Text style={{ color: colors.danger, fontWeight: fontWeight.semibold }}>Reject</Text>
+              <Text style={{ color: tk.danger, fontWeight: fontWeight.semibold }}>{t('receiving.reject')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -614,7 +609,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   annotationOverlayText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 18,

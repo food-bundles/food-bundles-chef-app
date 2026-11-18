@@ -1,6 +1,9 @@
-import { View, Text, Pressable, StyleSheet, useColorScheme } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
-import { colors, radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
+import { useTranslation } from 'react-i18next';
+import { AppPressable } from './AppPressable';
+import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface QuantitySelectorProps {
   value: number;
@@ -9,83 +12,66 @@ export interface QuantitySelectorProps {
   min?: number;
   max?: number;
   unit?: string;
+  /** What is being counted, e.g. "Chips, portions sold". Defaults to "Quantity". */
   accessibilityLabel?: string;
 }
 
-/** Touch-friendly quantity stepper for order/delivery entry */
-export function QuantitySelector({
-  value,
-  onDecrement,
-  onIncrement,
-  min = 0,
-  max,
-  unit,
-  accessibilityLabel = 'Quantity',
-}: QuantitySelectorProps) {
+/** Touch-friendly stepper; "−" is disabled at the minimum (kept from the audit). */
+export function QuantitySelector({ value, onDecrement, onIncrement, min = 0, max, unit, accessibilityLabel }: QuantitySelectorProps) {
+  const { t } = useTranslation();
+  const tokens = useTheme();
   const canDecrement = value > min;
   const canIncrement = max === undefined || value < max;
-  const isDark = useColorScheme() === 'dark';
-  const btnBg = isDark ? colors.surface[700] : colors.surface[200];
-  const activeIconColor = isDark ? colors.white : colors.surface[800];
+  const subject = accessibilityLabel ?? t('common.quantity');
 
   return (
-    <View
-      style={styles.row}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ text: `${value}${unit ? ' ' + unit : ''}` }}
-    >
-      <Pressable
+    <View style={styles.row} accessibilityLabel={subject} accessibilityValue={{ text: `${value}${unit ? ` ${unit}` : ''}` }}>
+      <AppPressable
         onPress={onDecrement}
         disabled={!canDecrement}
         accessibilityRole="button"
-        accessibilityLabel="Decrease quantity"
+        accessibilityLabel={t('common.decrease', { subject })}
         accessibilityState={{ disabled: !canDecrement }}
-        style={[styles.btn, { backgroundColor: btnBg }, !canDecrement && styles.btnDisabled]}
+        style={({ pressed }) => [
+          styles.btn,
+          { backgroundColor: tokens.surfaceSunken },
+          !canDecrement && styles.btnDisabled,
+          pressed && canDecrement && styles.pressed,
+        ]}
       >
-        <Minus size={16} color={canDecrement ? activeIconColor : colors.surface[600]} strokeWidth={2} />
-      </Pressable>
+        <Minus size={18} color={tokens.text} strokeWidth={2} />
+      </AppPressable>
 
       <View style={styles.valueBox}>
-        <Text style={[styles.value, { color: isDark ? colors.white : colors.surface[900] }]}>{value}</Text>
-        {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+        <Text style={[styles.value, { color: tokens.text }]}>{value}</Text>
+        {unit ? <Text style={[styles.unit, { color: tokens.textMuted }]}>{unit}</Text> : null}
       </View>
 
-      <Pressable
+      <AppPressable
         onPress={onIncrement}
         disabled={!canIncrement}
         accessibilityRole="button"
-        accessibilityLabel="Increase quantity"
+        accessibilityLabel={t('common.increase', { subject })}
         accessibilityState={{ disabled: !canIncrement }}
-        style={[styles.btn, { backgroundColor: btnBg }, !canIncrement && styles.btnDisabled]}
+        style={({ pressed }) => [
+          styles.btn,
+          { backgroundColor: tokens.surfaceSunken },
+          !canIncrement && styles.btnDisabled,
+          pressed && canIncrement && styles.pressed,
+        ]}
       >
-        <Plus size={16} color={canIncrement ? activeIconColor : colors.surface[600]} strokeWidth={2} />
-      </Pressable>
+        <Plus size={18} color={tokens.text} strokeWidth={2} />
+      </AppPressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  btn: {
-    width: MIN_TOUCH_SIZE,
-    height: MIN_TOUCH_SIZE,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  btn: { width: MIN_TOUCH_SIZE, height: MIN_TOUCH_SIZE, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   btnDisabled: { opacity: 0.4 },
+  pressed: { opacity: 0.7 },
   valueBox: { alignItems: 'center', minWidth: 48 },
-  value: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-  },
-  unit: {
-    color: colors.surface[500],
-    fontSize: fontSize.xs,
-    marginTop: 1,
-  },
+  value: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: fontSize.xs, marginTop: 1 },
 });

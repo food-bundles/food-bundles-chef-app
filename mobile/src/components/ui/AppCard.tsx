@@ -1,5 +1,6 @@
 import { View, StyleSheet, type ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '@/lib/theme';
+import { radius, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface AppCardProps {
   children: React.ReactNode;
@@ -8,12 +9,14 @@ export interface AppCardProps {
   highlighted?: boolean;
 }
 
-/** Standard card container — dark surface with rounded corners */
+/** Standard raised card for the active theme. */
 export function AppCard({ children, style, highlighted = false }: AppCardProps) {
+  const tokens = useTheme();
   return (
     <View
       style={[
         styles.card,
+        { backgroundColor: tokens.surfaceRaised, borderColor: highlighted ? tokens.primary : tokens.border },
         highlighted && styles.highlighted,
         style,
       ]}
@@ -25,14 +28,11 @@ export function AppCard({ children, style, highlighted = false }: AppCardProps) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface[800],
     borderRadius: radius.lg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'transparent',
   },
   highlighted: {
-    borderColor: colors.brand[500],
     borderWidth: 1.5,
   },
 });
