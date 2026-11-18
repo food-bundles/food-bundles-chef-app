@@ -42,7 +42,8 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             import json
 
-            return json.loads(v)
+            parsed: list[str] = json.loads(v)
+            return parsed
         return v
 
     # OTP
@@ -126,8 +127,9 @@ class Settings(BaseSettings):
         "claude-opus-5-5": {"supports_temperature": False, "supports_effort": True},
     }
     # USD per million tokens: input, output, cache_read, cache_write (5 min).
-    # Anthropic list prices verified 2026-11-18. Meta prices: fill in from
-    # https://dev.meta.ai/docs/pricing-rate-limits (0 = cost not tracked).
+    # Anthropic list prices verified 2026-11-18. Meta Muse Spark Standard-mode prices from
+    # https://dev.meta.ai/docs/pricing-rate-limits, fetched 2026-11-18 (the page has no
+    # effective date). Meta lists no cache-write price, so cache_write = input.
     AI_MODEL_PRICES: dict[str, dict[str, float]] = {
         "claude-haiku-5-5": {
             "input": 0.10,
@@ -137,6 +139,9 @@ class Settings(BaseSettings):
         },
         "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cache_read": 0.10, "cache_write": 2.5},
         "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_read": 0.20, "cache_write": 5.0},
+        "muse-spark-1.3": {"input": 1.25, "output": 4.25, "cache_read": 0.15, "cache_write": 1.25},
+        "muse-spark-1.2": {"input": 1.25, "output": 4.25, "cache_read": 0.15, "cache_write": 1.25},
+        "muse-spark-1.1": {"input": 1.25, "output": 4.25, "cache_read": 0.15, "cache_write": 1.25},
     }
     # Total time budget per feature, INCLUDING the fallback attempt (enforced by the router).
     # Classify is 15 s, not 10 s: Meta alone measured 7.6-9.8 s on 2026-11-18, so a 10 s
@@ -201,4 +206,4 @@ class Settings(BaseSettings):
         return self.APP_ENV == "production"
 
 
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()

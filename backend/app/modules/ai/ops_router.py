@@ -51,6 +51,9 @@ class ProviderHealth(BaseModel):
 class AiHealthResponse(BaseModel):
     primary: str
     fallback: str
+    # Redis holds the kill switch shared by all instances. False means a kill-switch
+    # change only reaches the instance that received it (Redis is required in production).
+    redis_connected: bool
     providers: list[ProviderHealth]
 
 
@@ -87,7 +90,10 @@ async def ai_health() -> AiHealthResponse:
             )
         )
     return AiHealthResponse(
-        primary=settings.AI_PRIMARY_PROVIDER, fallback=settings.AI_FALLBACK_PROVIDER, providers=out
+        primary=settings.AI_PRIMARY_PROVIDER,
+        fallback=settings.AI_FALLBACK_PROVIDER,
+        redis_connected=await kill_switch.ping(),
+        providers=out,
     )
 
 

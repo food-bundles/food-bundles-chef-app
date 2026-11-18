@@ -130,7 +130,11 @@ async def test_health_reports_status_without_key_material(
     async def off(provider: str) -> bool:
         return False
 
+    async def redis_up() -> bool:
+        return True
+
     monkeypatch.setattr(killswitch.kill_switch, "is_on", off)
+    monkeypatch.setattr(killswitch.kill_switch, "ping", redis_up)
     health.reset()
     # Fake key built at runtime so secret scanners don't flag the test source.
     key = "-".join(["sk", "ant", "api03", "SECRETVALUE", "1234567890"])
@@ -140,6 +144,7 @@ async def test_health_reports_status_without_key_material(
     resp = await client.get("/api/v1/ai/health", headers={"X-Ops-Token": "ops-secret-token"})
     assert resp.status_code == 200
     body = resp.json()
+    assert body["redis_connected"] is True
     anthropic = next(p for p in body["providers"] if p["name"] == "anthropic")
     assert anthropic["configured"] is True
     assert anthropic["enabled"] is True
@@ -187,3 +192,16 @@ async def test_kill_switch_endpoint(client: AsyncClient, monkeypatch: pytest.Mon
     )
     assert resp.status_code == 204
     assert calls == [("anthropic", True)]
+
+
+async def test_kill_switch_ping_is_false_and_fast_when_redis_is_down(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import time
+
+    from app.modules.ai.providers.killswitch import KillSwitch
+
+    monkeypatch.setattr(cfg.settings, "REDIS_URL", "redis://127.0.0.1:1/0")  # nothing listens
+    started = time.monotonic()
+    assert await KillSwitch().ping() is False
+    assert time.monotonic() - started < 1.5

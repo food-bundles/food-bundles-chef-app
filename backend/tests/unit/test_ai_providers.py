@@ -375,3 +375,9 @@ def test_settings_repr_hides_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cfg.settings, "DATABASE_URL_SYNC", SecretStr(db_url))
     text = repr(cfg.settings) + str(cfg.settings) + cfg.settings.model_dump_json()
     assert "should-not-print" not in text
+
+
+def test_meta_models_are_priced_from_published_standard_rates() -> None:
+    usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000, cached_tokens=1_000_000)
+    # $1.25 input + $4.25 output + $0.15 cache read (Meta pricing page, fetched 2026-11-18)
+    assert catalog.cost_usd("muse-spark-1.3", usage) == pytest.approx(5.65)

@@ -8,6 +8,7 @@ remains the hard off switch.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
@@ -31,7 +32,8 @@ class KillSwitch:
         if self._redis is None:
             from redis import asyncio as aioredis
 
-            self._redis = aioredis.from_url(
+            from_url: Any = aioredis.from_url  # redis-py's from_url is untyped
+            self._redis = from_url(
                 settings.REDIS_URL, socket_timeout=0.3, socket_connect_timeout=0.3
             )
         return self._redis
@@ -51,6 +53,13 @@ class KillSwitch:
             on = self._local.get(provider, False)
         self._cache[provider] = (now + _TTL_SECONDS, on)
         return on
+
+    async def ping(self) -> bool:
+        """True when Redis answers within 0.5 s (reported as redis_connected in /ai/health)."""
+        try:
+            return bool(await asyncio.wait_for(self._client().ping(), timeout=0.5))
+        except Exception:
+            return False
 
     async def set(self, provider: str, on: bool) -> None:
         self._local[provider] = on
