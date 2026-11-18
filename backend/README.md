@@ -57,7 +57,13 @@ The proposed backend stack is:
 
 Use stable, compatible dependency versions. Pin dependencies and maintain a reproducible development environment.
 
-Redis and background task infrastructure should only be introduced when a demonstrated workload requires them.
+Redis is **required**, in development and in production. It holds the AI kill switch
+(`ai:killswitch:{provider}`), which turns a provider off on every API instance within
+about 5 seconds without a deploy, and it is the arq task broker. Without Redis the kill
+switch only affects the instance that received the request (the API keeps working and
+`/api/v1/ai/health` reports `redis_connected: false`). Use an eviction policy that never
+evicts keys without a TTL (`volatile-lru` or `noeviction`), so the kill switch survives
+memory pressure.
 
 ## 3. Backend Architecture
 
@@ -741,6 +747,9 @@ Install:
 - Git.
 - Docker Desktop.
 - PostgreSQL (or use Docker Compose).
+- Redis 7 or newer (or use Docker Compose). Required: see section 2.
+- gitleaks 8.21 or newer on `PATH` (`scoop install gitleaks` / `brew install gitleaks`).
+  The pre-commit hook blocks commits without it.
 - A virtual environment tool.
 
 ### 11.1 Clone and Enter the Backend
@@ -789,8 +798,12 @@ Never commit `.env` or real credentials.
 If Docker Compose is configured:
 
 ```powershell
-docker compose up -d db
+docker compose up -d db redis
 ```
+
+Redis must listen on the address `REDIS_URL` resolves to. On Windows, `localhost` resolves
+to IPv6 (`::1`) first, so a Redis started by hand must bind both `127.0.0.1` and `::1`
+(Docker Compose publishes both).
 
 ### 11.6 Apply Migrations
 

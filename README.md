@@ -246,8 +246,11 @@ backend/
 - Node.js 20+ and npm
 - Python 3.12+
 - PostgreSQL 15+
+- Redis 7+ (**required**: AI kill switch and background tasks; `docker compose up -d redis`)
 - Docker (optional, for backend)
 - Expo Go app or Android/iOS simulator
+- [gitleaks](https://github.com/gitleaks/gitleaks) 8.21+ on your `PATH` (**required to commit**,
+  see [Committing](#committing))
 
 ### Mobile setup
 
@@ -266,9 +269,29 @@ python -m venv .venv
 source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 cp .env.example .env         # set DATABASE_URL, JWT_SECRET, MODEL_API_KEY
+docker compose up -d db redis # or your own PostgreSQL and Redis
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+### Committing
+
+Every commit runs the pre-commit hooks in `backend/.pre-commit-config.yaml`, including a
+**gitleaks** secret scan of the staged changes. The scan uses the `gitleaks` binary on
+your `PATH`; if it is missing, the hook fails and the commit is blocked.
+
+```bash
+# once per machine
+scoop install gitleaks        # Windows
+brew install gitleaks         # macOS
+pip install pre-commit
+
+# once per clone, from the repository root
+pre-commit install --config backend/.pre-commit-config.yaml
+```
+
+CI runs the same scan over the full history (`.github/workflows/secret-scan.yml`). Never
+commit `.env` files or real keys; `.env.example` holds placeholders only.
 
 ### Backend with Docker
 
@@ -327,7 +350,8 @@ Interactive docs: `http://localhost:8000/docs`
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feat/your-feature`)
-3. Commit using Conventional Commits (`feat:`, `fix:`, `chore:` …)
+3. Commit using Conventional Commits (`feat:`, `fix:`, `chore:` …). Install gitleaks
+   first (see [Committing](#committing)): the pre-commit hook blocks commits without it.
 4. Push the branch (`git push origin feat/your-feature`)
 5. Open a Pull Request against `main`
 
