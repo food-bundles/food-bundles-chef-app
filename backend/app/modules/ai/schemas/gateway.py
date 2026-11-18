@@ -52,7 +52,15 @@ class ModelImageClassification(BaseModel):
     image_quality: ImageQuality
 
 
-class ImageClassificationResponse(ModelImageClassification):
+class ImageClassificationResponse(BaseModel):
+    """Classification result. `status="classify_unavailable"` means the primary model
+    failed or timed out and no other model was asked (Phase 8): kind, confidence and
+    image_quality are null and the app asks the chef what the photo is."""
+
+    status: Literal["ok", "classify_unavailable"] = "ok"
+    kind: ImageKind | None
+    confidence: Confidence | None
+    image_quality: ImageQuality | None
     request_id: str
     prompt_version: str
 

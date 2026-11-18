@@ -17,6 +17,7 @@ from app.core import config as cfg
 from app.core.exceptions import (
     AiBadOutputError,
     AiBudgetExceededError,
+    AiPrimaryFailedError,
     AiProviderError,
     AiRefusedError,
     AiTimeoutError,
@@ -153,10 +154,15 @@ def _router(
     )
 
 
-async def _run(router: ProviderRouter, budget: float = 10.0):
+async def _run(router: ProviderRouter, budget: float = 10.0, policy: str = "default"):
     with capture_logs() as logs:
         try:
-            routed = await router.run(_request(), parse=_parse, budget_seconds=budget)
+            routed = await router.run(
+                _request(),
+                parse=_parse,
+                budget_seconds=budget,
+                policy=policy,  # type: ignore[arg-type]
+            )
         except Exception as exc:
             return exc, [e for e in logs if e["event"] == "ai_call"]
     return routed, [e for e in logs if e["event"] == "ai_call"]
@@ -454,3 +460,66 @@ async def test_failover_never_duplicates_a_proposal() -> None:
     assert routed.value == Answer(label="record_sale")
     assert len(meta.calls) == 1
     assert len(logs) == 1
+
+
+# ── no_failover policy (classify) ─────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "error",
+    [ProviderTimeout(), ProviderNetwork(), ProviderOverloaded(status_code=529), ProviderAuth()],
+)
+async def test_no_failover_primary_failure_never_calls_meta(error: Exception) -> None:
+    anthropic = FakeProvider("anthropic", [error] * 3)
+    meta = FakeProvider("meta", [GOOD])
+    result, logs = await _run(_router(anthropic, meta), policy="no_failover")
+    assert isinstance(result, AiPrimaryFailedError)
+    assert meta.calls == []
+    assert logs[0]["provider_attempted"] == "anthropic"
+    assert logs[0]["provider_served"] is None
+    assert logs[0]["fallback_reason"] is None
+    assert logs[0]["policy"] == "no_failover"
+
+
+async def test_no_failover_schema_fail_after_repair_raises_primary_failed() -> None:
+    anthropic = FakeProvider("anthropic", ["not json", "still not json"])
+    meta = FakeProvider("meta", [GOOD])
+    result, logs = await _run(_router(anthropic, meta), policy="no_failover")
+    assert isinstance(result, AiPrimaryFailedError)
+    assert meta.calls == []
+    assert logs[0]["outcome"] == "schema_fail"
+
+
+async def test_no_failover_bad_request_raises_primary_failed_and_logs_error() -> None:
+    anthropic = FakeProvider("anthropic", [ProviderBadRequest()])
+    meta = FakeProvider("meta", [GOOD])
+    result, logs = await _run(_router(anthropic, meta), policy="no_failover")
+    assert isinstance(result, AiPrimaryFailedError)
+    assert meta.calls == []
+    assert logs[0]["log_level"] == "error"
+
+
+async def test_no_failover_refusal_stays_a_refusal() -> None:
+    anthropic = FakeProvider("anthropic", [ProviderRefusal()])
+    meta = FakeProvider("meta", [GOOD])
+    result, _ = await _run(_router(anthropic, meta), policy="no_failover")
+    assert isinstance(result, AiRefusedError)
+    assert meta.calls == []
+
+
+async def test_no_failover_primary_gets_the_whole_budget() -> None:
+    anthropic = FakeProvider("anthropic", [GOOD])
+    meta = FakeProvider("meta", [])
+    routed, logs = await _run(_router(anthropic, meta), budget=10.0, policy="no_failover")
+    assert routed.provider == "anthropic"
+    assert anthropic.timeouts[0] > 9.0  # not the 60 % primary share
+    assert logs[0]["outcome"] == "success"
+
+
+async def test_no_failover_skipped_primary_still_served_by_meta() -> None:
+    anthropic = FakeProvider("anthropic", [GOOD], configured=False)
+    meta = FakeProvider("meta", [GOOD])
+    routed, logs = await _run(_router(anthropic, meta), policy="no_failover")
+    assert routed.provider == "meta"
+    assert logs[0]["outcome"] == "primary_skipped"
+    assert logs[0]["skip_reason"] == "no_key"

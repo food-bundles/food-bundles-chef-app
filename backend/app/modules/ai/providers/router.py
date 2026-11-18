@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.exceptions import (
     AiBadOutputError,
     AiBudgetExceededError,
+    AiPrimaryFailedError,
     AiProviderError,
     AiRefusedError,
     AiTimeoutError,
@@ -50,7 +51,11 @@ from pydantic import ValidationError
 logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
-Policy = Literal["default", "meta_only"]
+# default: primary, then fallback. meta_only: Meta alone (quality assessment).
+# no_failover: when the primary is available it is the ONLY provider tried (full budget);
+# if it fails the caller gets AiPrimaryFailedError. When the primary is skipped
+# (no key, disabled, kill switch, breaker open, budget) the fallback serves as usual.
+Policy = Literal["default", "meta_only", "no_failover"]
 _PARSE_ERRORS = (json.JSONDecodeError, ValidationError, ValueError, TypeError)
 _REPAIR_MIN_SECONDS = 3.0
 # The router enforces each attempt's deadline itself: httpx timeouts apply per phase
@@ -118,7 +123,7 @@ class ProviderRouter:
     def order(self, policy: Policy) -> list[str]:
         if policy == "meta_only":
             return ["meta"]
-        names = [settings.AI_PRIMARY_PROVIDER]
+        names: list[str] = [settings.AI_PRIMARY_PROVIDER]
         if settings.AI_FALLBACK_PROVIDER not in ("none", settings.AI_PRIMARY_PROVIDER):
             names.append(settings.AI_FALLBACK_PROVIDER)
         return names
@@ -170,6 +175,10 @@ class ProviderRouter:
             elif skip_reason is None:
                 skip_reason = reason
 
+        primary_only = policy == "no_failover" and bool(candidates) and candidates[0] == order[0]
+        if primary_only:
+            candidates = candidates[:1]
+
         attempted: list[str] = []
         billed: list[_Billed] = []
         last_error: ProviderError | None = None
@@ -200,7 +209,8 @@ class ProviderRouter:
                         logger.critical("ai_provider_auth_failed", provider=name)
                     if not exc.failover:
                         raise
-                    fallback_reason = fallback_reason or exc.kind
+                    if not primary_only:
+                        fallback_reason = fallback_reason or exc.kind
                     continue
 
                 breaker.record_success()
@@ -250,11 +260,24 @@ class ProviderRouter:
             )
             if exc.kind == "refused":
                 raise AiRefusedError() from None
+            if primary_only:
+                raise AiPrimaryFailedError() from None
             raise AiProviderError(f"{request.feature} request rejected by provider") from None
         finally:
             await self._record_spend(request.kitchen_id, billed)
 
         # Nothing served the request.
+        if primary_only:
+            self._log(
+                request,
+                started,
+                outcome=last_error.kind if last_error else "breaker_open",
+                attempted=attempted,
+                billed=billed,
+                skip_reason=skip_reason,
+                policy=policy,
+            )
+            raise AiPrimaryFailedError()
         both = len(attempted) > 1 or not attempted
         outcome = "both_failed" if both else (last_error.kind if last_error else "both_failed")
         self._log(
@@ -311,7 +334,7 @@ class ProviderRouter:
                 if exc.retryable and retries < settings.AI_ROUTER_MAX_RETRIES:
                     delay = getattr(exc, "retry_after", None)
                     if delay is None:
-                        delay = 0.5 * (2**retries) + random.uniform(0, 0.25)  # noqa: S311 — jitter, not crypto
+                        delay = 0.5 * (2**retries) + random.uniform(0, 0.25)  # noqa: S311  # nosec B311 — retry jitter, not crypto
                     if delay < deadline - self._clock() - 1.0:
                         retries += 1
                         await self._sleep(delay)
@@ -368,6 +391,7 @@ class ProviderRouter:
         skip_reason: str | None = None,
         repaired: bool = False,
         level: str = "info",
+        policy: str | None = None,
     ) -> None:
         usage = Usage()
         cost = 0.0
@@ -384,6 +408,7 @@ class ProviderRouter:
             provider_served=served,
             fallback_reason=fallback_reason,
             skip_reason=skip_reason,
+            policy=policy,
             model=model,
             latency_ms=round((self._clock() - started) * 1000),
             input_tokens=usage.input_tokens,

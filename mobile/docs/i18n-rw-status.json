@@ -634,6 +634,26 @@
       "status": "needs-review",
       "en": "Privacy policy"
     },
+    "ai.photoKind.title": {
+      "status": "needs-review",
+      "en": "What is this photo?"
+    },
+    "ai.photoKind.body": {
+      "status": "needs-review",
+      "en": "We couldn't tell automatically. Pick one to continue."
+    },
+    "ai.photoKind.menu": {
+      "status": "needs-review",
+      "en": "Menu"
+    },
+    "ai.photoKind.dish": {
+      "status": "needs-review",
+      "en": "Dish"
+    },
+    "ai.photoKind.delivery_note": {
+      "status": "needs-review",
+      "en": "Delivery note"
+    },
     "auth.welcome": {
       "status": "needs-review",
       "en": "Food Bundles Chef"

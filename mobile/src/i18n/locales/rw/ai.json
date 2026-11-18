@@ -34,6 +34,13 @@
       "accept": "Komeza",
       "decline": "Si ubu",
       "policy": "Politiki y'ibanga"
+    },
+    "photoKind": {
+      "title": "Iyi foto ni iki?",
+      "body": "Ntitwabashije kubimenya ubwacu. Hitamo kimwe ukomeze.",
+      "menu": "Menu",
+      "dish": "Ifunguro",
+      "delivery_note": "Urupapuro rw'ibyakiriwe"
     }
   }
 }

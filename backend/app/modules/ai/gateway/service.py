@@ -14,6 +14,7 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.exceptions import AiPrimaryFailedError
 from app.domain.calculations import (
     convert_quantity,
     parse_quantity,
@@ -74,22 +75,35 @@ class AiGatewayService:
                 **cached.model_dump(), request_id=request_id, prompt_version=prompt.id
             )
 
-        result = await structured_call(
-            feature="image_classify",
-            prompt=prompt,
-            system=prompt.render(),
-            user_text="Classify this photo.",
-            schema=ModelImageClassification,
-            timeout_seconds=settings.AI_TIMEOUT_CLASSIFY_MS / 1000,
-            request_id=request_id,
-            kitchen_id=str(kitchen.id),
-            model=settings.META_MUSE_SPARK_FAST_MODEL or None,
-            tier="fast",
-            effort=settings.ANTHROPIC_EFFORT_CLASSIFY,
-            max_tokens=1024,
-            image=image,
-            image_mime=mime,
-        )
+        try:
+            result = await structured_call(
+                feature="image_classify",
+                prompt=prompt,
+                system=prompt.render(),
+                user_text="Classify this photo.",
+                schema=ModelImageClassification,
+                timeout_seconds=settings.AI_TIMEOUT_CLASSIFY_MS / 1000,
+                request_id=request_id,
+                kitchen_id=str(kitchen.id),
+                model=settings.META_MUSE_SPARK_FAST_MODEL or None,
+                tier="fast",
+                effort=settings.ANTHROPIC_EFFORT_CLASSIFY,
+                max_tokens=1024,
+                image=image,
+                image_mime=mime,
+                # If Claude fails or times out, ask the chef (instant, always right)
+                # instead of waiting for the slower fallback model.
+                policy="no_failover",
+            )
+        except AiPrimaryFailedError:
+            return ImageClassificationResponse(
+                status="classify_unavailable",
+                kind=None,
+                confidence=None,
+                image_quality=None,
+                request_id=request_id,
+                prompt_version=prompt.id,
+            )
         classification_cache.set(cache_key, result)
         return ImageClassificationResponse(
             **result.model_dump(), request_id=request_id, prompt_version=prompt.id

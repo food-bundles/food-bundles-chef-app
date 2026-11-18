@@ -34,6 +34,7 @@ import {
   ClarificationRow,
   MessageBubble,
   NoticeRow,
+  PickRow,
   RouteCard,
   TypingIndicator,
 } from '@/features/agent/ChatRows';
@@ -42,6 +43,7 @@ import type { ChatEntry } from '@/features/agent/chat-types';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { AI_TIMEOUTS, AiError, newRequestId } from '@/features/ai/ai-client';
 import { classifyImage, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
+import type { PickableKind } from '@/features/ai/PhotoKindPicker';
 import { ImageTooLargeError, prepareImageForAi, type PreparedImage } from '@/features/ai/image-prep';
 import { getSpokenReplies } from '@/features/ai/consent';
 import { speakReply, stopSpeaking } from '@/features/ai/speak';
@@ -56,6 +58,7 @@ import type { ActionProposal, AgentRequest, AgentResponse } from '@/api/agent-ap
 type ProposalEntry = Extract<ChatEntry, { type: 'proposal' }>;
 type NoticeEntry = Extract<ChatEntry, { type: 'notice' }>;
 type RouteEntry = Extract<ChatEntry, { type: 'route' }>;
+type PickEntry = Extract<ChatEntry, { type: 'pick' }>;
 
 /** "Still working…" after this long. */
 const SLOW_AFTER_MS = 10_000;
@@ -302,7 +305,12 @@ export default function AgentScreen() {
         onUploaded: () => undefined,
       });
       if (kitchenRef.current !== requestKitchen) return;
-      if (result.image_quality !== 'ok') {
+      if (result.status === 'classify_unavailable' || result.kind === null) {
+        // Ask the chef instead of waiting for a slower model.
+        append({ type: 'pick', id: newRequestId(), imageUri: image.uri });
+        return;
+      }
+      if (result.image_quality !== null && result.image_quality !== 'ok') {
         pushNotice(`ai.errors.${result.image_quality}`, 'error');
         return;
       }
@@ -401,6 +409,12 @@ export default function AgentScreen() {
     }
   };
 
+  /** The chef said what the photo is: remember the answer and open the matching flow. */
+  const onPickKind = (row: PickEntry, kind: PickableKind) => {
+    setEntries((prev) => prev.map((e) => (e.id === row.id && e.type === 'pick' ? { ...e, chosen: kind } : e)));
+    openRoute({ type: 'route', id: row.id, kind, imageUri: row.imageUri });
+  };
+
   // ── Attachments ─────────────────────────────────────────────────────────────
   const pickImage = async (source: AttachSource) => {
     setAttachOpen(false);
@@ -488,6 +502,8 @@ export default function AgentScreen() {
         return <NoticeRow entry={item} onRetry={item.retryOf && !busy && available ? () => retry(item) : undefined} />;
       case 'route':
         return <RouteCard entry={item} onOpen={openRoute} />;
+      case 'pick':
+        return <PickRow entry={item} onPick={onPickKind} />;
     }
   };
 

@@ -308,3 +308,53 @@ async def test_quality_assessment_routed_meta_only(
     # Crate not fully visible → no quantity estimate.
     assert body["quantity_estimate"]["estimated_quantity"] is None
     assert meta.calls[-1]["max_tokens"] == 1024
+
+
+class TimingOutAnthropic:
+    """Claude configured but timing out on every call."""
+
+    name = "anthropic"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def is_configured(self) -> bool:
+        return True
+
+    async def generate(self, request, timeout_seconds):  # type: ignore[no-untyped-def]
+        from app.modules.ai.providers.base import ProviderTimeout
+
+        self.calls += 1
+        raise ProviderTimeout("anthropic timeout")
+
+
+async def test_classify_returns_unavailable_instead_of_meta_when_claude_fails(
+    client: AsyncClient,
+    db: AsyncSession,
+    meta: RecordingMetaClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Classify never waits for Meta after a Claude failure: the chef picks the type."""
+    from app.modules.ai.providers.meta_provider import MetaProvider
+
+    claude = TimingOutAnthropic()
+    monkeypatch.setattr(cfg.settings, "ANTHROPIC_API_KEY", SecretStr("sk-test-configured"))
+    monkeypatch.setattr(cfg.settings, "AI_ROUTER_MAX_RETRIES", 0)
+    monkeypatch.setattr(
+        provider_router, "_providers", {"anthropic": claude, "meta": MetaProvider()}
+    )
+    kid, headers = await _kitchen(client, db)
+    base = f"/api/v1/kitchens/{kid}/ai"
+
+    resp = await client.post(f"{base}/classify-image", headers=headers, **_image_form())
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "classify_unavailable"
+    assert (body["kind"], body["confidence"], body["image_quality"]) == (None, None, None)
+    assert claude.calls == 1
+    assert meta.calls == []  # Meta is never asked to classify after a Claude failure
+
+    # Other features keep the normal failover to Meta.
+    resp = await client.post(f"{base}/menu-extract", headers=headers, **_image_form())
+    assert resp.status_code == 200, resp.text
+    assert len(meta.calls) == 1

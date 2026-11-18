@@ -60,6 +60,14 @@ export type ChatEntry =
       /** What the photo classifier decided the photo shows. */
       kind: ImageKind;
       imageUri?: string;
+    }
+  | {
+      /** The classifier was unavailable: the chef picks what the photo is. */
+      type: 'pick';
+      id: string;
+      imageUri?: string;
+      /** The kind the chef picked (the picker is then read-only). */
+      chosen?: 'menu' | 'dish' | 'delivery_note';
     };
 
 const actionTypeSchema = z.enum([
@@ -128,6 +136,12 @@ export const chatEntrySchema: z.ZodType<ChatEntry> = z.discriminatedUnion('type'
     id: z.string(),
     kind: imageKindSchema,
     imageUri: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('pick'),
+    id: z.string(),
+    imageUri: z.string().optional(),
+    chosen: z.enum(['menu', 'dish', 'delivery_note']).optional(),
   }),
 ]) as z.ZodType<ChatEntry>;
 

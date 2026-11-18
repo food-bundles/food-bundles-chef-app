@@ -22,9 +22,12 @@ export const imageKindSchema = z.enum(['menu', 'dish', 'receipt', 'delivery_note
 export type ImageKind = z.infer<typeof imageKindSchema>;
 
 export const imageClassificationSchema = z.object({
-  kind: imageKindSchema,
-  confidence,
-  image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']),
+  /** 'classify_unavailable': the AI could not classify the photo (kind, confidence and
+   * image_quality are null) — ask the chef what it is instead of guessing. */
+  status: z.enum(['ok', 'classify_unavailable']).default('ok'),
+  kind: imageKindSchema.nullable(),
+  confidence: confidence.nullable(),
+  image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']).nullable(),
   request_id: z.string(),
   prompt_version: z.string(),
 });

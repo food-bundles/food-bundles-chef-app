@@ -34,6 +34,13 @@
       "accept": "Continuer",
       "decline": "Pas maintenant",
       "policy": "Politique de confidentialité"
+    },
+    "photoKind": {
+      "title": "Qu'est-ce que cette photo ?",
+      "body": "Nous n'avons pas pu la reconnaître automatiquement. Choisissez pour continuer.",
+      "menu": "Menu",
+      "dish": "Plat",
+      "delivery_note": "Bon de livraison"
     }
   }
 }

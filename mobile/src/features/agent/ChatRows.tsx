@@ -7,12 +7,14 @@ import { AppPressable } from '@/components/ui/AppPressable';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
+import { PhotoKindPicker, type PickableKind } from '@/features/ai/PhotoKindPicker';
 import type { ChatEntry, ImageKind } from './chat-types';
 
 type MessageEntry = Extract<ChatEntry, { type: 'message' }>;
 type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
 type NoticeEntry = Extract<ChatEntry, { type: 'notice' }>;
 type RouteEntry = Extract<ChatEntry, { type: 'route' }>;
+type PickEntry = Extract<ChatEntry, { type: 'pick' }>;
 
 /** "Assistant" label above agent rows. */
 export function AgentLabel() {
@@ -167,6 +169,24 @@ export function RouteCard({ entry, onOpen }: { entry: RouteEntry; onOpen: (entry
             <AppButton label={t(copy.action)} variant="action" onPress={() => onOpen(entry)} />
           </View>
         ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** "What is this photo?" when the classifier was unavailable. Read-only once answered or
+ * after a restart (the cached photo is gone). */
+export function PickRow({ entry, onPick }: { entry: PickEntry; onPick: (entry: PickEntry, kind: PickableKind) => void }) {
+  const tokens = useTheme();
+  return (
+    <View style={{ alignItems: 'flex-start' }}>
+      <AgentLabel />
+      <View style={[styles.bubble, styles.wide, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border, borderWidth: 1, borderBottomLeftRadius: 4 }]}>
+        <PhotoKindPicker
+          onPick={(kind) => onPick(entry, kind)}
+          chosen={entry.chosen}
+          disabled={!entry.imageUri || entry.chosen !== undefined}
+        />
       </View>
     </View>
   );

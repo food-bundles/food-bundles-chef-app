@@ -20,7 +20,7 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from string import Template
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import structlog
 from pydantic import BaseModel
@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.core.exceptions import AiImageInvalidError, AiRateLimitError
 from app.modules.ai.providers.base import ImagePart, LLMRequest, Message, Tier
-from app.modules.ai.providers.router import provider_router
+from app.modules.ai.providers.router import Policy, provider_router
 
 logger = structlog.get_logger(__name__)
 
@@ -200,7 +200,7 @@ def _parse(raw: str, schema: type[T]) -> T:
     return schema.model_validate(json.loads(extract_json(raw)))
 
 
-def _message(role: str, content: str | list | None) -> Message:
+def _message(role: str, content: str | list[Any] | None) -> Message:
     """Prior-turn dict ({role, content}) → neutral message."""
     text = content if isinstance(content, str) else json.dumps(content or "")
     return Message.text("assistant" if role == "assistant" else "user", text)
@@ -219,13 +219,14 @@ async def structured_call(
     model: str | None = None,
     image: bytes | None = None,
     image_mime: str | None = None,
-    conversation: list[dict] | None = None,
+    conversation: list[dict[str, Any]] | None = None,
     tier: Tier = "standard",
     effort: str | None = None,
-    wire_schema: dict | None = None,
+    wire_schema: dict[str, Any] | None = None,
     anthropic_system: str | None = None,
     max_tokens: int = 4096,
     locale: str = "en",
+    policy: Policy = "default",
 ) -> T:
     """Route the call (Anthropic primary, Meta fallback), validate against `schema`,
     repair once per provider.
@@ -234,10 +235,13 @@ async def structured_call(
     Anthropic picks its model from `tier` via settings. `wire_schema` overrides the
     JSON schema sent for structured outputs (validation always uses `schema`).
     `timeout_seconds` is the TOTAL budget, fallback included.
+    `policy="no_failover"` tries only the primary when it is available and raises
+    AiPrimaryFailedError if it fails (the fallback still serves when the primary is
+    skipped: no key, disabled, kill switch, breaker open, budget).
     Raises AiTimeoutError, AiProviderError, AiBadOutputError, AiRefusedError,
     AiUnavailableError or AiBudgetExceededError — never returns raw text.
     """
-    parts: tuple = (
+    parts: tuple[str | ImagePart, ...] = (
         (ImagePart(image, image_mime), user_text) if image and image_mime else (user_text,)
     )
     systems = {"meta": system}
@@ -261,6 +265,9 @@ async def structured_call(
         meta_model=model or settings.META_MUSE_SPARK_MODEL,
     )
     routed = await provider_router.run(
-        request, parse=lambda raw: _parse(raw, schema), budget_seconds=timeout_seconds
+        request,
+        parse=lambda raw: _parse(raw, schema),
+        budget_seconds=timeout_seconds,
+        policy=policy,
     )
     return routed.value

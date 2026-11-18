@@ -15,6 +15,7 @@ import { ThemedTextInput } from '@/components/ui/ThemedTextInput';
 import { AttachSheet, type AttachSource } from '@/features/agent/AttachSheet';
 import { AiError, newRequestId } from '@/features/ai/ai-client';
 import { classifyImage, extractMenu, sendAiFeedback, useAiFeatures, type UploadCallbacks } from '@/features/ai/api';
+import { PhotoKindPicker, type PickableKind } from '@/features/ai/PhotoKindPicker';
 import { AiStatusPanel } from '@/features/ai/AiStatusPanel';
 import type { PreparedImage } from '@/features/ai/image-prep';
 import type { ImageKind, MenuExtraction } from '@/features/ai/schemas';
@@ -37,7 +38,11 @@ import {
   type RowFlag,
 } from './scan-review';
 
-type ScanResult = { type: 'menu'; extraction: MenuExtraction } | { type: 'other'; kind: ImageKind };
+type ScanResult =
+  | { type: 'menu'; extraction: MenuExtraction }
+  | { type: 'other'; kind: ImageKind }
+  /** The classifier could not decide: the chef picks the photo type. */
+  | { type: 'pick' };
 
 /** What an import wrote, so it can be undone. */
 export interface ImportOutcome {
@@ -93,6 +98,8 @@ export function ScanMenuModal({
   const [showErrors, setShowErrors] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  /** The classifier was unavailable: ask the chef what the photo is. */
+  const [picking, setPicking] = useState(false);
   const skipClassifyRef = useRef(false);
 
   const runner = useCallback(
@@ -104,7 +111,8 @@ export function ScanMenuModal({
           onProgress: cb.onProgress,
           onUploaded: () => undefined,
         });
-        if (c.image_quality !== 'ok') throw new AiError(c.image_quality);
+        if (c.status === 'classify_unavailable' || c.kind === null) return { type: 'pick' };
+        if (c.image_quality !== null && c.image_quality !== 'ok') throw new AiError(c.image_quality);
         if (c.kind !== 'menu') return { type: 'other', kind: c.kind };
       }
       skipClassifyRef.current = false;
@@ -119,6 +127,10 @@ export function ScanMenuModal({
   );
   // Runs once per finished scan, with the latest rows/menu (the task keeps the newest callback).
   const applyScan = (result: ScanResult) => {
+    if (result.type === 'pick') {
+      setPicking(true);
+      return;
+    }
     if (result.type === 'other') {
       setRoute({ kind: result.kind, uri: photo ?? '' });
       return;
@@ -134,6 +146,7 @@ export function ScanMenuModal({
     resetTask();
     setRows([]);
     setRoute(null);
+    setPicking(false);
     setPhoto(null);
     setEmptyPage(false);
     setShowErrors(false);
@@ -154,6 +167,7 @@ export function ScanMenuModal({
 
   const scanPhoto = (uri: string) => {
     setRoute(null);
+    setPicking(false);
     setEmptyPage(false);
     setPhoto(uri);
     void runTask(uri);
@@ -228,6 +242,18 @@ export function ScanMenuModal({
     if (kind === 'receipt' || kind === 'delivery_note') {
       router.push({ pathname: '/(app)/receiving/quick', params: { photoUri: uri } });
     }
+  };
+
+  /** Chef's answer to "What is this photo?": a menu is scanned now (no second classify). */
+  const onPickKind = (kind: PickableKind) => {
+    if (!photo) return;
+    setPicking(false);
+    if (kind === 'menu') {
+      skipClassifyRef.current = true;
+      scanPhoto(photo);
+      return;
+    }
+    handOff(kind, photo);
   };
 
   const updateRow = (key: string, patch: Partial<ReviewRow>) =>
@@ -367,6 +393,11 @@ export function ScanMenuModal({
           </Card>
         ) : busy ? (
           <AiStatusPanel state={task.state} onCancel={task.cancel} onRetry={task.retry} onManual={goManual} manualLabel={t('menu.addManually')} />
+        ) : picking ? (
+          <Card>
+            <PhotoKindPicker onPick={onPickKind} />
+            <AppButton label={t('menu.scan.tryAnother')} variant="ghost" onPress={() => setSourceOpen(true)} />
+          </Card>
         ) : route ? (
           <RouteNotice kind={route.kind} onHandOff={() => handOff(route.kind, route.uri)} onRetake={() => setSourceOpen(true)} onManual={goManual} />
         ) : emptyPage ? (

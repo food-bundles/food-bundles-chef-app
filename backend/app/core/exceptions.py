@@ -122,6 +122,14 @@ class AiUnavailableError(AppError):
     message = "AI is temporarily unavailable."
 
 
+class AiPrimaryFailedError(AiUnavailableError):
+    """The primary failed under a `no_failover` policy, so no other provider was tried.
+
+    Feature services turn this into their own typed result (classify returns
+    status="classify_unavailable" and the app asks the chef to pick the photo type).
+    """
+
+
 class AiRefusedError(AppError):
     """The model declined the request. Never retried on another provider."""
 
