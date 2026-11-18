@@ -9,7 +9,7 @@ rules and budget below. Nothing in this folder calls a model until `parity.py ru
 python ai-evals/parity.py plan --runs 3                         # case list + cost estimate, no calls
 python ai-evals/parity.py plan --runs 3 --assume-images 30,20,10,10
 python ai-evals/parity.py run --dry-run --runs 1                 # fake providers: plumbing only
-python ai-evals/parity.py run --runs 3 --budget-usd 15           # the real run (needs approval)
+python ai-evals/parity.py run --runs 3 --budget-usd 25           # the real run (needs approval)
 python -m pytest ai-evals/tests                                  # grader unit tests
 ```
 
@@ -26,10 +26,11 @@ python -m pytest ai-evals/tests                                  # grader unit t
   `fixtures/eval-kitchen.json` seeded through the public API. No dev or production data is
   touched and `ai_spend_daily` stays clean.
 - **3 runs per case.** Case scores are averaged over the runs.
-- **Hard cost stop at $15:** a shared ledger records the cost of every call (from the router's
-  `ai_call` log: real tokens × `AI_MODEL_PRICES`). Before each call the runner checks that
-  `spent + worst-case cost of the next call ≤ $15`; otherwise it stops every arm and the report
-  says where it stopped.
+- **Hard cost stop at $25** (approved 2026-11-19, was $15): a shared ledger records the cost
+  of every call (from the router's `ai_call` log: real tokens × `AI_MODEL_PRICES`), in total
+  and per arm. Before each call the runner checks that
+  `spent + worst-case cost of the next call ≤ $25`; otherwise it stops every arm and the report
+  says where it stopped. The report opens with the **actual spend per arm**.
 - **Output:** `ai-evals/results/parity-<timestamp>/` (git-ignored): one JSONL per arm (every
   call: grade, provider, model, latency, tokens, cost, response) and `report.md`.
 
@@ -207,7 +208,7 @@ arrive (`cases/README.md` explains the folder format).
 | claude-medium | document | 0 | 0.00 |
 | claude-medium | assistant | 144 | 3.96 |
 
-**Estimated total: $8.50** (pessimistic token counts; hard stop at $15.00).
+**Estimated total: $8.50** (pessimistic token counts; hard stop at $25.00).
 
 ### Estimate with the expected image set (30 menus, 20 dishes, 10 documents, 10 junk)
 
@@ -228,6 +229,6 @@ arrive (`cases/README.md` explains the folder format).
 | claude-medium | document | 30 | 0.98 |
 | claude-medium | assistant | 144 | 3.96 |
 
-**Estimated total: $22.88** (pessimistic token counts; hard stop at $15.00).
+**Estimated total: $22.88** (pessimistic token counts; hard stop at $25.00).
 
-Scaling the 2026-11-18 smoke-test costs instead gives about $8.50 for the same set, but real menus with 20–40 items produce several times the output tokens of the 5-item test menu, so expect roughly $12–15. With the $15 cap the run may stop during `claude-medium`.
+Scaling the 2026-11-18 smoke-test costs instead gives about $8.50 for the same set, but real menus with 20–40 items produce several times the output tokens of the 5-item test menu, so expect roughly $12–15, within the $25 cap.

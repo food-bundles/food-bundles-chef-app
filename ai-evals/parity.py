@@ -2,7 +2,7 @@
 
     python ai-evals/parity.py plan                  # case list, grading, cost estimate: NO calls
     python ai-evals/parity.py run --dry-run             # fake providers: plumbing check, no cost
-    python ai-evals/parity.py run --runs 3 --budget-usd 15
+    python ai-evals/parity.py run --runs 3 --budget-usd 25
     python ai-evals/parity.py report ai-evals/results/parity-<id>
 
 Every arm runs in its own process with that arm's settings and **no fallback**
@@ -277,7 +277,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + ("-dry" if args.dry_run else "")
     run_dir = (args.out / f"parity-{run_id}").resolve()
     run_dir.mkdir(parents=True)
-    (run_dir / "ledger.json").write_text(json.dumps({"spent_usd": 0.0, "stopped": None}))
+    (run_dir / "ledger.json").write_text(json.dumps({"spent_usd": 0.0, "by_arm": {}, "stopped": None}))
     meta = {
         "run_id": run_id,
         "runs": args.runs,
@@ -315,7 +315,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"== arm {arm}", flush=True)
         code = subprocess.run(cmd, env=env, cwd=BACKEND).returncode  # noqa: S603 (own script)
         ledger = json.loads((run_dir / "ledger.json").read_text())
-        print(f"   exit {code}; spent so far ${ledger['spent_usd']:.4f}", flush=True)
+        arm_usd = ledger.get("by_arm", {}).get(arm, 0.0)
+        print(f"   exit {code}; arm ${arm_usd:.4f}; total ${ledger['spent_usd']:.4f}", flush=True)
         if ledger.get("stopped"):
             print(f"   BUDGET STOP: {ledger['stopped']}", flush=True)
             break
@@ -445,6 +446,8 @@ def cmd_worker(args: argparse.Namespace) -> int:
         if not args.dry_run:
             ledger = json.loads(ledger_path.read_text())
             ledger["spent_usd"] += cost
+            by_arm = ledger.setdefault("by_arm", {})
+            by_arm[arm] = by_arm.get(arm, 0.0) + cost
             ledger_path.write_text(json.dumps(ledger))
         return cost
 
@@ -884,7 +887,15 @@ def cmd_report(args: argparse.Namespace) -> int:
         + (f" · **stopped: {ledger['stopped']}**" if ledger.get("stopped") else "")
         + (" · DRY RUN (fake providers)" if meta.get("dry_run") else ""),
         "",
+        "## Actual spend per arm",
+        "",
+        "| arm | USD | calls |",
+        "|---|---|---|",
     ]
+    for arm in arms:
+        calls = sum(len([r for r in rs if not r["case"].startswith("_")]) for (a, _), rs in rows_by.items() if a == arm)
+        lines.append(f"| {arm} | ${ledger.get('by_arm', {}).get(arm, 0.0):.4f} | {calls} |")
+    lines += [f"| **total** | **${ledger['spent_usd']:.4f}** of ${meta['budget_usd']:.2f} cap | |", ""]
     for feature in FEATURES:
         sums = {arm: summarise(rows_by.get((arm, feature), [])) for arm in arms}
         sums = {a: s for a, s in sums.items() if s}
@@ -992,13 +1003,13 @@ def main() -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("plan")
     p.add_argument("--runs", type=int, default=3)
-    p.add_argument("--budget-usd", type=float, default=15.0)
+    p.add_argument("--budget-usd", type=float, default=25.0)
     p.add_argument(
         "--assume-images", help="estimate with N menu,dish,document,junk images (e.g. 30,20,10,10)"
     )
     r = sub.add_parser("run")
     r.add_argument("--runs", type=int, default=3)
-    r.add_argument("--budget-usd", type=float, default=15.0)
+    r.add_argument("--budget-usd", type=float, default=25.0)
     r.add_argument("--arms", type=lambda s: s.split(","), default=list(ARMS))
     r.add_argument("--features", type=lambda s: s.split(","), default=list(FEATURES))
     r.add_argument("--dry-run", action="store_true")
@@ -1010,7 +1021,7 @@ def main() -> int:
     w.add_argument("--arm", required=True, choices=list(ARMS))
     w.add_argument("--run-dir", required=True)
     w.add_argument("--runs", type=int, default=3)
-    w.add_argument("--budget-usd", type=float, default=15.0)
+    w.add_argument("--budget-usd", type=float, default=25.0)
     w.add_argument("--features", type=lambda s: s.split(","), default=list(FEATURES))
     w.add_argument("--dry-run", action="store_true")
     rep = sub.add_parser("report")
