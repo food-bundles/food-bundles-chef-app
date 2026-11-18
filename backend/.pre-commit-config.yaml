@@ -65,9 +65,14 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        args: [--config-file=backend/pyproject.toml]
+        # Staged files only: modules they import are checked silently, so older
+        # modules' typing debt (run `mypy app` for the full picture) does not
+        # block unrelated commits.
+        args: [--config-file=backend/pyproject.toml, --follow-imports=silent]
         files: ^backend/app/
         additional_dependencies:
+          - redis
+          - structlog
           - pydantic
           - pydantic-settings
           - sqlalchemy[mypy]
