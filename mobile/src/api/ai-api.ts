@@ -62,7 +62,7 @@ export async function assessQuality(
     uri: photoUri,
     name: 'item.jpg',
     type: 'image/jpeg',
-  } as unknown as Blob);
+  });
 
   return _postMultipart<QualityAssessmentResponseDto>(
     `/kitchens/${kitchenId}/ai/quality-assess`,
@@ -80,31 +80,31 @@ export async function assessQuality(
 export async function transcribeAudio(
   kitchenId: string,
   audioUri: string,
-  language = 'rw',
+  language: 'en' | 'fr' | 'rw',
+  options: { signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise<TranscriptionResponseDto> {
   const form = new FormData();
   form.append('language', language);
-  form.append('audio', {
-    uri: audioUri,
-    name: 'audio.wav',
-    type: 'audio/wav',
-  } as unknown as Blob);
+  // expo-audio HIGH_QUALITY preset records AAC in an .m4a container.
+  form.append('audio', { uri: audioUri, name: 'voice.m4a', type: 'audio/mp4' });
 
-  return _postMultipart<TranscriptionResponseDto>(
-    `/kitchens/${kitchenId}/ai/transcribe`,
-    form,
-  );
+  return _postMultipart<TranscriptionResponseDto>(`/kitchens/${kitchenId}/ai/transcribe`, form, options);
 }
 
 // ── Internal multipart helper ─────────────────────────────────────────────────
 // Cannot use the standard request() helper because it only handles JSON.
 // Auth token injection replicates http-client behaviour: reads from TokenProvider.
 
-async function _postMultipart<T>(path: string, form: FormData): Promise<T> {
+async function _postMultipart<T>(
+  path: string,
+  form: FormData,
+  options: { signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<T> {
   const token = await getAccessToken();
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
+  options.signal?.addEventListener('abort', () => controller.abort(), { once: true });
 
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {

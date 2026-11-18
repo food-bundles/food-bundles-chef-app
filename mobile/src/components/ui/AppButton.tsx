@@ -1,7 +1,9 @@
-import { Pressable, Text, ActivityIndicator, StyleSheet, View } from 'react-native';
-import { colors, radius, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
+import { Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { AppPressable } from './AppPressable';
+import { spacing, fontSize, fontWeight, MIN_TOUCH_SIZE, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+export type ButtonVariant = 'primary' | 'action' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'md' | 'lg';
 
 export interface AppButtonProps {
@@ -15,9 +17,26 @@ export interface AppButtonProps {
   accessibilityHint?: string;
 }
 
+function variantColors(variant: ButtonVariant, t: ThemeTokens) {
+  // Outline/ghost text uses the tint text colour in dark mode — primary green on dark fails AA.
+  const outlineText = t.scheme === 'dark' ? t.onPrimaryTint : t.primary;
+  switch (variant) {
+    case 'primary':
+      return { bg: t.primary, border: t.primary, text: t.onPrimary };
+    case 'action':
+      return { bg: t.action, border: t.action, text: t.onAction };
+    case 'danger':
+      return { bg: t.danger, border: t.danger, text: t.onDanger };
+    case 'secondary':
+      return { bg: 'transparent', border: outlineText, text: outlineText };
+    case 'ghost':
+      return { bg: 'transparent', border: 'transparent', text: outlineText };
+  }
+}
+
 /**
- * Primary action button for the chef app.
- * Respects reduced motion — no animated press feedback beyond opacity.
+ * Button for every in-screen action. `action` is the bright green used in the
+ * sticky footer and keyboard action bar; `primary` is the deep brand green.
  */
 export function AppButton({
   label,
@@ -29,22 +48,13 @@ export function AppButton({
   accessibilityLabel,
   accessibilityHint,
 }: AppButtonProps) {
+  const tokens = useTheme();
   const isDisabled = disabled || loading;
-
-  const variantStyle =
-    variant === 'primary' ? styles.primary
-    : variant === 'secondary' ? styles.secondary
-    : variant === 'danger' ? styles.danger
-    : styles.ghost;
-
-  const labelStyle =
-    variant === 'primary' ? styles.primaryLabel
-    : variant === 'secondary' ? styles.secondaryLabel
-    : variant === 'danger' ? styles.dangerLabel
-    : styles.ghostLabel;
+  const c = variantColors(variant, tokens);
+  const filled = variant === 'primary' || variant === 'action' || variant === 'danger';
 
   return (
-    <Pressable
+    <AppPressable
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
@@ -54,20 +64,18 @@ export function AppButton({
       style={({ pressed }) => [
         styles.base,
         size === 'lg' && styles.sizeLg,
-        variantStyle,
+        { backgroundColor: c.bg, borderColor: c.border },
+        filled && { shadowColor: tokens.actionShadow, shadowOpacity: tokens.actionShadowOpacity, ...styles.shadow },
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
       ]}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? colors.white : '#0E8438'}
-        />
+        <ActivityIndicator size="small" color={c.text} />
       ) : (
-        <Text style={[styles.label, size === 'lg' && styles.labelLg, labelStyle]}>{label}</Text>
+        <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: c.text }]}>{label}</Text>
       )}
-    </Pressable>
+    </AppPressable>
   );
 }
 
@@ -75,48 +83,30 @@ const styles = StyleSheet.create({
   base: {
     minHeight: MIN_TOUCH_SIZE,
     borderRadius: 12,
+    borderWidth: 2,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md - 2,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     width: '100%',
   },
-  primary: {
-    backgroundColor: '#0E8438',
-    borderWidth: 0,
-    shadowColor: '#0E8438',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  secondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#0E8438',
-  },
-  danger: {
-    backgroundColor: colors.danger,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
   sizeLg: {
-    paddingVertical: 18,
+    paddingVertical: 16,
     minHeight: 56,
   },
-  ghost: { backgroundColor: 'transparent' },
-  disabled: { opacity: 0.45 },
+  shadow: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  disabled: { opacity: 0.4 },
   pressed: { opacity: 0.75 },
   label: {
     fontSize: fontSize.base,
     fontWeight: fontWeight.bold,
   },
   labelLg: {
-    fontSize: fontSize.lg,
+    fontSize: 16,
   },
-  primaryLabel: { color: colors.white },
-  secondaryLabel: { color: '#0E8438' },
-  dangerLabel: { color: colors.white },
-  ghostLabel: { color: '#0E8438' },
 });

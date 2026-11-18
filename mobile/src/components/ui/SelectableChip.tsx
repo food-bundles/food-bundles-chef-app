@@ -1,4 +1,5 @@
-import { Pressable, Text, StyleSheet, useColorScheme } from 'react-native';
+import { Text, StyleSheet, useColorScheme } from 'react-native';
+import { AppPressable } from './AppPressable';
 import { colors, fontSize, fontWeight, MIN_TOUCH_SIZE } from '@/lib/theme';
 
 export interface SelectableChipProps {
@@ -20,14 +21,14 @@ export function SelectableChip({
 
   const borderColor = selected
     ? colors.brand[500]
-    : isDark ? colors.surface[600] : colors.surface[300];
+    : isDark ? colors.surface[400] : colors.surface[300];
   const bgColor = selected ? colors.brand[500] : 'transparent';
   const textColor = selected
     ? colors.white
     : isDark ? colors.surface[300] : colors.surface[700];
 
   return (
-    <Pressable
+    <AppPressable
       onPress={disabled ? undefined : onPress}
       accessibilityRole="radio"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -40,7 +41,7 @@ export function SelectableChip({
       ]}
     >
       <Text style={[styles.label, { color: textColor }]}>{label}</Text>
-    </Pressable>
+    </AppPressable>
   );
 }
 

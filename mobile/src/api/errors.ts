@@ -59,7 +59,12 @@ export async function responseToApiError(response: Response): Promise<ApiError> 
       ? (body['error'] as Record<string, unknown>)
       : body;
 
-  const errorCode = typeof errObj['code'] === 'string' ? errObj['code'] : undefined;
+  const errorCode =
+    typeof errObj['code'] === 'string'
+      ? errObj['code']
+      : typeof errObj['error_code'] === 'string'
+        ? errObj['error_code']
+        : undefined;
   const detail =
     typeof errObj['message'] === 'string'
       ? errObj['message']
@@ -93,7 +98,8 @@ export async function responseToApiError(response: Response): Promise<ApiError> 
 /** Maps a fetch throw (network error, abort) to ApiError. */
 export function throwToApiError(err: unknown): ApiError {
   if (err instanceof ApiError) return err;
-  if (err instanceof DOMException && err.name === 'AbortError') {
+  // DOMException is not a global on every JS engine, so match on the error name.
+  if (err instanceof Error && err.name === 'AbortError') {
     return new ApiError('transport', 'Request timed out.', { cause: err });
   }
   const message = err instanceof Error ? err.message : 'Network error.';

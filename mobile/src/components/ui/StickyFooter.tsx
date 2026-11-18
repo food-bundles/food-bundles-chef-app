@@ -1,6 +1,7 @@
-import { View, StyleSheet, useColorScheme } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '@/lib/theme';
+import { spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface StickyFooterProps {
   children: React.ReactNode;
@@ -8,13 +9,9 @@ export interface StickyFooterProps {
   paddingTop?: number;
 }
 
-/**
- * Sticky footer that sits as the LAST CHILD inside a FormScreen / KAV.
- * On iOS the KAV pushes this above the keyboard. On Android, resize mode handles it.
- * Respects the safe-area bottom inset.
- */
+/** Bottom action area for forms; respects the safe-area inset. */
 export function StickyFooter({ children, paddingTop = spacing.md }: StickyFooterProps) {
-  const isDark = useColorScheme() === 'dark';
+  const tokens = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -22,10 +19,10 @@ export function StickyFooter({ children, paddingTop = spacing.md }: StickyFooter
       style={[
         styles.footer,
         {
-          backgroundColor: isDark ? colors.surface[950] : colors.surface[50],
-          borderTopColor: isDark ? colors.surface[700] : colors.surface[200],
+          backgroundColor: tokens.surface,
+          borderTopColor: tokens.border,
           paddingTop,
-          paddingBottom: Math.max(insets.bottom + 12, 24),
+          paddingBottom: Math.max(insets.bottom + 8, 16),
         },
       ]}
     >
@@ -36,8 +33,8 @@ export function StickyFooter({ children, paddingTop = spacing.md }: StickyFooter
 
 const styles = StyleSheet.create({
   footer: {
-    paddingHorizontal: spacing.lg,
-    borderTopWidth: 1,
+    paddingHorizontal: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
     gap: spacing.sm,
   },
 });

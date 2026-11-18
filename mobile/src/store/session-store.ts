@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import type { TokenProvider } from '@/api/http-client';
+import { clearAllChats } from '@/features/agent/chat-history';
 
 // ── Secure storage keys ──────────────────────────────────────────────────────
 // Keys must be stable across app versions — never change them without migration.
@@ -141,6 +142,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
 
   async signOut() {
     await clearTokens();
+    // Assistant chats can contain kitchen data — never leave them for the next account.
+    await clearAllChats();
     set({ chef: null, isAuthenticated: false });
   },
 

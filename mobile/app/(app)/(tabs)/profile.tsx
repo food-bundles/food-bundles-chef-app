@@ -1,495 +1,286 @@
-import { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import {
-  Settings,
-  Pencil,
-  LogOut,
-  UtensilsCrossed,
-  CheckCircle,
-  Star,
-  Truck,
-  TrendingUp,
-  X,
-} from 'lucide-react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Settings, Pencil, LogOut, UtensilsCrossed, Truck, TrendingUp, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useKitchens } from '@/features/kitchens/useKitchens';
 import { getMe, updateProfile } from '@/api/auth-api';
 import { Avatar } from '@/components/ui/Avatar';
 import { ListRow } from '@/components/ui/ListRow';
-import { colors, spacing, fontSize, radius } from '@/lib/theme';
-import { useColorScheme } from 'react-native';
+import { AppPressable } from '@/components/ui/AppPressable';
+import { AppTextField } from '@/components/ui/AppTextField';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { formatMonthYear } from '@/lib/format';
+import { useTheme } from '@/providers/ThemeProvider';
+import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 
 export default function ProfileScreen() {
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
   const insets = useSafeAreaInsets();
-  const isDark = useColorScheme() === 'dark';
+  const qc = useQueryClient();
   const chef = useSessionStore((s) => s.chef);
   const updateChef = useSessionStore((s) => s.updateChef);
   const signOut = useSessionStore((s) => s.signOut);
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const storeKitchens = useKitchenStore((s) => s.kitchens);
   const { refetch: refetchKitchens } = useKitchens();
+  const me = useQuery({ queryKey: ['me', chef?.id ?? ''], queryFn: getMe, enabled: Boolean(chef?.id), staleTime: 10 * 60_000 });
 
   const [editing, setEditing] = useState(false);
-  const [nameInput, setNameInput] = useState(chef?.name ?? '');
-  const [bioInput, setBioInput] = useState('');
-  const [experienceInput, setExperienceInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const bg = isDark ? colors.surface[950] : colors.surface[50];
-  const cardBg = isDark ? colors.surface[800] : colors.white;
-  const textPrimary = isDark ? colors.white : colors.surface[900];
-  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
-  const borderColor = isDark ? 'transparent' : colors.surface[200];
-
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
     try {
-      const [profile] = await Promise.all([getMe(), refetchKitchens()]);
-      updateChef({ id: profile.id, phoneNumber: profile.phone_number, name: profile.name });
-    } catch {}
-    setRefreshing(false);
-  }, []);
+      const [profile] = await Promise.all([me.refetch(), refetchKitchens()]);
+      if (profile.data) updateChef({ id: profile.data.id, phoneNumber: profile.data.phone_number, name: profile.data.name });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const pickAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow access to continue.');
+      Alert.alert(t('profile.permissionNeeded'), t('profile.permissionNeededDesc'));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
-    }
+    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    const asset = result.canceled ? undefined : result.assets[0];
+    if (asset) setAvatarUri(asset.uri);
   };
 
+  const startEditing = () => {
+    setNameInput(chef?.name ?? '');
+    setNameTouched(false);
+    setSaveError(null);
+    setEditing(true);
+  };
+
+  const nameError = nameInput.trim().length < 2 ? t('profile.nameRequiredDesc') : null;
+
   const saveProfile = async () => {
-    const trimmedName = nameInput.trim();
-    if (!trimmedName) {
-      Alert.alert('Name required', 'Please enter your name.');
-      return;
-    }
+    setNameTouched(true);
+    if (nameError) return;
     setSaving(true);
+    setSaveError(null);
     try {
-      const updated = await updateProfile({ name: trimmedName });
+      const updated = await updateProfile({ name: nameInput.trim() });
       updateChef({ id: updated.id, phoneNumber: updated.phone_number, name: updated.name });
+      void qc.invalidateQueries({ queryKey: ['me'] });
       setEditing(false);
     } catch {
-      Alert.alert('Error', 'Could not save profile. Please try again.');
+      setSaveError(t('profile.saveErrorDesc'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/welcome');
-          },
+    Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMsg'), [
+      { text: t('profile.signOutConfirmCancel'), style: 'cancel' },
+      {
+        text: t('profile.signOutConfirmAction'),
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/welcome');
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Avatar component derives initials from name safely; phone number never shown as initials
-
-  const memberSince = chef?.id
-    ? new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-    : null;
-
+  const memberSince = me.data?.created_at ? formatMonthYear(me.data.created_at, i18n.language) : null;
   const activeKitchens = storeKitchens.filter((k) => !k.isArchived);
+  const card = { backgroundColor: tk.surfaceRaised, borderRadius: radius.xl, borderWidth: 1, borderColor: tk.border, overflow: 'hidden' as const };
+  const sectionLabel = {
+    color: tk.textMuted,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.8,
+    marginBottom: -4,
+  };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: bg, paddingTop: insets.top }}>
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm + 2,
-          borderBottomWidth: 1,
-          borderBottomColor: isDark ? colors.surface[800] : colors.surface[200],
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Text style={{ color: textPrimary, fontSize: fontSize.lg, fontWeight: '700' }}>Profile</Text>
-        <Pressable
+  const header = (
+    <View style={{ paddingHorizontal: spacing.md, minHeight: 52, borderBottomWidth: 1, borderBottomColor: tk.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: '700' }} accessibilityRole="header">
+        {editing ? t('profile.editProfile') : t('profile.title')}
+      </Text>
+      {editing ? (
+        <AppPressable onPress={() => setEditing(false)} accessibilityRole="button" accessibilityLabel={t('profile.cancelEditing')} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <Text style={{ color: tk.link, fontWeight: '600' }}>{t('common.cancel')}</Text>
+        </AppPressable>
+      ) : (
+        <AppPressable
           onPress={() => router.push('/(app)/settings')}
           accessibilityRole="button"
-          accessibilityLabel="Open settings"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={t('profile.openSettings')}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Settings size={20} color={textSecondary} strokeWidth={2} />
-        </Pressable>
+          <Settings size={20} color={tk.textMuted} strokeWidth={2} />
+        </AppPressable>
+      )}
+    </View>
+  );
+
+  if (editing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: tk.surface, paddingTop: insets.top }}>
+        {header}
+        <FormScreen
+          actions={[
+            { kind: 'save', label: t('profile.saveProfile'), onPress: () => void saveProfile(), loading: saving, disabled: Boolean(nameError) },
+          ]}
+        >
+          <View style={{ alignItems: 'center' }}>
+            <Avatar uri={avatarUri} name={nameInput || chef?.name} size={88} onPress={pickAvatar} showCameraBadge />
+          </View>
+          <AppTextField
+            label={t('profile.displayNameLabel')}
+            placeholder={t('profile.displayNamePlaceholder')}
+            value={nameInput}
+            onChangeText={(v) => { setNameInput(v); setNameTouched(true); }}
+            error={nameTouched && nameError ? nameError : undefined}
+            autoFocus
+            autoCapitalize="words"
+            returnKeyType="done"
+            inputProps={{ onSubmitEditing: () => void saveProfile() }}
+          />
+          {saveError ? (
+            <Text style={{ color: tk.danger, fontSize: fontSize.sm }} accessibilityRole="alert">{saveError}</Text>
+          ) : null}
+        </FormScreen>
       </View>
+    );
+  }
 
-      <KeyboardAvoidingView
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.surface, paddingTop: insets.top }}>
+      {header}
+      <ScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tk.primary} colors={[tk.primary]} />}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 48 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />
-          }
-        >
-          {/* Avatar + name hero */}
-          <View
-            style={{
-              backgroundColor: cardBg,
-              borderRadius: radius.xl,
-              padding: spacing.lg,
-              borderWidth: 1,
-              borderColor,
-              alignItems: 'center',
-              gap: spacing.md,
-            }}
-          >
-            {/* Avatar — initials derived from name; never shows phone digits */}
-            <Avatar
-              uri={avatarUri}
-              name={chef?.name}
-              size={88}
-              onPress={pickAvatar}
-              showCameraBadge
-            />
-
-            {/* Name / edit */}
-            {editing ? (
-              <View style={{ width: '100%', gap: spacing.sm }}>
-                {/* Close editing */}
-                <Pressable
-                  onPress={() => { setEditing(false); setNameInput(chef?.name ?? ''); }}
-                  style={{ position: 'absolute', top: -48, right: 0, zIndex: 1, width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.surface[700] : colors.surface[200], alignItems: 'center', justifyContent: 'center' }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel editing"
-                >
-                  <X size={16} color={textSecondary} strokeWidth={2} />
-                </Pressable>
-
-                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                  Display Name
-                </Text>
-                <TextInput
-                  value={nameInput}
-                  onChangeText={setNameInput}
-                  placeholder="Your full name"
-                  placeholderTextColor={colors.surface[500]}
-                  style={{
-                    backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
-                    borderRadius: radius.md,
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.sm + 2,
-                    color: textPrimary,
-                    fontSize: fontSize.base,
-                    borderWidth: 1,
-                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
-                  }}
-                  autoFocus
-                  returnKeyType="next"
-                />
-
-                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>
-                  Bio (optional)
-                </Text>
-                <TextInput
-                  value={bioInput}
-                  onChangeText={setBioInput}
-                  placeholder="Brief professional bio…"
-                  placeholderTextColor={colors.surface[500]}
-                  multiline
-                  numberOfLines={3}
-                  style={{
-                    backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
-                    borderRadius: radius.md,
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.sm + 2,
-                    color: textPrimary,
-                    fontSize: fontSize.sm,
-                    minHeight: 70,
-                    textAlignVertical: 'top',
-                    borderWidth: 1,
-                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
-                  }}
-                />
-
-                <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>
-                  Experience
-                </Text>
-                <TextInput
-                  value={experienceInput}
-                  onChangeText={setExperienceInput}
-                  placeholder="e.g. 8 years · French & Rwandan cuisine"
-                  placeholderTextColor={colors.surface[500]}
-                  style={{
-                    backgroundColor: isDark ? colors.surface[700] : colors.surface[100],
-                    borderRadius: radius.md,
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.sm + 2,
-                    color: textPrimary,
-                    fontSize: fontSize.sm,
-                    borderWidth: 1,
-                    borderColor: isDark ? colors.surface[600] : colors.surface[200],
-                  }}
-                  returnKeyType="done"
-                  onSubmitEditing={saveProfile}
-                />
-
-                <Pressable
-                  onPress={saveProfile}
-                  disabled={saving}
-                  style={({ pressed }) => ({
-                    paddingVertical: spacing.sm + 4,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.brand[500],
-                    alignItems: 'center',
-                    opacity: saving || pressed ? 0.7 : 1,
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    gap: 6,
-                    marginTop: 4,
-                    shadowColor: colors.brand[500],
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    elevation: 6,
-                  })}
-                >
-                  {saving
-                    ? <ActivityIndicator size="small" color={colors.white} />
-                    : <CheckCircle size={16} color={colors.white} strokeWidth={2.5} />
-                  }
-                  <Text style={{ color: colors.white, fontWeight: '700', fontSize: fontSize.base }}>Save Profile</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <View style={{ alignItems: 'center', gap: 4, width: '100%' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>
-                    {chef?.name ?? 'Set your name'}
-                  </Text>
-                  <Pressable
-                    onPress={() => { setEditing(true); setNameInput(chef?.name ?? ''); }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit profile"
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Pencil size={16} color={textSecondary} strokeWidth={2} />
-                  </Pressable>
-                </View>
-                <Text style={{ color: textSecondary, fontSize: fontSize.sm }}>
-                  {chef?.phoneNumber ?? '—'}
-                </Text>
-                {experienceInput ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <Star size={12} color={colors.brand[500]} strokeWidth={2} />
-                    <Text style={{ color: colors.brand[500], fontSize: fontSize.xs, fontWeight: '600' }}>{experienceInput}</Text>
-                  </View>
-                ) : null}
-                {bioInput ? (
-                  <Text style={{ color: textSecondary, fontSize: fontSize.sm, textAlign: 'center', marginTop: 4, paddingHorizontal: 8, lineHeight: 18 }}>
-                    {bioInput}
-                  </Text>
-                ) : (
-                  memberSince && (
-                    <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>
-                      Member since {memberSince}
-                    </Text>
-                  )
-                )}
-              </View>
-            )}
-
-            {/* Stats row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                borderTopWidth: 1,
-                borderTopColor: isDark ? colors.surface[700] : colors.surface[100],
-                paddingTop: spacing.md,
-                width: '100%',
-                gap: 0,
-              }}
+        <View style={[card, { padding: spacing.lg, alignItems: 'center', gap: spacing.md }]}>
+          <Avatar uri={avatarUri} name={chef?.name} size={88} onPress={pickAvatar} showCameraBadge />
+          <View style={{ alignItems: 'center', gap: 4, width: '100%' }}>
+            <AppPressable
+              onPress={startEditing}
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.editProfile')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
             >
-              {[
-                { label: 'Kitchens', value: String(activeKitchens.length) },
-                { label: 'Active', value: activeKitchen ? '1' : '0' },
-              ].map((stat, i, arr) => (
-                <View
-                  key={stat.label}
-                  style={{
-                    flex: 1,
-                    alignItems: 'center',
-                    borderRightWidth: i < arr.length - 1 ? 1 : 0,
-                    borderRightColor: isDark ? colors.surface[700] : colors.surface[100],
-                  }}
-                >
-                  <Text style={{ color: colors.brand[500], fontSize: 22, fontWeight: '800' }}>{stat.value}</Text>
-                  <Text style={{ color: textSecondary, fontSize: fontSize.xs, marginTop: 2 }}>{stat.label}</Text>
+              <Text style={{ color: tk.text, fontSize: fontSize.xl, fontWeight: '700' }}>{chef?.name ?? t('profile.setYourName')}</Text>
+              <Pencil size={16} color={tk.textMuted} strokeWidth={2} />
+            </AppPressable>
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.sm }}>{chef?.phoneNumber ?? '—'}</Text>
+            {memberSince ? (
+              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>{t('profile.memberSince', { date: memberSince })}</Text>
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: tk.border, paddingTop: spacing.md, width: '100%' }}>
+            {[
+              { key: 'kitchens', label: t('profile.statsKitchens'), value: String(activeKitchens.length) },
+              { key: 'active', label: t('profile.statsActive'), value: activeKitchen ? '1' : '0' },
+            ].map((stat, i, arr) => (
+              <View key={stat.key} style={{ flex: 1, alignItems: 'center', borderRightWidth: i < arr.length - 1 ? 1 : 0, borderRightColor: tk.border }}>
+                <Text style={{ color: tk.link, fontSize: 22, fontWeight: '800' }}>{stat.value}</Text>
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Text style={sectionLabel}>{t('profile.sectionKitchen')}</Text>
+        <View style={card}>
+          <ListRow
+            icon={<UtensilsCrossed size={20} color={tk.link} strokeWidth={1.75} />}
+            iconBg={tk.primaryTint}
+            title={activeKitchen?.name ?? t('profile.noKitchen')}
+            subtitle={
+              [activeKitchen?.cuisineType, activeKitchen?.address].filter(Boolean).join(' · ') ||
+              (activeKitchen ? t('profile.kitchenTapHint') : t('profile.kitchenSetupHint'))
+            }
+            onPress={() => router.push(activeKitchen ? (`/(app)/kitchens/${activeKitchen.id}` as never) : ('/(app)/kitchens/create' as never))}
+            accessibilityLabel={t('profile.kitchenAccessLabel')}
+          />
+          <ListRow
+            icon={<UtensilsCrossed size={18} color={tk.textMuted} strokeWidth={1.75} />}
+            iconBg={tk.surfaceSunken}
+            title={t('profile.manageKitchens')}
+            trailing={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ minWidth: 24, alignItems: 'center', backgroundColor: tk.primary, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                  <Text style={{ color: tk.onPrimary, fontSize: fontSize.xs, fontWeight: '700' }}>{activeKitchens.length}</Text>
                 </View>
-              ))}
-            </View>
-          </View>
+                <ChevronRight size={16} color={tk.textMuted} />
+              </View>
+            }
+            onPress={() => router.push('/(app)/kitchens')}
+            accessibilityLabel={t('profile.manageKitchensLabel', { count: activeKitchens.length })}
+            separator={false}
+          />
+        </View>
 
-          {/* Kitchen section */}
-          <Text
-            style={{
-              color: textSecondary,
-              fontSize: fontSize.xs,
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-              marginBottom: -4,
-            }}
-          >
-            Kitchen
+        <Text style={sectionLabel}>{t('profile.sectionLinks')}</Text>
+        <View style={card}>
+          <ListRow
+            icon={<Truck size={18} color={tk.link} strokeWidth={2} />}
+            iconBg={tk.primaryTint}
+            title={t('profile.linkReceiving')}
+            subtitle={t('profile.linkReceivingDesc')}
+            onPress={() => router.push('/(app)/receiving' as never)}
+          />
+          <ListRow
+            icon={<TrendingUp size={18} color={tk.link} strokeWidth={2} />}
+            iconBg={tk.primaryTint}
+            title={t('profile.linkSales')}
+            subtitle={t('profile.linkSalesDesc')}
+            onPress={() => router.push('/(app)/sales/entry' as never)}
+            separator={false}
+          />
+        </View>
+
+        <Text style={sectionLabel}>{t('profile.sectionAccount')}</Text>
+        <View style={card}>
+          <ListRow
+            icon={<Settings size={18} color={tk.textMuted} strokeWidth={2} />}
+            iconBg={tk.surfaceSunken}
+            title={t('settings.title')}
+            onPress={() => router.push('/(app)/settings')}
+          />
+          <ListRow
+            icon={<LogOut size={18} color={tk.danger} strokeWidth={2} />}
+            iconBg={tk.dangerTint}
+            title={t('profile.signOut')}
+            onPress={handleSignOut}
+            destructive
+            separator={false}
+          />
+        </View>
+
+        <View style={{ alignItems: 'center', paddingBottom: spacing.sm, gap: 2 }}>
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>
+            {t('common.appName')}
           </Text>
-
-          <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            {/* Active kitchen card — ListRow (#5) */}
-            <ListRow
-              icon={<UtensilsCrossed size={20} color={activeKitchen ? colors.brand[500] : textSecondary} strokeWidth={1.75} />}
-              iconBg={activeKitchen ? colors.brand[50] : (isDark ? colors.surface[700] : colors.surface[100])}
-              title={activeKitchen?.name ?? 'No Kitchen Selected'}
-              subtitle={
-                activeKitchen?.cuisineType
-                  ? `${activeKitchen.cuisineType}${activeKitchen.address ? ` · ${activeKitchen.address}` : ''}`
-                  : activeKitchen?.address ?? (activeKitchen ? 'Tap to view details' : 'Set up your kitchen workspace')
-              }
-              onPress={() => activeKitchen && router.push(`/(app)/kitchens/${activeKitchen.id}` as never)}
-              accessibilityLabel="View active kitchen details"
-              separator
-            />
-            {/* Manage kitchens — ListRow with count badge (#5) */}
-            <ListRow
-              icon={<UtensilsCrossed size={18} color={colors.surface[500]} strokeWidth={1.75} />}
-              title="Manage Kitchens"
-              trailing={
-                <View style={{ backgroundColor: colors.brand[50], borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
-                  <Text style={{ color: colors.brand[500], fontSize: fontSize.xs, fontWeight: '600' }}>
-                    {activeKitchens.length}
-                  </Text>
-                </View>
-              }
-              onPress={() => router.push('/(app)/kitchens')}
-              accessibilityLabel={`Manage kitchens, ${activeKitchens.length} active`}
-              separator={false}
-            />
-          </View>
-
-          {/* Links — only non-tab destinations to avoid duplication with tab bar */}
-          <Text
-            style={{
-              color: textSecondary,
-              fontSize: fontSize.xs,
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-              marginBottom: -4,
-            }}
-          >
-            Links
-          </Text>
-
-          {/* Links section — uses ListRow (#5) */}
-          <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            <ListRow
-              icon={<Truck size={18} color={colors.brand[500]} strokeWidth={2} />}
-              iconBg={colors.brand[50]}
-              title="Delivery Receiving"
-              subtitle="Log and track deliveries"
-              onPress={() => router.push('/(app)/receiving' as never)}
-              accessibilityLabel="Delivery Receiving"
-            />
-            <ListRow
-              icon={<TrendingUp size={18} color={colors.brand[500]} strokeWidth={2} />}
-              iconBg={colors.brand[50]}
-              title="Sales & Reports"
-              subtitle="Record daily sales"
-              onPress={() => router.push('/(app)/sales/entry' as never)}
-              accessibilityLabel="Sales and Reports"
-              separator={false}
-            />
-          </View>
-
-          {/* Account section */}
-          <Text
-            style={{
-              color: textSecondary,
-              fontSize: fontSize.xs,
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-              marginBottom: -4,
-            }}
-          >
-            Account
-          </Text>
-
-          <View style={{ backgroundColor: cardBg, borderRadius: radius.xl, borderWidth: 1, borderColor, overflow: 'hidden' }}>
-            <ListRow
-              icon={<Settings size={18} color={textSecondary} strokeWidth={2} />}
-              title="Settings"
-              onPress={() => router.push('/(app)/settings')}
-              accessibilityLabel="Settings"
-            />
-            <ListRow
-              icon={<LogOut size={18} color={colors.danger} strokeWidth={2} />}
-              iconBg={colors.danger + '33'}
-              title="Sign Out"
-              onPress={handleSignOut}
-              destructive
-              separator={false}
-              accessibilityLabel="Sign out"
-            />
-          </View>
-
-          {/* Footer wordmark */}
-          <View style={{ alignItems: 'center', paddingBottom: spacing.sm, gap: 2 }}>
-            <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>
-              Food Bundles Chef
-            </Text>
-            <Text style={{ color: isDark ? colors.surface[500] : colors.surface[500], fontSize: fontSize.xs }}>
-              Built for professional kitchen teams
-            </Text>
-            <Text style={{ color: isDark ? colors.surface[500] : colors.surface[500], fontSize: fontSize.xs }}>
-              © Food Bundles
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('profile.footerTagline')}</Text>
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('profile.footerCopyright')}</Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }

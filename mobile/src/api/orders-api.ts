@@ -1,4 +1,4 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -71,28 +71,33 @@ export function getOrder(kitchenId: string, orderId: string): Promise<OrderWithL
 
 export function createOrder(
   kitchenId: string,
-  body: OrderCreateBody
+  body: OrderCreateBody,
+  opts: WriteOptions = {}
 ): Promise<OrderWithLinesDto> {
   return request<OrderWithLinesDto>(`/kitchens/${kitchenId}/orders`, {
     method: 'POST',
     body,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 
-export function submitOrder(kitchenId: string, orderId: string): Promise<OrderSubmitDto> {
+export function submitOrder(kitchenId: string, orderId: string, opts: WriteOptions = {}): Promise<OrderSubmitDto> {
   return request<OrderSubmitDto>(`/kitchens/${kitchenId}/orders/${orderId}/submit`, {
     method: 'POST',
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 
-export function confirmOrder(kitchenId: string, orderId: string): Promise<OrderSubmitDto> {
+export function confirmOrder(kitchenId: string, orderId: string, opts: WriteOptions = {}): Promise<OrderSubmitDto> {
   return request<OrderSubmitDto>(`/kitchens/${kitchenId}/orders/${orderId}/confirm`, {
     method: 'POST',
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 
-export function cancelOrder(kitchenId: string, orderId: string): Promise<OrderSubmitDto> {
+export function cancelOrder(kitchenId: string, orderId: string, opts: WriteOptions = {}): Promise<OrderSubmitDto> {
   return request<OrderSubmitDto>(`/kitchens/${kitchenId}/orders/${orderId}/cancel`, {
     method: 'POST',
+    idempotencyKey: opts.idempotencyKey,
   });
 }

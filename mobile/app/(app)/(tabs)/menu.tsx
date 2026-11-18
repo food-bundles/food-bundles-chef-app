@@ -1,662 +1,437 @@
-import { useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl, Modal, Image, ScrollView } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, RefreshControl, StyleSheet, Switch, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Plus, ClipboardList, Pencil, Trash2, ChevronRight, ScanLine, X, CheckSquare, Square, MoreHorizontal } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { useMenuItems, useToggleMenuItemActive, useDeleteMenuItem } from '@/features/menu/useMenuItems';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { ClipboardList, MoreHorizontal, Pencil, Plus, ScanLine, Trash2, UtensilsCrossed, type LucideIcon } from 'lucide-react-native';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppPressable } from '@/components/ui/AppPressable';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { SelectableChip } from '@/components/ui/SelectableChip';
+import { Snackbar } from '@/components/ui/Snackbar';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { useDeleteMenuItem, useMenuItems, useToggleMenuItemActive } from '@/features/menu/useMenuItems';
+import { ScanMenuModal, type ImportOutcome } from '@/features/menu/ScanMenuModal';
+import { useAiFeatures } from '@/features/ai/api';
+import { deleteMenuItem, MENU_ITEM_CATEGORIES, updateMenuItem, type MenuItemCategory, type MenuItemDto } from '@/api/menus-api';
+import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
-import { queryKeys } from '@/api/query-keys';
-import { listMenus, createMenu, createMenuItem } from '@/api/menus-api';
-import { agentTurn } from '@/api/agent-api';
-import { SearchInput } from '@/components/ui/SearchInput';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { EmptyState } from '@/components/feedback/EmptyState';
-import { useColorScheme } from 'react-native';
-import { colors } from '@/lib/theme';
-import type { MenuItemDto } from '@/api/menus-api';
+import { formatRWF } from '@/lib/format';
+import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
-interface ScannedItem {
-  name: string;
-  price: string;
-  description: string;
-  selected: boolean;
-}
-
-const CATEGORIES = ['All', 'Main', 'Side', 'Drink', 'Dessert'];
+type CategoryFilter = 'all' | MenuItemCategory;
 
 export default function MenuScreen() {
+  const { t } = useTranslation();
+  const tokens = useTheme();
   const insets = useSafeAreaInsets();
-  const isDark = useColorScheme() === 'dark';
-  const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const chefId = useSessionStore((s) => s.chef?.id ?? '');
+  const router = useRouter();
   const qc = useQueryClient();
-  const { data: allItems = [], isLoading, refetch } = useMenuItems();
+  const params = useLocalSearchParams<{ scanPhotoUri?: string }>();
+  const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
+  const chefId = useSessionStore((s) => s.chef?.id ?? '');
+  const { features } = useAiFeatures();
+  const { data: allItems = [], isLoading, isError, refetch } = useMenuItems();
+  const toggleActive = useToggleMenuItemActive();
+  const deleteItem = useDeleteMenuItem();
+
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
-  const toggleActiveMutation = useToggleMenuItemActive();
-  const deleteMutation = useDeleteMenuItem();
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
+  const [category, setCategory] = useState<CategoryFilter>('all');
+  const [scanOpen, setScanOpen] = useState(false);
+  const [snack, setSnack] = useState<{ message: string; onUndo?: () => void } | null>(null);
+  const [overflowItem, setOverflowItem] = useState<MenuItemDto | null>(null);
 
-  // Scan menu state
-  const [scanPhotoUri, setScanPhotoUri] = useState<string | null>(null);
-  const [scanAnalyzing, setScanAnalyzing] = useState(false);
-  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
-  const [showScanModal, setShowScanModal] = useState(false);
-  const [importingItems, setImportingItems] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [selectionError, setSelectionError] = useState<string | null>(null);
-  const [importResult, setImportResult] = useState<{ count: number } | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
+  // A menu photo handed over by the assistant opens the scan review directly.
+  const routedScanPhoto = params.scanPhotoUri || undefined;
+  const scanVisible = scanOpen || Boolean(routedScanPhoto);
 
-  const scanMenuFromPhoto = async (fromCamera: boolean) => {
-    const perm = fromCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow camera or gallery access in Settings to scan a menu.');
-      return;
-    }
-    const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 0.8 });
-    if (result.canceled || !result.assets[0]) return;
-
-    const uri = result.assets[0].uri;
-    setScanPhotoUri(uri);
-    setScannedItems([]);
-    setScanError(null);
-    setImportResult(null);
-    setImportError(null);
-    setShowScanModal(true);
-    setScanAnalyzing(true);
-
-    if (!activeKitchen) {
-      setScanAnalyzing(false);
-      return;
-    }
-
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const prompt = `You are a professional menu digitizer. I'm sending you a photo of a restaurant menu.
-Extract ALL visible menu items and return them as JSON.
-
-Respond ONLY in this exact JSON format, no other text:
-{
-  "items": [
-    {"name": "item name", "price": "0", "description": "brief description or empty string"},
-    ...
-  ]
-}
-
-Rules:
-- Include every item you can read
-- Price should be a number string (e.g. "3500"), or "0" if not visible
-- Keep descriptions short (max 60 chars) or empty
-- Skip section headers, just include food/drink items`;
-
-      const response = await agentTurn(activeKitchen.id, {
-        messages: [{ role: 'chef', content: prompt, image_data: base64 }],
-      });
-
-      const jsonMatch = response.reply_text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as { items: { name: string; price: string; description: string }[] };
-        if (Array.isArray(parsed.items)) {
-          setScannedItems(parsed.items.map((item) => ({ ...item, selected: true })));
-        }
-      }
-    } catch {
-      setScanError('Could not read the menu photo. Try a clearer shot or add items manually.');
-    } finally {
-      setScanAnalyzing(false);
-    }
-  };
-
-  const showScanPicker = () =>
-    Alert.alert('Scan Menu', 'Photograph your menu and AI will extract the items', [
-      { text: 'Take Photo', onPress: () => void scanMenuFromPhoto(true) },
-      { text: 'From Gallery', onPress: () => void scanMenuFromPhoto(false) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-
-  const toggleScannedItem = (index: number) => {
-    setScannedItems((prev) => prev.map((item, i) => i === index ? { ...item, selected: !item.selected } : item));
-  };
-
-  const importSelectedItems = async () => {
-    if (!activeKitchen) return;
-    const selected = scannedItems.filter((i) => i.selected && i.name.trim());
-    if (selected.length === 0) {
-      setSelectionError('Select at least one item to import.');
-      return;
-    }
-    setSelectionError(null);
-    setImportError(null);
-    setImportingItems(true);
-    try {
-      const menus = await listMenus(activeKitchen.id);
-      let menuId = menus.find((m) => m.is_active)?.id;
-      if (!menuId) {
-        const created = await createMenu(activeKitchen.id, { name: 'Main Menu' });
-        menuId = created.id;
-      }
-      await Promise.all(
-        selected.map((item) =>
-          createMenuItem(activeKitchen.id, menuId!, {
-            name: item.name.trim(),
-            selling_price: item.price || '0',
-            description: item.description.trim() || null,
-          })
-        )
-      );
-      void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, activeKitchen.id) });
-      setImportResult({ count: selected.length });
-      setScannedItems([]);
-      setScanPhotoUri(null);
-    } catch {
-      setImportError('Some items could not be saved. Please try again.');
-    } finally {
-      setImportingItems(false);
-    }
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
   };
 
   const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return allItems
-      .filter((i) => category === 'All' || i.name.toLowerCase().includes(category.toLowerCase()))
-      .filter((i) =>
-        query.trim()
-          ? i.name.toLowerCase().includes(query.toLowerCase())
-          : true,
-      )
+      .filter((i) => category === 'all' || i.category === category)
+      .filter((i) => !q || i.name.toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [allItems, query, category]);
 
+  const undoImport = async (outcome: ImportOutcome) => {
+    try {
+      await Promise.all([
+        ...outcome.created.map((c) => deleteMenuItem(kitchenId, c.menuId, c.id)),
+        ...outcome.updated.map((u) => updateMenuItem(kitchenId, u.menuId, u.id, { selling_price: u.previousPrice })),
+      ]);
+      setSnack({ message: t('menu.scan.undone') });
+    } catch {
+      setSnack({ message: t('menu.scan.undoFailed') });
+    } finally {
+      void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
+    }
+  };
+
+  const onImported = (outcome: ImportOutcome) => {
+    const count = outcome.created.length + outcome.updated.length;
+    setSnack({ message: t('menu.scan.imported', { count }), onUndo: () => void undoImport(outcome) });
+  };
+
+  const confirmDelete = (item: MenuItemDto) => {
+    setOverflowItem(null);
+    Alert.alert(t('editItem.removeConfirmTitle'), t('editItem.removeConfirmMessage', { name: item.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('editItem.removeButton'),
+        style: 'destructive',
+        onPress: () =>
+          deleteItem.mutate(
+            { menuId: item.menu_id, itemId: item.id },
+            {
+              onSuccess: () => setSnack({ message: t('menu.removed', { name: item.name }) }),
+              onError: () => setSnack({ message: t('editItem.removeError') }),
+            },
+          ),
+      },
+    ]);
+  };
+
+  const openEdit = (item: MenuItemDto) =>
+    router.push({
+      pathname: '/(app)/menu/edit-item',
+      params: {
+        itemId: item.id,
+        menuId: item.menu_id,
+        name: item.name,
+        selling_price: item.selling_price,
+        description: item.description ?? '',
+        category: item.category ?? '',
+      },
+    });
+
+  const filters: CategoryFilter[] = ['all', ...MENU_ITEM_CATEGORIES];
+
   return (
-    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 flex-row items-center justify-between border-b border-surface-200 dark:border-surface-800">
-        <Text className="text-surface-900 dark:text-white text-lg font-bold">Menu</Text>
-        <View className="flex-row gap-2">
-          <Pressable
-            onPress={() => router.push('/(app)/sales/entry')}
-            accessibilityRole="button"
-            accessibilityLabel="Record sales"
-            className="w-10 h-10 items-center justify-center rounded-xl bg-surface-200 dark:bg-surface-700"
-          >
-            <ClipboardList size={18} color={colors.surface[400]} strokeWidth={1.75} />
-          </Pressable>
-          <Pressable
-            onPress={showScanPicker}
-            accessibilityRole="button"
-            accessibilityLabel="Scan menu photo"
-            className="w-10 h-10 items-center justify-center rounded-xl bg-surface-200 dark:bg-surface-700"
-          >
-            <ScanLine size={18} color={colors.brand[500]} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(app)/menu/create-item' as never)}
-            accessibilityRole="button"
-            accessibilityLabel="Add menu item"
-            className="w-10 h-10 items-center justify-center rounded-xl bg-brand-500"
-          >
-            <Plus size={20} color={colors.white} strokeWidth={2.5} />
-          </Pressable>
+    <View style={[styles.root, { backgroundColor: tokens.surface, paddingTop: insets.top }]}>
+      <View style={[styles.header, { borderBottomColor: tokens.border, backgroundColor: tokens.surfaceRaised }]}>
+        <Text style={[styles.title, { color: tokens.text }]} accessibilityRole="header">
+          {t('menu.title')}
+        </Text>
+        <View style={styles.headerActions}>
+          <HeaderButton Icon={ClipboardList} label={t('menu.recordSales')} onPress={() => router.push('/(app)/sales/entry')} />
+          {features.menu_scan ? (
+            <HeaderButton Icon={ScanLine} label={t('menu.scanMenu')} onPress={() => setScanOpen(true)} />
+          ) : null}
+          <HeaderButton Icon={Plus} label={t('menu.addItem')} onPress={() => router.push('/(app)/menu/create-item')} filled />
         </View>
       </View>
 
-      <View className="px-4 py-3 gap-3">
-        <SearchInput value={query} onChangeText={setQuery} placeholder="Search menu…" />
-        <View className="flex-row gap-2 flex-wrap">
-          {CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat}
-              onPress={() => setCategory(cat)}
-              accessibilityRole="button"
-              accessibilityLabel={cat}
-              className={`px-3 py-1.5 rounded-full ${category === cat ? 'bg-brand-500' : 'bg-surface-200 dark:bg-surface-800'}`}
-            >
-              <Text className={`text-xs font-medium ${category === cat ? 'text-white' : 'text-surface-600 dark:text-surface-400'}`}>
-                {cat}
-              </Text>
-            </Pressable>
+      <View style={styles.filters}>
+        <SearchInput value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
+        <View style={styles.chips}>
+          {filters.map((c) => (
+            <SelectableChip key={c} label={t(`menu.categories.${c}`)} selected={category === c} onPress={() => setCategory(c)} />
           ))}
         </View>
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.brand[500]} />
+        <View style={styles.centered}>
+          <ActivityIndicator color={tokens.primary} accessibilityLabel={t('common.loading')} />
+        </View>
+      ) : isError && allItems.length === 0 ? (
+        <View style={[styles.centered, styles.pad]}>
+          <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.loadError')}</Text>
+          <AppButton label={t('common.retry')} variant="secondary" onPress={() => void refetch()} />
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(i) => i.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 88, gap: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tokens.primary} colors={[tokens.primary]} />
+          }
           renderItem={({ item }) => (
-            <MenuItemRow
+            <MenuItemCard
               item={item}
-              onToggle={() =>
-                toggleActiveMutation.mutate({
-                  menuId: item.menu_id,
-                  itemId: item.id,
-                  isActive: item.is_active,
-                })
-              }
-              onEdit={() =>
-                router.push({
-                  pathname: '/(app)/menu/edit-item',
-                  params: {
-                    itemId: item.id,
-                    menuId: item.menu_id,
-                    name: item.name,
-                    selling_price: item.selling_price,
-                    description: item.description ?? '',
-                  },
-                } as never)
-              }
-              onDelete={() => {
-                Alert.alert(
-                  'Delete Item',
-                  `Remove "${item.name}" from the menu?`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => deleteMutation.mutate({ menuId: item.menu_id, itemId: item.id }),
-                    },
-                  ]
-                );
-              }}
+              onOpen={() => router.push({ pathname: '/(app)/menu/[id]', params: { id: item.id } })}
+              onToggle={() => toggleActive.mutate({ menuId: item.menu_id, itemId: item.id, isActive: item.is_active })}
+              onEdit={() => openEdit(item)}
+              onMore={() => setOverflowItem(item)}
             />
           )}
           ListEmptyComponent={
-            query ? (
-              <EmptyState title="No results" description="Try a different search term." />
+            query.trim() || category !== 'all' ? (
+              <View style={[styles.pad, styles.emptyWrap]}>
+                <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.noResults')}</Text>
+                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('menu.noResultsBody')}</Text>
+              </View>
             ) : (
-              <View className="px-4 py-10 items-center gap-4">
-                <Text className="text-5xl">🍽️</Text>
-                <Text className="text-surface-900 dark:text-white font-bold text-lg">Your menu is empty</Text>
-                <Text className="text-surface-600 dark:text-surface-400 text-sm text-center">
-                  Add your dishes and drinks so you can record sales and track which ingredients you need.
-                </Text>
-                <Pressable
-                  onPress={() => router.push('/(app)/menu/create-item' as never)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Add your first menu item"
-                  className="bg-brand-700 rounded-full px-8 py-3 active:opacity-80"
-                >
-                  <Text className="text-white font-semibold">Add First Item</Text>
-                </Pressable>
-                <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 w-full gap-2 mt-2">
-                  <Text className="text-surface-700 dark:text-surface-300 text-xs font-medium uppercase tracking-wider">Why add menu items?</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Record daily sales per dish</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Auto-calculate ingredient usage</Text>
-                  <Text className="text-surface-600 dark:text-surface-400 text-sm">• Get purchase suggestions when stock is low</Text>
+              <View style={[styles.pad, styles.emptyWrap]}>
+                <View style={[styles.emptyIcon, { backgroundColor: tokens.primaryTint }]}>
+                  <UtensilsCrossed size={28} color={tokens.onPrimaryTint} />
                 </View>
+                <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.emptyTitle')}</Text>
+                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('menu.emptyBody')}</Text>
+                <AppButton label={t('menu.addFirstItem')} onPress={() => router.push('/(app)/menu/create-item')} />
+                {features.menu_scan ? (
+                  <AppButton label={t('menu.scanMenu')} variant="secondary" onPress={() => setScanOpen(true)} />
+                ) : null}
               </View>
             )
           }
         />
       )}
 
-      {/* Scan Menu Modal */}
-      <Modal
-        visible={showScanModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => { if (!scanAnalyzing && !importingItems) { setShowScanModal(false); setScanPhotoUri(null); setScannedItems([]); } }}
-      >
-        <View className="flex-1 bg-surface-50 dark:bg-surface-900">
-          {/* Modal Header */}
-          <View className="flex-row items-center justify-between px-4 py-4 border-b border-surface-200 dark:border-surface-800">
-            <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-lg bg-brand-500/10 items-center justify-center">
-                <ScanLine size={16} color={colors.brand[500]} strokeWidth={2} />
-              </View>
-              <Text className="text-surface-900 dark:text-white font-bold text-base">Scan Menu</Text>
-            </View>
-            <Pressable
-              onPress={() => { if (!scanAnalyzing && !importingItems) { setShowScanModal(false); setScanPhotoUri(null); setScannedItems([]); } }}
-              disabled={scanAnalyzing || importingItems}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              className="w-8 h-8 items-center justify-center rounded-full bg-surface-200 dark:bg-surface-700"
-            >
-              <X size={16} color={colors.surface[500]} strokeWidth={2} />
-            </Pressable>
-          </View>
+      <OverflowSheet
+        item={overflowItem}
+        onClose={() => setOverflowItem(null)}
+        onEdit={(item) => {
+          setOverflowItem(null);
+          openEdit(item);
+        }}
+        onDelete={confirmDelete}
+      />
 
-          <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
-            {/* Photo guidance — always shown before photo taken (#11) */}
-            {!scanPhotoUri && !scanAnalyzing && (
-              <View className="bg-brand-500/10 rounded-xl px-4 py-3 gap-1">
-                <Text className="text-brand-400 font-semibold text-sm">How to scan</Text>
-                <Text className="text-brand-400 text-xs">
-                  Point your camera at a printed or handwritten menu. Make sure all text is in frame and well-lit.
-                </Text>
-              </View>
-            )}
+      <ScanMenuModal
+        visible={scanVisible}
+        initialPhotoUri={routedScanPhoto}
+        onClose={() => {
+          setScanOpen(false);
+          if (routedScanPhoto) router.setParams({ scanPhotoUri: '' });
+        }}
+        onImported={onImported}
+      />
 
-            {/* Photo Preview */}
-            {scanPhotoUri && (
-              <View className="rounded-2xl overflow-hidden bg-surface-200 dark:bg-surface-800" style={{ height: 200 }}>
-                <Image source={{ uri: scanPhotoUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              </View>
-            )}
-
-            {/* Analyzing state */}
-            {scanAnalyzing && (
-              <View className="items-center py-8 gap-3">
-                <ActivityIndicator size="large" color={colors.brand[500]} />
-                <Text className="text-surface-900 dark:text-white font-semibold">Reading menu…</Text>
-                <Text className="text-surface-500 text-sm text-center">
-                  Scanning the photo and extracting menu items. This takes a few seconds.
-                </Text>
-              </View>
-            )}
-
-            {/* Import success state */}
-            {importResult && (
-              <View className="items-center py-8 gap-3">
-                <Text className="text-3xl">✅</Text>
-                <Text className="text-surface-900 dark:text-white font-semibold">
-                  {importResult.count} item{importResult.count > 1 ? 's' : ''} added to your menu
-                </Text>
-                <Pressable
-                  onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setImportResult(null); }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Done"
-                  className="bg-brand-500 rounded-xl px-6 py-3"
-                >
-                  <Text className="text-white font-semibold">Done</Text>
-                </Pressable>
-              </View>
-            )}
-
-            {/* Inline scan error (#11) */}
-            {scanError && !scanAnalyzing && (
-              <View className="bg-danger/10 border border-danger/30 rounded-xl p-4 gap-3">
-                <Text className="text-danger font-semibold text-sm">Could not read this photo</Text>
-                <Text className="text-surface-700 dark:text-surface-300 text-sm">{scanError}</Text>
-                <View className="flex-row gap-3">
-                  <Pressable
-                    onPress={() => { setScanError(null); setScanPhotoUri(null); setTimeout(() => showScanPicker(), 200); }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Retake photo"
-                    className="flex-1 bg-surface-200 dark:bg-surface-700 rounded-xl py-3 items-center"
-                  >
-                    <Text className="text-surface-800 dark:text-surface-200 font-semibold text-sm">Retake photo</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => { setShowScanModal(false); setScanError(null); setScanPhotoUri(null); router.push('/(app)/menu/create-item' as never); }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Add manually"
-                    className="flex-1 bg-brand-500 rounded-xl py-3 items-center"
-                  >
-                    <Text className="text-white font-semibold text-sm">Add manually</Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
-
-            {/* Results */}
-            {!scanAnalyzing && !scanError && !importResult && scannedItems.length > 0 && (
-              <View className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-surface-900 dark:text-white font-semibold">
-                    {scannedItems.length} items found
-                  </Text>
-                  <Text className="text-surface-500 text-xs">
-                    {scannedItems.filter((i) => i.selected).length} selected
-                  </Text>
-                </View>
-
-                <View className="bg-brand-500/10 rounded-xl px-4 py-3">
-                  <Text className="text-brand-400 text-xs">
-                    Review the items below. Deselect any you don't want to import, then tap Import.
-                  </Text>
-                </View>
-
-                {scannedItems.map((item, index) => (
-                  <Pressable
-                    key={index}
-                    onPress={() => toggleScannedItem(index)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: item.selected }}
-                    className={`flex-row items-start gap-3 p-4 rounded-xl border ${item.selected ? 'bg-white dark:bg-surface-800 border-brand-500/30' : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-surface-700'}`}
-                  >
-                    <View className="mt-0.5">
-                      {item.selected
-                        ? <CheckSquare size={20} color={colors.brand[500]} strokeWidth={2} />
-                        : <Square size={20} color={colors.surface[400]} strokeWidth={2} />}
-                    </View>
-                    <View className="flex-1">
-                      <Text className={`font-semibold text-sm ${item.selected ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
-                        {item.name}
-                      </Text>
-                      {item.description ? (
-                        <Text className="text-surface-500 text-xs mt-0.5" numberOfLines={2}>{item.description}</Text>
-                      ) : null}
-                    </View>
-                    {item.price && item.price !== '0' ? (
-                      <Text className="text-brand-500 text-sm font-semibold mt-0.5">
-                        {parseInt(item.price, 10).toLocaleString()} RWF
-                      </Text>
-                    ) : (
-                      <Text className="text-surface-400 text-xs mt-0.5">No price</Text>
-                    )}
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            {/* No items found */}
-            {!scanAnalyzing && !scanError && !importResult && scannedItems.length === 0 && scanPhotoUri && (
-              <View className="items-center py-8 gap-3">
-                <Text className="text-3xl">🤔</Text>
-                <Text className="text-surface-900 dark:text-white font-semibold">No items detected</Text>
-                <Text className="text-surface-500 text-sm text-center">
-                  Try a clearer photo, or add items manually.
-                </Text>
-                <View className="flex-row gap-3">
-                  <Pressable
-                    onPress={() => { setScanPhotoUri(null); setTimeout(() => showScanPicker(), 200); }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Retake photo"
-                    className="flex-1 bg-surface-200 dark:bg-surface-700 rounded-xl py-3 items-center"
-                  >
-                    <Text className="text-surface-700 dark:text-surface-200 font-semibold text-sm">Retake photo</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => { setShowScanModal(false); setScanPhotoUri(null); router.push('/(app)/menu/create-item' as never); }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Add manually"
-                    className="flex-1 bg-brand-500 rounded-xl py-3 items-center"
-                  >
-                    <Text className="text-white font-semibold text-sm">Add manually</Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Import footer */}
-          {!scanAnalyzing && !importResult && !scanError && scannedItems.length > 0 && (
-            <View className="px-4 pt-3 pb-8 border-t border-surface-200 dark:border-surface-800 gap-2">
-              {importError && (
-                <Text className="text-danger text-sm text-center">{importError}</Text>
-              )}
-              {selectionError && (
-                <Text className="text-danger text-sm text-center">{selectionError}</Text>
-              )}
-              {scannedItems.filter((i) => i.selected).length > 0 && (
-                <Pressable
-                  onPress={() => void importSelectedItems()}
-                  disabled={importingItems}
-                  accessibilityRole="button"
-                  accessibilityLabel="Import selected items"
-                  className="bg-brand-500 rounded-xl py-4 items-center active:opacity-80"
-                  style={{ opacity: importingItems ? 0.7 : 1 }}
-                >
-                  {importingItems
-                    ? <ActivityIndicator color={colors.white} />
-                    : <Text className="text-white font-bold text-base">
-                        Import {scannedItems.filter((i) => i.selected).length} Item{scannedItems.filter((i) => i.selected).length > 1 ? 's' : ''}
-                      </Text>}
-                </Pressable>
-              )}
-              <Pressable
-                onPress={() => { setShowScanModal(false); setScanPhotoUri(null); setScannedItems([]); setImportError(null); setSelectionError(null); }}
-                disabled={importingItems}
-                accessibilityRole="button"
-                className="items-center py-3"
-              >
-                <Text className="text-surface-500 text-sm">Cancel</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </Modal>
+      <Snackbar
+        visible={snack !== null}
+        message={snack?.message ?? ''}
+        actionLabel={snack?.onUndo ? t('common.undo') : undefined}
+        onAction={snack?.onUndo}
+        onDismiss={() => setSnack(null)}
+        duration={snack?.onUndo ? 8000 : 4000}
+      />
     </View>
   );
 }
 
-function MenuItemRow({
+function HeaderButton({ Icon, label, onPress, filled = false }: { Icon: LucideIcon; label: string; onPress: () => void; filled?: boolean }) {
+  const tokens = useTheme();
+  return (
+    <AppPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.headerButton,
+        { backgroundColor: filled ? tokens.primary : tokens.surfaceSunken },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon size={20} color={filled ? tokens.onPrimary : tokens.text} strokeWidth={2} />
+    </AppPressable>
+  );
+}
+
+function MenuItemCard({
   item,
+  onOpen,
   onToggle,
   onEdit,
-  onDelete,
+  onMore,
 }: {
   item: MenuItemDto;
+  onOpen: () => void;
   onToggle: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onMore: () => void;
 }) {
-  const [showOverflow, setShowOverflow] = useState(false);
-  const priceRwf = parseFloat(item.selling_price);
-
-  const handleDelete = () => {
-    setShowOverflow(false);
-    Alert.alert(
-      'Delete Item',
-      `Remove "${item.name}" from the menu? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
-      ],
-    );
-  };
-
+  const { t, i18n } = useTranslation();
+  const tokens = useTheme();
   return (
-    <Pressable
-      onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
-      accessibilityRole="button"
-      accessibilityLabel={`View ${item.name} details`}
-      className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 gap-3 active:opacity-80"
-    >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 mr-3">
-          <View className="flex-row items-center gap-2 flex-wrap">
-            <Text className={`font-semibold ${item.is_active ? 'text-surface-900 dark:text-white' : 'text-surface-500'}`}>
+    <View style={[styles.card, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border }]}>
+      <View style={styles.cardTop}>
+        <AppPressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={t('menu.openItem', { name: item.name })}
+          style={({ pressed }) => [styles.cardMain, pressed && styles.pressed]}
+        >
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: item.is_active ? tokens.text : tokens.textMuted }]} numberOfLines={2}>
               {item.name}
             </Text>
-            {!item.is_active && <StatusBadge label="Off" variant="neutral" />}
+            {!item.is_active ? <StatusBadge label={t('menu.off')} variant="neutral" /> : null}
           </View>
+          {item.category ? (
+            <Text style={[styles.meta, { color: tokens.textMuted }]}>{t(`menu.categories.${item.category}`)}</Text>
+          ) : null}
           {item.description ? (
-            <Text className="text-surface-500 text-xs mt-0.5" numberOfLines={2}>
+            <Text style={[styles.meta, { color: tokens.textMuted }]} numberOfLines={2}>
               {item.description}
             </Text>
           ) : null}
-          <Text className="text-brand-500 text-sm font-semibold mt-1">
-            {isNaN(priceRwf) ? item.selling_price : priceRwf.toLocaleString()} RWF
-          </Text>
-        </View>
-        {/* Active toggle */}
-        <Pressable
-          onPress={onToggle}
-          accessibilityRole="switch"
-          accessibilityLabel={`Toggle ${item.name} availability`}
-          accessibilityState={{ checked: item.is_active }}
-          className={`w-12 h-7 rounded-full justify-center ${item.is_active ? 'bg-brand-500' : 'bg-surface-300 dark:bg-surface-700'}`}
-        >
-          <View
-            className={`w-5 h-5 rounded-full bg-white shadow-sm mx-1 ${item.is_active ? 'self-end' : 'self-start'}`}
-          />
-        </Pressable>
+          <Text style={[styles.price, { color: tokens.link }]}>{formatRWF(item.selling_price, i18n.language)}</Text>
+        </AppPressable>
+        <Switch
+          value={item.is_active}
+          onValueChange={onToggle}
+          trackColor={{ true: tokens.primary, false: tokens.border }}
+          thumbColor={tokens.surfaceRaised}
+          ios_backgroundColor={tokens.border}
+          accessibilityLabel={t('menuItem.availableLabel', { name: item.name })}
+        />
       </View>
-
-      {/* Edit / Details row — Delete moved to overflow */}
-      <View className="flex-row gap-2 border-t border-surface-100 dark:border-surface-700 pt-2">
-        <Pressable
+      <View style={[styles.cardActions, { borderTopColor: tokens.border }]}>
+        <AppPressable
           onPress={onEdit}
           accessibilityRole="button"
-          accessibilityLabel={`Edit ${item.name}`}
-          className="flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-100 dark:bg-surface-700 active:opacity-70"
+          accessibilityLabel={t('menuItem.editItemLabel', { name: item.name })}
+          style={({ pressed }) => [styles.action, { backgroundColor: tokens.surfaceSunken }, pressed && styles.pressed]}
         >
-          <Pencil size={14} color={colors.surface[500]} strokeWidth={2} />
-          <Text className="text-surface-600 dark:text-surface-300 text-xs font-medium">Edit</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push(`/(app)/menu/${item.id}` as never)}
+          <Pencil size={16} color={tokens.text} />
+          <Text style={[styles.actionText, { color: tokens.text }]}>{t('menu.edit')}</Text>
+        </AppPressable>
+        {/* Tint pair (primaryTint / onPrimaryTint) passes AA in both themes — green-on-green failed (#2). */}
+        <AppPressable
+          onPress={onOpen}
           accessibilityRole="button"
-          accessibilityLabel={`View ${item.name} recipe`}
-          className="flex-1 flex-row items-center justify-center gap-1 py-2 rounded-lg bg-brand-500/10 active:opacity-70"
+          accessibilityLabel={t('menu.recipeOf', { name: item.name })}
+          style={({ pressed }) => [styles.action, { backgroundColor: tokens.primaryTint }, pressed && styles.pressed]}
         >
-          <ChevronRight size={14} color={colors.brand[500]} strokeWidth={2} />
-          <Text className="text-brand-400 text-xs font-medium">Recipe</Text>
-        </Pressable>
-        {/* Overflow — ⋯ shows Delete */}
-        <Pressable
-          onPress={() => setShowOverflow(true)}
+          <ClipboardList size={16} color={tokens.onPrimaryTint} />
+          <Text style={[styles.actionText, { color: tokens.onPrimaryTint }]}>{t('menu.recipe')}</Text>
+        </AppPressable>
+        <AppPressable
+          onPress={onMore}
           accessibilityRole="button"
-          accessibilityLabel={`More options for ${item.name}`}
-          className="flex-row items-center justify-center py-2 px-3 rounded-lg bg-surface-100 dark:bg-surface-700 active:opacity-70"
+          accessibilityLabel={t('menu.moreOptions', { name: item.name })}
+          style={({ pressed }) => [styles.more, { backgroundColor: tokens.surfaceSunken }, pressed && styles.pressed]}
         >
-          <MoreHorizontal size={16} color={colors.surface[500]} strokeWidth={2} />
-        </Pressable>
+          <MoreHorizontal size={18} color={tokens.text} />
+        </AppPressable>
       </View>
-
-      {/* Overflow sheet */}
-      <Modal visible={showOverflow} transparent animationType="fade" onRequestClose={() => setShowOverflow(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
-          onPress={() => setShowOverflow(false)}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-        >
-          <Pressable onPress={() => { /* stop propagation */ }}>
-            <View className="bg-white dark:bg-surface-800 rounded-t-2xl px-4 pt-4 pb-8 gap-2">
-              <Text className="text-surface-500 text-xs font-medium uppercase tracking-wider mb-1">{item.name}</Text>
-              <Pressable
-                onPress={handleDelete}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${item.name}`}
-                className="flex-row items-center gap-3 py-3 px-2 rounded-xl active:bg-red-50 dark:active:bg-red-900/20"
-              >
-                <Trash2 size={18} color={colors.danger} strokeWidth={2} />
-                <Text className="text-red-500 font-medium text-base">Delete Item</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setShowOverflow(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel"
-                className="items-center py-3 mt-1"
-              >
-                <Text className="text-surface-500 font-medium">Cancel</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </Pressable>
+    </View>
   );
 }
+
+function OverflowSheet({
+  item,
+  onClose,
+  onEdit,
+  onDelete,
+}: {
+  item: MenuItemDto | null;
+  onClose: () => void;
+  onEdit: (item: MenuItemDto) => void;
+  onDelete: (item: MenuItemDto) => void;
+}) {
+  const { t } = useTranslation();
+  const tokens = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={item !== null} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <View style={styles.sheetRoot}>
+        <AppPressable
+          style={[StyleSheet.absoluteFill, { backgroundColor: tokens.overlay }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}
+        />
+        {item ? (
+          <View style={[styles.sheet, { backgroundColor: tokens.surfaceRaised, paddingBottom: insets.bottom + spacing.md }]} accessibilityViewIsModal>
+            <Text style={[styles.sheetTitle, { color: tokens.textMuted }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <AppPressable
+              onPress={() => onEdit(item)}
+              accessibilityRole="button"
+              accessibilityLabel={t('menuItem.editItemLabel', { name: item.name })}
+              style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
+            >
+              <Pencil size={18} color={tokens.text} />
+              <Text style={[styles.sheetRowText, { color: tokens.text }]}>{t('menu.edit')}</Text>
+            </AppPressable>
+            <AppPressable
+              onPress={() => onDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={t('menu.deleteItemLabel', { name: item.name })}
+              style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
+            >
+              <Trash2 size={18} color={tokens.danger} />
+              <Text style={[styles.sheetRowText, { color: tokens.danger }]}>{t('menu.deleteItem')}</Text>
+            </AppPressable>
+            <AppButton label={t('common.cancel')} variant="ghost" onPress={onClose} />
+          </View>
+        ) : null}
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  title: { fontSize: fontSize.xl, fontWeight: fontWeight.bold },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
+  headerButton: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.7 },
+  filters: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  pad: { padding: spacing.lg, gap: spacing.md },
+  list: { paddingHorizontal: spacing.md, paddingBottom: 96, gap: spacing.sm },
+  emptyWrap: { alignItems: 'stretch' },
+  emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
+  emptyTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, textAlign: 'center' },
+  emptyBody: { fontSize: fontSize.base, lineHeight: 22, textAlign: 'center' },
+  card: { borderRadius: radius.lg, borderWidth: 1, overflow: 'hidden' },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: spacing.md },
+  cardMain: { flex: 1, padding: spacing.md, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  name: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, flexShrink: 1 },
+  meta: { fontSize: fontSize.sm },
+  price: { fontSize: fontSize.base, fontWeight: fontWeight.bold, marginTop: 4 },
+  cardActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  action: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  actionText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
+  more: { width: 44, minHeight: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  sheetRoot: { flex: 1, justifyContent: 'flex-end' },
+  sheet: {
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    gap: spacing.xs,
+  },
+  sheetTitle: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.6 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
+  sheetRowText: { fontSize: fontSize.base, fontWeight: fontWeight.medium },
+});

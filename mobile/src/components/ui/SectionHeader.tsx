@@ -1,5 +1,6 @@
-import { View, Text, Pressable, StyleSheet, useColorScheme } from 'react-native';
-import { colors, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { spacing, fontSize, fontWeight } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface SectionHeaderProps {
   title: string;
@@ -8,10 +9,10 @@ export interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderProps) {
-  const isDark = useColorScheme() === 'dark';
+  const tokens = useTheme();
   return (
     <View style={styles.row}>
-      <Text style={[styles.title, { color: isDark ? colors.surface[400] : colors.surface[600] }]}>{title}</Text>
+      <Text style={[styles.title, { color: tokens.textMuted }]}>{title}</Text>
       {actionLabel && onAction ? (
         <Pressable
           onPress={onAction}
@@ -19,7 +20,7 @@ export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderPro
           accessibilityLabel={actionLabel}
           hitSlop={8}
         >
-          <Text style={styles.action}>{actionLabel}</Text>
+          <Text style={[styles.action, { color: tokens.link }]}>{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -31,8 +32,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.sm,
   },
   title: {
     fontSize: fontSize.xs,
@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   action: {
-    color: colors.brand[400],
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
   },

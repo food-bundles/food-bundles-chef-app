@@ -35,6 +35,8 @@ export function useRecordInventoryEntry() {
       recordInventoryEntry(kitchenId, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.inventory.stock(chefId, kitchenId) });
+      // History is keyed ['inventory', 'history', …]; refresh it too.
+      void qc.invalidateQueries({ queryKey: ['inventory', 'history', chefId, kitchenId] });
     },
   });
 }

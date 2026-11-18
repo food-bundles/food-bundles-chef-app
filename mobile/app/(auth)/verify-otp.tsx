@@ -1,18 +1,22 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
+import { AppPressable } from '@/components/ui/AppPressable';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { verifyOtp, getMe } from '@/api/auth-api';
 import { listKitchens } from '@/api/kitchens-api';
 import { ApiError } from '@/api/errors';
 import { useSessionStore } from '@/store/session-store';
+import { authPalette, colors } from '@/lib/theme';
 
 async function tryRegisterPushToken(): Promise<void> {
   // Push token registration disabled until Firebase is configured
 }
 
 export default function VerifyOtpScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const signIn = useSessionStore((s) => s.signIn);
@@ -86,33 +90,34 @@ export default function VerifyOtpScreen() {
       >
 
         {/* Back */}
-        <Pressable
+        <AppPressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.back')}
           style={styles.backBtn}
         >
-          <ChevronLeft size={22} color="#6B7280" strokeWidth={2} />
-        </Pressable>
+          <ChevronLeft size={22} color={authPalette.placeholder} strokeWidth={2} />
+        </AppPressable>
 
         {/* Heading */}
-        <Text style={styles.eyebrow}>Verify</Text>
-        <Text style={styles.heading}>Enter the code</Text>
+        <Text style={styles.eyebrow}>{t('auth.verify')}</Text>
+        <Text style={styles.heading}>{t('auth.enterCode')}</Text>
         <Text style={styles.sub}>
-          Sent to <Text style={styles.subPhone}>{phone}</Text>
+          {t('auth.codeSentTo')} <Text style={styles.subPhone}>{phone}</Text>
         </Text>
 
         {/* OTP input */}
         <TextInput
+          keyboardAppearance="dark"
           value={otp}
           onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
           placeholder="— — — — — —"
-          placeholderTextColor="#6B9966"
+          placeholderTextColor={authPalette.muted}
           keyboardType="number-pad"
           maxLength={6}
           autoFocus
           textAlign="center"
-          accessibilityLabel="One-time code"
+          accessibilityLabel={t('auth.otpLabel')}
           style={[
             styles.input,
             error ? styles.inputError : isValid ? styles.inputValid : null,
@@ -124,19 +129,19 @@ export default function VerifyOtpScreen() {
 
       {/* CTA — sits above keyboard when it rises */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
-        <Pressable
+        <AppPressable
           onPress={handleVerify}
           disabled={!isValid || loading}
           accessibilityRole="button"
-          accessibilityLabel="Verify code"
+          accessibilityLabel={t('auth.verifyCodeLabel')}
           style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
           <View style={[styles.btn, (!isValid || loading) && styles.btnDisabled]}>
             <Text style={[styles.btnText, (!isValid || loading) && styles.btnTextDisabled]}>
-              {loading ? 'Verifying…' : 'Verify & Continue  →'}
+              {loading ? t('auth.verifying') : t('auth.verifyButton')}
             </Text>
           </View>
-        </Pressable>
+        </AppPressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -145,7 +150,7 @@ export default function VerifyOtpScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#091A0D',
+    backgroundColor: authPalette.bg,
   },
   scroll: {
     flex: 1,
@@ -161,13 +166,13 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#112B18',
+    backgroundColor: authPalette.card,
     borderRadius: 21,
     borderWidth: 1,
-    borderColor: '#1E4028',
+    borderColor: authPalette.border,
   },
   eyebrow: {
-    color: '#22C55E',
+    color: colors.action,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -175,42 +180,42 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heading: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 30,
     fontWeight: '800',
     marginBottom: 10,
     letterSpacing: -0.5,
   },
   sub: {
-    color: '#6B9966',
+    color: authPalette.muted,
     fontSize: 15,
     marginBottom: 36,
     lineHeight: 22,
   },
   subPhone: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontWeight: '700',
   },
   input: {
-    backgroundColor: '#0E2516',
-    color: '#FFFFFF',
+    backgroundColor: authPalette.input,
+    color: colors.white,
     fontSize: 34,
     fontWeight: '700',
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 20,
     borderWidth: 1.5,
-    borderColor: '#1C3D24',
+    borderColor: authPalette.inputBorder,
     letterSpacing: 10,
   },
   inputValid: {
-    borderColor: '#22C55E',
+    borderColor: colors.action,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: authPalette.error,
   },
   errorText: {
-    color: '#EF4444',
+    color: authPalette.error,
     fontSize: 13,
     marginTop: 10,
   },
@@ -219,38 +224,38 @@ const styles = StyleSheet.create({
   cta: {
     paddingHorizontal: 24,
     paddingTop: 14,
-    backgroundColor: '#091A0D',
+    backgroundColor: authPalette.bg,
     borderTopWidth: 1,
-    borderTopColor: '#1A3522',
+    borderTopColor: authPalette.ctaBar,
   },
   btn: {
     width: '80%',
     alignSelf: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.action,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#22C55E',
+    shadowColor: colors.action,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5,
     shadowRadius: 14,
     elevation: 10,
   },
   btnDisabled: {
-    backgroundColor: '#112B18',
-    borderColor: '#1E4028',
+    backgroundColor: authPalette.card,
+    borderColor: authPalette.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   btnText: {
-    color: '#000000',
+    color: colors.black,
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: 0.3,
   },
   btnTextDisabled: {
-    color: '#2E5229',
+    color: authPalette.divider,
   },
 });

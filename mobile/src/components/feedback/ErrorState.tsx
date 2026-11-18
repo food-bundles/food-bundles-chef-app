@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppButton } from '@/components/ui/AppButton';
-import { colors, fontSize, fontWeight, spacing } from '@/lib/theme';
+import { fontSize, fontWeight, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface ErrorStateProps {
   message: string;
@@ -9,14 +11,16 @@ export interface ErrorStateProps {
 }
 
 /** Full-screen error state with optional retry action */
-export function ErrorState({ message, onRetry, retryLabel = 'Retry' }: ErrorStateProps) {
+export function ErrorState({ message, onRetry, retryLabel }: ErrorStateProps) {
+  const tokens = useTheme();
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={styles.icon} accessibilityElementsHidden>⚠</Text>
-      <Text style={styles.message} accessibilityRole="alert">{message}</Text>
+      <Text style={styles.icon} accessibilityElementsHidden importantForAccessibility="no">⚠</Text>
+      <Text style={[styles.message, { color: tokens.danger }]} accessibilityRole="alert">{message}</Text>
       {onRetry ? (
         <View style={styles.action}>
-          <AppButton label={retryLabel} onPress={onRetry} variant="secondary" />
+          <AppButton label={retryLabel ?? t('common.retry')} onPress={onRetry} variant="secondary" />
         </View>
       ) : null}
     </View>
@@ -32,7 +36,6 @@ const styles = StyleSheet.create({
   },
   icon: { fontSize: 36, marginBottom: spacing.md },
   message: {
-    color: colors.danger,
     fontSize: fontSize.base,
     fontWeight: fontWeight.medium,
     textAlign: 'center',

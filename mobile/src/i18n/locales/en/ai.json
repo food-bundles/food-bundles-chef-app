@@ -1,0 +1,38 @@
+{
+  "ai": {
+    "badge": "AI",
+    "retry": "Try again",
+    "enterManually": "Enter manually",
+    "unavailable": "AI is temporarily unavailable. You can still fill everything in by hand.",
+    "estimateWarning": "AI estimate — check quantities and price before saving.",
+    "status": {
+      "preparing": "Preparing photo…",
+      "uploading": "Uploading photo… {{percent}}%",
+      "analysing": "Analysing…",
+      "usuallyTakes": "Usually takes about 5–10 seconds.",
+      "stillWorking": "Still working…",
+      "retryingIn": "Retrying in {{seconds}} s."
+    },
+    "errors": {
+      "offline": "No connection — we'll retry when you're back online.",
+      "timeout": "This took too long — try again.",
+      "cancelled": "Cancelled.",
+      "unavailable": "AI is temporarily unavailable. You can still enter details manually.",
+      "rate_limited": "Too many AI requests today — try again later or enter details manually.",
+      "too_large": "This photo is too large — try another photo.",
+      "too_dark": "Photo too dark — try more light.",
+      "blurry": "Photo is blurry — hold steady and retake it.",
+      "bad_output": "The AI answer could not be read — try again or enter details manually.",
+      "auth": "Your session expired — sign in again.",
+      "server": "Something went wrong — try again.",
+      "too_small": "The menu or document is too small in the photo — move closer."
+    },
+    "consent": {
+      "title": "AI help with photos and voice",
+      "body": "Photos and voice clips you send are processed by an AI service to read menus, dishes and delivery notes. Food Bundles does not keep them after processing. Nothing is saved without your confirmation.",
+      "accept": "Continue",
+      "decline": "Not now",
+      "policy": "Privacy policy"
+    }
+  }
+}

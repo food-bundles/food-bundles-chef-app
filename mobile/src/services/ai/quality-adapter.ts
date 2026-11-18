@@ -25,7 +25,7 @@ export const mockQualityAdapter: QualityAdapterInterface = {
     // Simulate network latency
     await new Promise((r) => setTimeout(r, 1200));
 
-    const dimensions: Array<keyof Omit<QualityAssessment, 'score' | 'notes' | 'estimatedQuantity'>> = [
+    const dimensions: (keyof Omit<QualityAssessment, 'score' | 'notes' | 'estimatedQuantity'>)[] = [
       'freshness', 'ripeness', 'damage', 'spoilage', 'sizeGrade', 'foreignMatter',
     ];
 

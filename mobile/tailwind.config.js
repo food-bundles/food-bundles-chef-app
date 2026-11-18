@@ -2,6 +2,7 @@
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   presets: [require('nativewind/preset')],
+  // 'media' follows Appearance, which ThemeProvider overrides from the in-app preference
   darkMode: 'media',
   theme: {
     extend: {
@@ -19,23 +20,26 @@ module.exports = {
           800: '#043817',
           900: '#022510',
         },
-        // Neutrals — warm off-white / charcoal for kitchen feel
+        // Neutrals — green-tinted greys (keep in sync with src/lib/theme.ts)
         surface: {
-          50: '#FAFAF8',
-          100: '#F5F4F0',
-          200: '#EAE9E4',
-          300: '#D4D2CB',
-          400: '#B3B0A6',
-          500: '#8C897E',
-          600: '#6B6860',
-          700: '#4D4B45',
-          800: '#32302C',
-          900: '#1A1916',
+          50: '#F4F7F5',
+          100: '#EDF2EF',
+          200: '#DDE5E0',
+          300: '#C4CFC8',
+          400: '#97A59C',
+          500: '#66746B',
+          600: '#4B5A52',
+          700: '#33403A',
+          800: '#1D2621',
+          850: '#18201B',
+          900: '#111813',
+          950: '#0B0F0C',
         },
         // Semantic
+        action: '#22C55E',
         success: '#0E8438',
         warning: '#F59E0B',
-        danger: '#EF4444',
+        danger: '#DC2626',
         info: '#3B82F6',
       },
       fontFamily: {

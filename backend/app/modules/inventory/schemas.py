@@ -7,12 +7,23 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-EntryType = Literal["opening", "adjustment", "closing", "delivery"]
+EntryType = Literal["opening", "adjustment", "closing", "delivery", "waste"]
+StockChange = Literal["set", "add", "remove"]
 
 
 class InventoryEntryCreateRequest(BaseModel):
+    """Record stock for one ingredient.
+
+    `change` says how `quantity` applies to the current level:
+      set    — `quantity` IS the counted stock (stock take; default, legacy behaviour)
+      add    — current + quantity
+      remove — current - quantity, never below 0
+    Every entry stores the resulting stock level.
+    """
+
     ingredient_id: uuid.UUID
     quantity: Decimal = Field(..., ge=0)
+    change: StockChange = "set"
     entry_type: EntryType = "adjustment"
     notes: str | None = None
 

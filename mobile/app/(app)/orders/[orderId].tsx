@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Package, Download, Share2 } from 'lucide-react-native';
@@ -9,6 +10,7 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { buildRequisitionHtml } from '@/lib/pdf-requisition';
+import { colors } from '@/lib/theme';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
   delivered: 'success',
@@ -19,7 +21,7 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'>
   draft: 'neutral',
 };
 
-async function shareOrderAsPdf(htmlContent: string, orderRef: string) {
+async function shareOrderAsPdf(htmlContent: string, orderRef: string, t: (key: string, opts?: Record<string, string>) => string) {
   try {
     // Dynamic import so the module load doesn't fail on old builds without the packages
     const Print = await import('expo-print').then((m) => m.default ?? m);
@@ -36,16 +38,17 @@ async function shareOrderAsPdf(htmlContent: string, orderRef: string) {
       });
     } else {
       Alert.alert(
-        'Sharing unavailable',
-        `PDF saved to:\n${uri}`,
+        t('orders.sharingUnavailable'),
+        t('orders.pdfSavedTo', { uri }),
       );
     }
   } catch (err) {
-    Alert.alert('Error', 'Could not generate PDF. Please try again.');
+    Alert.alert(t('orders.pdfError'), t('orders.pdfErrorDesc'));
   }
 }
 
 export default function OrderDetailScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { data: order, isLoading, error } = useOrderDetail(orderId ?? '');
@@ -85,7 +88,7 @@ export default function OrderDetailScreen() {
           unit_price: l.unit_price,
         })),
       });
-      await shareOrderAsPdf(html, order.id.slice(-8).toUpperCase());
+      await shareOrderAsPdf(html, order.id.slice(-8).toUpperCase(), t);
     } finally {
       setSharing(false);
     }
@@ -98,14 +101,14 @@ export default function OrderDetailScreen() {
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.back')}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronLeft size={22} color="#6B7280" strokeWidth={2} />
+          <ChevronLeft size={22} color={colors.surface[500]} strokeWidth={2} />
         </Pressable>
         <View className="flex-1">
           <Text className="text-surface-900 dark:text-white text-lg font-bold">
-            Order #{order?.id.slice(-6).toUpperCase() ?? '…'}
+            {t('orders.detailTitle')} #{order?.id.slice(-6).toUpperCase() ?? '…'}
           </Text>
           {order && (
             <Text className="text-surface-600 dark:text-surface-400 text-xs">
@@ -123,13 +126,13 @@ export default function OrderDetailScreen() {
               onPress={handleSharePdf}
               disabled={sharing}
               accessibilityRole="button"
-              accessibilityLabel="Share as PDF"
+              accessibilityLabel={t('orders.shareAsPdf')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{ opacity: sharing ? 0.4 : 1 }}
             >
               {sharing
-                ? <ActivityIndicator size="small" color="#0E8438" />
-                : <Share2 size={20} color="#0E8438" strokeWidth={2} />
+                ? <ActivityIndicator size="small" color={colors.brand[500]} />
+                : <Share2 size={20} color={colors.brand[500]} strokeWidth={2} />
               }
             </Pressable>
           </View>
@@ -138,14 +141,14 @@ export default function OrderDetailScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#0E8438" />
+          <ActivityIndicator color={colors.brand[500]} />
         </View>
       ) : error || !order ? (
         <View className="flex-1 items-center justify-center px-8 gap-3">
-          <Package size={40} color="#4D4B45" strokeWidth={1.5} />
-          <Text className="text-surface-600 dark:text-surface-400 text-center">Could not load order details.</Text>
+          <Package size={40} color={colors.surface[400]} strokeWidth={1.5} />
+          <Text className="text-surface-600 dark:text-surface-400 text-center">{t('orders.loadError')}</Text>
           <Pressable onPress={() => router.back()} className="mt-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-6 py-3 active:opacity-70">
-            <Text className="text-brand-400 font-medium">Go back</Text>
+            <Text className="text-brand-600 dark:text-brand-300 font-medium">{t('orders.goBack')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -157,14 +160,14 @@ export default function OrderDetailScreen() {
           {/* Summary card */}
           <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 gap-2">
             <View className="flex-row justify-between">
-              <Text className="text-surface-600 dark:text-surface-400 text-xs uppercase tracking-wider">Total Value</Text>
+              <Text className="text-surface-600 dark:text-surface-400 text-xs uppercase tracking-wider">{t('orders.totalValue')}</Text>
               <Text className="text-surface-900 dark:text-white font-bold text-base">
                 {totalValue.toLocaleString()} RWF
               </Text>
             </View>
             {order.delivery_date && (
               <View className="flex-row justify-between">
-                <Text className="text-surface-600 dark:text-surface-400 text-xs uppercase tracking-wider">Delivery</Text>
+                <Text className="text-surface-600 dark:text-surface-400 text-xs uppercase tracking-wider">{t('orders.delivery')}</Text>
                 <Text className="text-surface-700 dark:text-surface-300 text-sm">
                   {new Date(order.delivery_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                 </Text>
@@ -180,26 +183,26 @@ export default function OrderDetailScreen() {
             onPress={handleSharePdf}
             disabled={sharing}
             accessibilityRole="button"
-            accessibilityLabel="Download or share requisition PDF"
+            accessibilityLabel={t('orders.sharePdfLabel')}
             className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-4 flex-row items-center justify-center gap-2 active:opacity-70"
             style={{ opacity: sharing ? 0.5 : 1 }}
           >
             {sharing
-              ? <ActivityIndicator size="small" color="#0E8438" />
-              : <Download size={18} color="#0E8438" strokeWidth={2} />
+              ? <ActivityIndicator size="small" color={colors.brand[500]} />
+              : <Download size={18} color={colors.brand[500]} strokeWidth={2} />
             }
-            <Text className="text-brand-400 font-semibold text-sm">
-              {sharing ? 'Generating PDF…' : 'Share Requisition PDF'}
+            <Text className="text-brand-600 dark:text-brand-300 font-semibold text-sm">
+              {sharing ? t('orders.generatingPdf') : t('orders.shareRequisitionPdf')}
             </Text>
           </Pressable>
 
           {/* Line items */}
           <Text className="text-surface-600 dark:text-surface-400 text-xs font-medium uppercase tracking-wider">
-            Items ({order.lines.length})
+            {t('orders.items', { count: order.lines.length })}
           </Text>
           {order.lines.length === 0 ? (
             <View className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent rounded-xl p-4 items-center">
-              <Text className="text-surface-500 text-sm">No line items found.</Text>
+              <Text className="text-surface-500 text-sm">{t('orders.noLineItems')}</Text>
             </View>
           ) : (
             order.lines.map((line) => {
@@ -220,7 +223,7 @@ export default function OrderDetailScreen() {
                       {qty} {line.unit} × {price.toLocaleString()} RWF
                     </Text>
                   </View>
-                  <Text className="text-brand-400 font-semibold text-sm">
+                  <Text className="text-brand-600 dark:text-brand-300 font-semibold text-sm">
                     {lineTotal > 0 ? `${lineTotal.toLocaleString()} RWF` : '—'}
                   </Text>
                 </View>
@@ -237,11 +240,11 @@ export default function OrderDetailScreen() {
               }}
               disabled={submitMutation.isPending}
               accessibilityRole="button"
-              accessibilityLabel="Submit order"
+              accessibilityLabel={t('orders.submitOrderLabel')}
               className="mt-2 bg-brand-500 rounded-xl p-4 items-center active:opacity-80"
             >
               <Text className="text-white font-semibold text-sm">
-                {submitMutation.isPending ? 'Submitting…' : 'Submit Order → Ready for Delivery'}
+                {submitMutation.isPending ? t('orders.submitting') : t('orders.submitOrder')}
               </Text>
             </Pressable>
           )}
@@ -255,11 +258,11 @@ export default function OrderDetailScreen() {
               }}
               disabled={cancelMutation.isPending}
               accessibilityRole="button"
-              accessibilityLabel="Cancel order"
+              accessibilityLabel={t('orders.cancelOrder')}
               className="mt-2 border border-danger/40 rounded-xl p-4 items-center active:opacity-70"
             >
               <Text className="text-danger font-medium text-sm">
-                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel Order'}
+                {cancelMutation.isPending ? t('orders.cancelling') : t('orders.cancelOrder')}
               </Text>
             </Pressable>
           )}

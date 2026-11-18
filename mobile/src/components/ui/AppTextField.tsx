@@ -1,5 +1,6 @@
-import { View, Text, TextInput, StyleSheet, useColorScheme, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
-import { colors, radius, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { View, Text, TextInput, StyleSheet, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
+import { radius, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface AppTextFieldProps {
   label: string;
@@ -18,6 +19,8 @@ export interface AppTextFieldProps {
   multiline?: boolean;
   numberOfLines?: number;
   returnKeyType?: TextInputProps['returnKeyType'];
+  prefix?: string;
+  suffix?: string;
   inputProps?: Omit<TextInputProps, 'value' | 'onChangeText' | 'keyboardType' | 'placeholder' | 'accessibilityLabel'>;
 }
 
@@ -42,43 +45,54 @@ export function AppTextField({
   multiline = false,
   numberOfLines,
   returnKeyType,
+  prefix,
+  suffix,
   inputProps,
 }: AppTextFieldProps) {
   const hasError = Boolean(error);
-  const isDark = useColorScheme() === 'dark';
+  const tokens = useTheme();
+  const adornmentColor = tokens.textMuted;
+  const borderColor = hasError ? tokens.danger : tokens.border;
+  const bgColor = tokens.surfaceRaised;
+  const textColor = tokens.text;
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: isDark ? colors.surface[400] : colors.surface[600] }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={isDark ? colors.surface[500] : colors.surface[400]}
-        keyboardType={keyboardType}
-        autoFocus={autoFocus}
-        autoCapitalize={autoCapitalize}
-        secureTextEntry={secureTextEntry}
-        maxLength={maxLength}
-        editable={editable}
-        multiline={multiline}
-        numberOfLines={numberOfLines}
-        onBlur={onBlur}
-        returnKeyType={returnKeyType}
-        accessibilityLabel={accessibilityLabel ?? label}
-        accessibilityState={{ disabled: !editable }}
-        style={[
-          styles.input,
-          {
-            backgroundColor: isDark ? colors.surface[800] : colors.white,
-            color: isDark ? colors.white : colors.surface[900],
-            borderColor: hasError ? colors.danger : (isDark ? colors.surface[700] : colors.surface[300]),
-          },
-          multiline && styles.multiline,
-        ]}
-        {...inputProps}
-      />
-      {hasError && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+      <Text style={[styles.label, { color: tokens.textMuted }]}>{label}</Text>
+      <View style={[styles.inputRow, { backgroundColor: bgColor, borderColor }]}>
+        {prefix && (
+          <Text style={[styles.adornment, { color: adornmentColor }]}>{prefix}</Text>
+        )}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={tokens.placeholder}
+          keyboardAppearance={tokens.scheme}
+          keyboardType={keyboardType}
+          autoFocus={autoFocus}
+          autoCapitalize={autoCapitalize}
+          secureTextEntry={secureTextEntry}
+          maxLength={maxLength}
+          editable={editable}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          onBlur={onBlur}
+          returnKeyType={returnKeyType}
+          accessibilityLabel={accessibilityLabel ?? label}
+          accessibilityState={{ disabled: !editable }}
+          style={[
+            styles.input,
+            { color: textColor },
+            multiline && styles.multiline,
+          ]}
+          {...inputProps}
+        />
+        {suffix && (
+          <Text style={[styles.adornment, { color: adornmentColor }]}>{suffix}</Text>
+        )}
+      </View>
+      {hasError && <Text style={[styles.error, { color: tokens.danger }]} accessibilityRole="alert">{error}</Text>}
     </View>
   );
 }
@@ -91,15 +105,24 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  input: {
-    fontSize: fontSize.base,
-    letterSpacing: 0,
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
     borderWidth: 1.5,
     minHeight: 48,
+    paddingHorizontal: spacing.md,
+  },
+  input: {
+    flex: 1,
+    fontSize: fontSize.base,
+    letterSpacing: 0,
+    paddingVertical: spacing.sm + 4,
+  },
+  adornment: {
+    fontSize: fontSize.base,
+    flexShrink: 0,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top', paddingTop: spacing.sm + 4 },
-  error: { color: colors.danger, fontSize: fontSize.xs },
+  error: { fontSize: fontSize.xs },
 });

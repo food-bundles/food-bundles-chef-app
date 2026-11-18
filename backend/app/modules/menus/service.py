@@ -52,6 +52,7 @@ class MenuService:
             kitchen_id=kitchen.id,
             name=data.name,
             description=data.description,
+            category=data.category,
             selling_price=data.selling_price,
         )
         return await self._item_repo.create(item)

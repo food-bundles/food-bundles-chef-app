@@ -1,12 +1,16 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, ScrollView, StyleSheet } from 'react-native';
+import { AppPressable } from '@/components/ui/AppPressable';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { requestOtp } from '@/api/auth-api';
 import { ApiError } from '@/api/errors';
+import { authPalette, colors } from '@/lib/theme';
 
 export default function PhoneNumberScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,30 +66,31 @@ export default function PhoneNumberScreen() {
       >
 
         {/* Back */}
-        <Pressable
+        <AppPressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.back')}
           style={styles.backBtn}
         >
-          <ChevronLeft size={22} color="#6B7280" strokeWidth={2} />
-        </Pressable>
+          <ChevronLeft size={22} color={authPalette.placeholder} strokeWidth={2} />
+        </AppPressable>
 
         {/* Heading */}
-        <Text style={styles.eyebrow}>Sign in</Text>
-        <Text style={styles.heading}>Enter your phone</Text>
-        <Text style={styles.sub}>We'll send you a one-time code to verify your number.</Text>
+        <Text style={styles.eyebrow}>{t('auth.signIn')}</Text>
+        <Text style={styles.heading}>{t('auth.enterPhone')}</Text>
+        <Text style={styles.sub}>{t('auth.smsSub')}</Text>
 
         {/* Input */}
-        <Text style={styles.label}>Phone Number</Text>
+        <Text style={styles.label}>{t('auth.phoneLabel')}</Text>
         <TextInput
+          keyboardAppearance="dark"
           value={phone}
           onChangeText={(v) => { setPhone(v); setError(null); }}
-          placeholder="+250 7XX XXX XXX"
-          placeholderTextColor="#6B9966"
+          placeholder={t('auth.phonePlaceholder')}
+          placeholderTextColor={authPalette.muted}
           keyboardType="phone-pad"
           autoFocus
-          accessibilityLabel="Phone number"
+          accessibilityLabel={t('auth.phoneNumberLabel')}
           style={[styles.input, error ? styles.inputError : null]}
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -94,19 +99,19 @@ export default function PhoneNumberScreen() {
 
       {/* CTA — sits above keyboard when it rises */}
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 12, 28) }]}>
-        <Pressable
+        <AppPressable
           onPress={handleContinue}
           disabled={!isValid || loading}
           accessibilityRole="button"
-          accessibilityLabel="Continue"
+          accessibilityLabel={t('common.continue')}
           style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
           <View style={[styles.btn, (!isValid || loading) && styles.btnDisabled]}>
             <Text style={[styles.btnText, (!isValid || loading) && styles.btnTextDisabled]}>
-              {loading ? 'Sending code…' : 'Send Code  →'}
+              {loading ? t('auth.sendingCode') : t('auth.continueButton')}
             </Text>
           </View>
-        </Pressable>
+        </AppPressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -115,7 +120,7 @@ export default function PhoneNumberScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#091A0D',
+    backgroundColor: authPalette.bg,
   },
   scroll: {
     flex: 1,
@@ -131,13 +136,13 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#112B18',
+    backgroundColor: authPalette.card,
     borderRadius: 21,
     borderWidth: 1,
-    borderColor: '#1E4028',
+    borderColor: authPalette.border,
   },
   eyebrow: {
-    color: '#22C55E',
+    color: colors.action,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -145,20 +150,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heading: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 30,
     fontWeight: '800',
     marginBottom: 10,
     letterSpacing: -0.5,
   },
   sub: {
-    color: '#6B9966',
+    color: authPalette.muted,
     fontSize: 15,
     marginBottom: 36,
     lineHeight: 22,
   },
   label: {
-    color: '#4D7549',
+    color: authPalette.mutedDim,
     fontSize: 11,
     fontWeight: '700',
     marginBottom: 8,
@@ -166,21 +171,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: '#0E2516',
-    color: '#FFFFFF',
+    backgroundColor: authPalette.input,
+    color: colors.white,
     fontSize: 20,
     fontWeight: '600',
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
     borderWidth: 1.5,
-    borderColor: '#1C3D24',
+    borderColor: authPalette.inputBorder,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: authPalette.error,
   },
   errorText: {
-    color: '#EF4444',
+    color: authPalette.error,
     fontSize: 13,
     marginTop: 8,
   },
@@ -189,38 +194,38 @@ const styles = StyleSheet.create({
   cta: {
     paddingHorizontal: 24,
     paddingTop: 14,
-    backgroundColor: '#091A0D',
+    backgroundColor: authPalette.bg,
     borderTopWidth: 1,
-    borderTopColor: '#1A3522',
+    borderTopColor: authPalette.ctaBar,
   },
   btn: {
     width: '80%',
     alignSelf: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.action,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#22C55E',
+    shadowColor: colors.action,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5,
     shadowRadius: 14,
     elevation: 10,
   },
   btnDisabled: {
-    backgroundColor: '#112B18',
-    borderColor: '#1E4028',
+    backgroundColor: authPalette.card,
+    borderColor: authPalette.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   btnText: {
-    color: '#000000',
+    color: colors.black,
     fontWeight: '800',
     fontSize: 17,
     letterSpacing: 0.3,
   },
   btnTextDisabled: {
-    color: '#2E5229',
+    color: authPalette.divider,
   },
 });

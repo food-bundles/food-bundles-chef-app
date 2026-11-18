@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, useColorScheme } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, ChevronRight, Clock } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -13,6 +14,7 @@ import { usePendingDecisions } from '@/features/receiving/pendingDecisions';
 import type { PendingLineDecision } from '@/features/receiving/pendingDecisions';
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { colors, spacing, fontSize, fontWeight } from '@/lib/theme';
+import { formatDate } from '@/lib/format';
 import type { OrderLineDto } from '@/api/orders-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
 import type { ReceivingDecision } from '@/api/receiving-api';
@@ -24,14 +26,15 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   delivered: 'success',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  submitted: 'Awaiting Delivery',
-  confirmed: 'Pending',
-  out_for_delivery: 'In Transit',
-  delivered: 'Delivered',
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  submitted: 'receiving.statusSubmitted',
+  confirmed: 'receiving.statusConfirmed',
+  out_for_delivery: 'receiving.statusOutForDelivery',
+  delivered: 'receiving.statusDelivered',
 };
 
 export default function DeliveryDetailScreen() {
+  const { t, i18n } = useTranslation();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
   const isDark = useColorScheme() === 'dark';
   const cardBg = isDark ? colors.surface[800] : colors.white;
@@ -45,7 +48,7 @@ export default function DeliveryDetailScreen() {
   if (isLoading) {
     return (
       <AppScreen>
-        <AppHeader title="Delivery" showBack />
+        <AppHeader title={t('receiving.deliveryTitle')} showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={colors.brand[500]} />
         </View>
@@ -56,10 +59,10 @@ export default function DeliveryDetailScreen() {
   if (error || !order) {
     return (
       <AppScreen>
-        <AppHeader title="Delivery" showBack />
+        <AppHeader title={t('receiving.deliveryTitle')} showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl }}>
           <Text style={{ color: colors.surface[400] }}>
-            {error ? 'Could not load order. Check your connection.' : 'Order not found.'}
+            {error ? t('receiving.deliveryLoadError') : t('receiving.deliveryNotFound')}
           </Text>
         </View>
       </AppScreen>
@@ -74,7 +77,7 @@ export default function DeliveryDetailScreen() {
 
   const handleStart = () => {
     startDeliveryMutation.mutate(order.id, {
-      onError: () => Alert.alert('Error', 'Could not start delivery. Please try again.'),
+      onError: () => Alert.alert(t('common.error'), t('receiving.startDeliveryError')),
     });
   };
 
@@ -98,14 +101,14 @@ export default function DeliveryDetailScreen() {
           clearDelivery(lines.map((l) => l.id));
           router.back();
         },
-        onError: () => Alert.alert('Error', 'Could not complete delivery. Please try again.'),
+        onError: () => Alert.alert(t('common.error'), t('receiving.completeDeliveryError')),
       },
     );
   };
 
   return (
     <AppScreen>
-      <AppHeader title="Delivery" showBack />
+      <AppHeader title={t('receiving.deliveryTitle')} showBack />
       <ScrollView
         contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] }}
       >
@@ -113,10 +116,10 @@ export default function DeliveryDetailScreen() {
         <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: spacing.md, borderWidth: 1, borderColor: isDark ? 'transparent' : colors.surface[200] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
             <Text style={{ color: textPrimary, fontWeight: fontWeight.semibold }}>
-              {order.external_order_id ? `Order ${order.external_order_id}` : `Order ${order.id.slice(0, 8)}`}
+              {t('purchasing.orderNumber', { id: order.external_order_id ?? order.id.slice(0, 8).toUpperCase() })}
             </Text>
             <StatusBadge
-              label={STATUS_LABEL[order.status] ?? order.status.replace(/_/g, ' ')}
+              label={STATUS_LABEL_KEYS[order.status] ? t(STATUS_LABEL_KEYS[order.status]!) : order.status.replace(/_/g, ' ')}
               variant={STATUS_VARIANT[order.status] ?? 'neutral'}
             />
           </View>
@@ -124,7 +127,7 @@ export default function DeliveryDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Clock size={12} color={colors.surface[500]} />
               <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
-                Expected {new Date(order.delivery_date).toLocaleDateString()}
+                {t('receiving.rowExpected')} {formatDate(order.delivery_date, i18n.language)}
               </Text>
             </View>
           )}
@@ -138,7 +141,7 @@ export default function DeliveryDetailScreen() {
         {/* Start receiving */}
         {canStart && (
           <AppButton
-            label={startDeliveryMutation.isPending ? 'Starting…' : 'Start Receiving'}
+            label={startDeliveryMutation.isPending ? t('receiving.starting') : t('receiving.startReceiving')}
             onPress={handleStart}
             disabled={startDeliveryMutation.isPending}
           />
@@ -146,7 +149,7 @@ export default function DeliveryDetailScreen() {
 
         {/* Line items */}
         <Text style={{ color: textSecondary, fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-          Items ({lines.length})
+          {t('receiving.items', { count: lines.length })}
         </Text>
 
         {lines.map((line) => (
@@ -162,7 +165,7 @@ export default function DeliveryDetailScreen() {
         {/* Complete delivery */}
         {canComplete && (
           <AppButton
-            label={receiveDeliveryMutation.isPending ? 'Completing…' : 'Complete Delivery'}
+            label={receiveDeliveryMutation.isPending ? t('receiving.completing') : t('receiving.completeDelivery')}
             onPress={handleComplete}
             disabled={receiveDeliveryMutation.isPending}
           />
@@ -171,7 +174,7 @@ export default function DeliveryDetailScreen() {
         {isCompleted && (
           <View style={{ backgroundColor: `${colors.success}1A`, borderRadius: 12, padding: spacing.md, alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}>
             <CheckCircle size={16} color={colors.success} />
-            <Text style={{ color: colors.success, fontWeight: fontWeight.medium }}>Delivery completed</Text>
+            <Text style={{ color: colors.success, fontWeight: fontWeight.medium }}>{t('receiving.deliveryCompleted')}</Text>
           </View>
         )}
       </ScrollView>
@@ -190,6 +193,7 @@ function LineItemRow({
   canReceive: boolean;
   decision?: PendingLineDecision;
 }) {
+  const { t } = useTranslation();
   const isDark = useColorScheme() === 'dark';
   const cardBg = isDark ? colors.surface[800] : colors.white;
   const textPrimary = isDark ? colors.white : colors.surface[900];
@@ -228,22 +232,22 @@ function LineItemRow({
       <View style={{ flex: 1, marginRight: spacing.sm }}>
         <Text style={{ color: textPrimary, fontWeight: fontWeight.medium }}>{line.product_name}</Text>
         <Text style={{ color: textSecondary, fontSize: fontSize.sm, marginTop: 2 }}>
-          Ordered: {line.quantity_ordered} {line.unit}
+          {t('receiving.ordered', { qty: line.quantity_ordered, unit: line.unit })}
         </Text>
         {receivedQty !== undefined && (
           <Text style={{ color: isShort ? colors.warning : textSecondary, fontSize: fontSize.sm }}>
-            Received: {decision!.quantity_received} {line.unit}
-            {isShort ? ' ⚠ Short delivery' : ''}
+            {t('receiving.receivedQty', { qty: decision!.quantity_received, unit: line.unit })}
+            {isShort ? t('receiving.shortDelivery') : ''}
           </Text>
         )}
         <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
-          Ref: {line.unit_price} RWF/{line.unit}
+          {t('receiving.refPrice', { price: line.unit_price, unit: line.unit })}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 6 }}>
         {isReceived && decision ? (
           <StatusBadge
-            label={decision.decision === 'accepted' ? 'Accepted' : decision.decision === 'partially-accepted' ? 'Partial' : 'Rejected'}
+            label={decision.decision === 'accepted' ? t('receiving.accept') : decision.decision === 'partially-accepted' ? t('receiving.partiallyAccept') : t('receiving.reject')}
             variant={decisionVariant[decision.decision] ?? 'neutral'}
           />
         ) : canReceive ? (

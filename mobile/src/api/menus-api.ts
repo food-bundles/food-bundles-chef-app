@@ -1,4 +1,4 @@
-import { request } from './http-client';
+import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -23,10 +23,15 @@ export interface MenuDto {
   updated_at: string;
 }
 
+/** Menu section; mirrors backend `MenuItemCategory`. */
+export type MenuItemCategory = 'main' | 'side' | 'drink' | 'dessert';
+export const MENU_ITEM_CATEGORIES: readonly MenuItemCategory[] = ['main', 'side', 'drink', 'dessert'];
+
 export interface MenuItemCreateBody {
   name: string;
   description?: string | null;
   selling_price: string;   // decimal string
+  category?: MenuItemCategory | null;
 }
 
 export interface MenuItemUpdateBody {
@@ -34,6 +39,7 @@ export interface MenuItemUpdateBody {
   description?: string | null;
   selling_price?: string | null;
   is_active?: boolean | null;
+  category?: MenuItemCategory | null;
 }
 
 export interface MenuItemDto {
@@ -42,6 +48,8 @@ export interface MenuItemDto {
   kitchen_id: string;
   name: string;
   description: string | null;
+  /** Null for items created before categories existed. */
+  category?: MenuItemCategory | null;
   selling_price: string;
   is_active: boolean;
   created_at: string;
@@ -76,18 +84,21 @@ export interface RecipeLineDto {
   updated_at: string;
 }
 
+/** Mirrors backend `RecipeLineCostDetail`. Decimals arrive as strings. */
 export interface RecipeCostLine {
   ingredient_id: string;
   ingredient_name: string;
-  unit: string;
   qty_per_portion: string;
-  effective_yield: string;
-  cost_contribution: string | null;
+  yield_fraction: string;
+  cost_per_unit: string | null;
+  /** Null when the ingredient has no cost or its unit cannot be converted. */
+  line_cost: string | null;
 }
 
+/** Mirrors backend `RecipeCostResponse`. `total_cost` only sums lines that have a cost. */
 export interface RecipeCostDto {
   menu_item_id: string;
-  total_cost_per_portion: string | null;
+  total_cost: string;
   lines: RecipeCostLine[];
 }
 
@@ -118,11 +129,13 @@ export function listMenuItems(kitchenId: string, menuId: string): Promise<MenuIt
 export function createMenuItem(
   kitchenId: string,
   menuId: string,
-  body: MenuItemCreateBody
+  body: MenuItemCreateBody,
+  opts: WriteOptions = {}
 ): Promise<MenuItemDto> {
   return request<MenuItemDto>(`/kitchens/${kitchenId}/menus/${menuId}/items`, {
     method: 'POST',
     body,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
 
@@ -151,11 +164,12 @@ export function listRecipeLines(
 export function addRecipeLine(
   kitchenId: string,
   menuItemId: string,
-  body: RecipeLineCreateBody
+  body: RecipeLineCreateBody,
+  opts: WriteOptions = {}
 ): Promise<RecipeLineDto> {
   return request<RecipeLineDto>(
     `/kitchens/${kitchenId}/menu-items/${menuItemId}/recipe`,
-    { method: 'POST', body }
+    { method: 'POST', body, idempotencyKey: opts.idempotencyKey }
   );
 }
 

@@ -3,13 +3,14 @@ import {
   View,
   Text,
   Pressable,
-  Alert,
   ActivityIndicator,
   Share,
   StyleSheet,
   Platform,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import { useTheme } from '@/providers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -59,12 +60,15 @@ function calcDistance(coords: Coord[]) {
 }
 
 export default function DeliveryMapScreen() {
+  const { t } = useTranslation();
+  const tk = useTheme();
   const params = useLocalSearchParams<{ supplierName?: string; deliveryId?: string }>();
-  const supplierName = params.supplierName ?? 'Delivery';
+  const supplierName = params.supplierName ?? t('receiving.deliveryDefaultName');
 
   const mapRef = useRef<MapView | null>(null);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
-  const startTimeRef = useRef(Date.now());
+  // Set when tracking starts (reading the clock during render is impure).
+  const startTimeRef = useRef(0);
 
   const [permissionStatus, setPermissionStatus] = useState<'loading' | 'granted' | 'denied'>('loading');
   const [currentLocation, setCurrentLocation] = useState<Coord | null>(null);
@@ -143,9 +147,9 @@ export default function DeliveryMapScreen() {
     });
   };
 
-  const handleMapPress = (e: any) => {
+  const handleMapPress = (e: { nativeEvent: { coordinate: Coord } }) => {
     if (tracking) return;
-    setPinLocation(e.nativeEvent.coordinate as Coord);
+    setPinLocation(e.nativeEvent.coordinate);
   };
 
   const handleShareLocation = async () => {
@@ -154,7 +158,7 @@ export default function DeliveryMapScreen() {
     const url = `https://maps.google.com/?q=${latitude},${longitude}`;
     try {
       await Share.share({
-        message: `${supplierName} delivery location: ${url}`,
+        message: t('receiving.map.shareMessage', { supplier: supplierName, url }),
         url,
       });
     } catch {
@@ -171,30 +175,30 @@ export default function DeliveryMapScreen() {
 
   if (permissionStatus === 'loading') {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.surface[900], alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: tk.surfaceSunken, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={colors.brand[500]} />
-        <Text style={{ color: colors.surface[400], marginTop: spacing.sm, fontSize: fontSize.sm }}>Getting location…</Text>
+        <Text style={{ color: tk.textMuted, marginTop: spacing.sm, fontSize: fontSize.sm }}>{t('receiving.gettingLocation')}</Text>
       </View>
     );
   }
 
   if (permissionStatus === 'denied') {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.surface[900] }}>
-        <AppHeader title="Delivery Map" showBack />
+      <View style={{ flex: 1, backgroundColor: tk.surfaceSunken }}>
+        <AppHeader title={t('receiving.mapTitle')} showBack />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl }}>
-          <MapPin size={48} color={colors.surface[600]} strokeWidth={1.5} />
-          <Text style={{ color: colors.white, fontSize: fontSize.lg, fontWeight: fontWeight.semibold, marginTop: spacing.md, textAlign: 'center' }}>
-            Location Access Required
+          <MapPin size={48} color={tk.textMuted} strokeWidth={1.5} />
+          <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: fontWeight.semibold, marginTop: spacing.md, textAlign: 'center' }}>
+            {t('receiving.locationRequired')}
           </Text>
-          <Text style={{ color: colors.surface[400], fontSize: fontSize.base, textAlign: 'center', marginTop: spacing.sm }}>
-            Enable location in your device settings to use the delivery map.
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.base, textAlign: 'center', marginTop: spacing.sm }}>
+            {t('receiving.locationRequiredDesc')}
           </Text>
           <Pressable
             onPress={() => router.back()}
-            style={{ marginTop: spacing.lg, backgroundColor: colors.surface[800], borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md }}
+            style={{ marginTop: spacing.lg, backgroundColor: tk.surfaceRaised, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md }}
           >
-            <Text style={{ color: colors.white }}>Go Back</Text>
+            <Text style={{ color: tk.text }}>{t('receiving.goBack')}</Text>
           </Pressable>
         </View>
       </View>
@@ -202,7 +206,7 @@ export default function DeliveryMapScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={{ flex: 1, backgroundColor: colors.black }}>
       {/* Map */}
       <MapView
         ref={mapRef}
@@ -232,7 +236,7 @@ export default function DeliveryMapScreen() {
         {route.length > 0 && route[0] && (
           <Marker
             coordinate={route[0]}
-            title="Start"
+            title={t('receiving.map.start')}
             pinColor={colors.success}
           />
         )}
@@ -242,7 +246,7 @@ export default function DeliveryMapScreen() {
           <Marker
             coordinate={pinLocation}
             title={supplierName}
-            description="Tap to remove"
+            description={t('receiving.map.tapToRemove')}
             pinColor={colors.brand[500]}
             onCalloutPress={() => setPinLocation(null)}
           />
@@ -271,7 +275,7 @@ export default function DeliveryMapScreen() {
               <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm, marginTop: 2 }}>
                 {formatDuration(elapsed)}
               </Text>
-              <Text style={{ color: colors.surface[500], fontSize: 10 }}>Time</Text>
+              <Text style={{ color: colors.surface[500], fontSize: 10 }}>{t('receiving.timeLabel')}</Text>
             </View>
             <View style={{ width: 1, backgroundColor: colors.surface[700] }} />
             <View style={{ alignItems: 'center' }}>
@@ -279,7 +283,7 @@ export default function DeliveryMapScreen() {
               <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm, marginTop: 2 }}>
                 {formatDistance(distance)}
               </Text>
-              <Text style={{ color: colors.surface[500], fontSize: 10 }}>Distance</Text>
+              <Text style={{ color: colors.surface[500], fontSize: 10 }}>{t('receiving.distanceLabel')}</Text>
             </View>
             <View style={{ width: 1, backgroundColor: colors.surface[700] }} />
             <View style={{ alignItems: 'center' }}>
@@ -287,7 +291,7 @@ export default function DeliveryMapScreen() {
               <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm, marginTop: 2 }}>
                 {route.length}
               </Text>
-              <Text style={{ color: colors.surface[500], fontSize: 10 }}>Points</Text>
+              <Text style={{ color: colors.surface[500], fontSize: 10 }}>{t('receiving.pointsLabel')}</Text>
             </View>
           </View>
         </View>
@@ -298,14 +302,14 @@ export default function DeliveryMapScreen() {
         <Pressable
           onPress={handleCenterOnMe}
           style={{ backgroundColor: 'rgba(15,20,27,0.92)', borderRadius: 28, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}
-          accessibilityLabel="Center on my location"
+          accessibilityLabel={t('receiving.centerOnMe')}
         >
           <Navigation size={20} color={colors.white} />
         </Pressable>
         <Pressable
           onPress={handleShareLocation}
           style={{ backgroundColor: 'rgba(15,20,27,0.92)', borderRadius: 28, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}
-          accessibilityLabel="Share location"
+          accessibilityLabel={t('receiving.shareLocation')}
         >
           <Share2 size={20} color={colors.white} />
         </Pressable>
@@ -317,32 +321,32 @@ export default function DeliveryMapScreen() {
           {!tracking ? (
             <>
               <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, textAlign: 'center' }}>
-                {route.length <= 1 ? 'Tap the map to drop a supplier pin, or start tracking your route' : 'Route recorded — tap Start to track again'}
+                {route.length <= 1 ? t('receiving.tapMapHint') : t('receiving.routeRecorded')}
               </Text>
               <Pressable
                 onPress={startTracking}
                 style={{ backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-                accessibilityLabel="Start route tracking"
+                accessibilityLabel={t('receiving.startTrackingRoute')}
               >
                 <Route size={18} color={colors.white} />
                 <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
-                  Start Tracking Route
+                  {t('receiving.startTrackingRoute')}
                 </Text>
               </Pressable>
             </>
           ) : (
             <>
               <Text style={{ color: colors.surface[400], fontSize: fontSize.xs, textAlign: 'center' }}>
-                Tracking active — your route is being recorded
+                {t('receiving.trackingActive')}
               </Text>
               <Pressable
                 onPress={stopTracking}
                 style={{ backgroundColor: colors.danger, borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-                accessibilityLabel="Stop tracking"
+                accessibilityLabel={t('receiving.stopTracking')}
               >
                 <X size={18} color={colors.white} />
                 <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
-                  Stop Tracking
+                  {t('receiving.stopTracking')}
                 </Text>
               </Pressable>
             </>
@@ -351,7 +355,7 @@ export default function DeliveryMapScreen() {
             onPress={handleDone}
             style={{ borderRadius: radius.md, padding: spacing.sm, alignItems: 'center' }}
           >
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>Done — Back to Delivery</Text>
+            <Text style={{ color: colors.surface[400], fontSize: fontSize.sm }}>{t('receiving.doneBack')}</Text>
           </Pressable>
         </View>
       </View>

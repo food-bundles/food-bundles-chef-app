@@ -13,11 +13,6 @@ module.exports = {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
-    splash: {
-      image: './assets/splash.png',
-      resizeMode: 'contain',
-      backgroundColor: '#1DB954',
-    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.foodbundles.chefapp',
@@ -26,9 +21,11 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#1DB954',
+        backgroundColor: '#FFFFFF',
       },
       package: 'com.foodbundles.chefapp',
+      // This file replaces app.json entirely, so the keyboard mode must live here.
+      softwareKeyboardLayoutMode: 'resize',
       usesCleartextTraffic: true,
       permissions: [
         'android.permission.CAMERA',
@@ -50,7 +47,16 @@ module.exports = {
             'Allow Food Bundles Chef to access your camera to photograph deliveries.',
         },
       ],
-      'expo-splash-screen',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash.png',
+          resizeMode: 'contain',
+          imageWidth: 200,
+          backgroundColor: '#FFFFFF',
+          dark: { image: './assets/splash.png', backgroundColor: '#0B0F0C' },
+        },
+      ],
       'expo-sqlite',
       [
         'expo-image-picker',
@@ -62,6 +68,14 @@ module.exports = {
       ],
       './plugins/withExpoModulesProguard',
       'expo-sharing',
+      [
+        'expo-audio',
+        {
+          microphonePermission:
+            'Allow Food Bundles Chef to use the microphone so you can talk to the kitchen assistant instead of typing.',
+        },
+      ],
+      'expo-localization',
       [
         'expo-location',
         {
@@ -86,6 +100,8 @@ module.exports = {
       },
       // Injected from EXPO_PUBLIC_API_BASE_URL at build time — never hardcode a URL here.
       apiBaseUrl,
+      // Shown in the one-time AI privacy notice; the link is hidden when empty.
+      privacyPolicyUrl: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '',
     },
     owner: 'aguramarket',
   },

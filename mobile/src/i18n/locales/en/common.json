@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "back": "Back",
+    "continue": "Continue",
+    "done": "Done",
+    "edit": "Edit",
+    "delete": "Delete",
+    "archive": "Archive",
+    "search": "Search",
+    "noResults": "No results found",
+    "add": "Add",
+    "share": "Share",
+    "close": "Close",
+    "tryAgain": "Try again",
+    "openSettings": "Open Settings",
+    "enable": "Enable",
+    "seeAll": "See all",
+    "camera": "Camera",
+    "gallery": "Gallery",
+    "undo": "Undo",
+    "appName": "Food Bundles Chef",
+    "sync": {
+      "saved": "Saved",
+      "pending": "Pending",
+      "pendingCount_one": "{{count}} change waiting to sync",
+      "pendingCount_other": "{{count}} changes waiting to sync",
+      "syncing": "Syncing",
+      "failed": "Sync failed",
+      "conflict": "Conflict"
+    },
+    "searchPlaceholder": "Search…",
+    "clearSearch": "Clear search",
+    "quantity": "Quantity",
+    "decrease": "Decrease {{subject}}",
+    "increase": "Increase {{subject}}",
+    "dismissDialog": "Close dialog"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "menu": "Menu",
+    "purchasing": "Requisition",
+    "stock": "Stock",
+    "profile": "Profile"
+  }
+}

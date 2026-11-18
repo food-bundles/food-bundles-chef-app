@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -9,39 +10,40 @@ import {
   User,
 } from 'lucide-react-native';
 import { FloatingAIButton } from '@/components/ui/FloatingAIButton';
+import { useTheme } from '@/providers/ThemeProvider';
 
 const ICON_SIZE = 20;
-const ACTIVE_COLOR = '#0E8438';
-const INACTIVE_COLOR = '#8C897E';
 
 export default function TabsLayout() {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const { t } = useTranslation();
+  const tokens = useTheme();
   const insets = useSafeAreaInsets();
   const androidExtra = 4;
   const tabBarHeight = 56 + insets.bottom + (insets.bottom === 0 ? androidExtra : 0);
-  // FAB sits above the tab bar: tab bar height + 16px clearance
-  // bottomOffset passed to FAB; it adds insets.bottom again, so subtract it here
-  const fabBottomOffset = tabBarHeight - insets.bottom + 16;
+  // FAB sits above the tab bar. The FAB style sets `bottom = bottomOffset + insets.bottom`,
+  // so pass just the tab bar's fixed part (56px + androidExtra + padding) minus insets.bottom,
+  // plus 16px clearance above the bar.
+  const fabBottomOffset = 56 + (insets.bottom === 0 ? androidExtra : 0) + 16;
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: tokens.surfaceRaised }}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarHideOnKeyboard: true,
+          sceneStyle: { backgroundColor: tokens.surface },
           tabBarStyle: {
-            backgroundColor: isDark ? '#1A1916' : '#FFFFFF',
-            borderTopColor: isDark ? '#32302C' : '#EAE9E4',
+            backgroundColor: tokens.surfaceRaised,
+            borderTopColor: tokens.border,
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom + (insets.bottom === 0 ? androidExtra : 2),
             paddingTop: 8,
           },
-          tabBarActiveTintColor: ACTIVE_COLOR,
-          tabBarInactiveTintColor: INACTIVE_COLOR,
+          tabBarActiveTintColor: tokens.scheme === 'dark' ? tokens.action : tokens.primary,
+          tabBarInactiveTintColor: tokens.textMuted,
           tabBarLabelStyle: {
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: '600',
             marginTop: -1,
           },
@@ -54,8 +56,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Dashboard',
-            tabBarAccessibilityLabel: 'Dashboard tab',
+            title: t('tabs.dashboard'),
+            tabBarAccessibilityLabel: t('tabs.dashboard'),
             tabBarIcon: ({ color }) => (
               <LayoutDashboard size={ICON_SIZE} color={color} strokeWidth={1.75} />
             ),
@@ -64,8 +66,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="menu"
           options={{
-            title: 'Menu',
-            tabBarAccessibilityLabel: 'Menu tab',
+            title: t('tabs.menu'),
+            tabBarAccessibilityLabel: t('tabs.menu'),
             tabBarIcon: ({ color }) => (
               <UtensilsCrossed size={ICON_SIZE} color={color} strokeWidth={1.75} />
             ),
@@ -74,8 +76,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="purchasing"
           options={{
-            title: 'Requisition',
-            tabBarAccessibilityLabel: 'Requisition tab',
+            title: t('tabs.purchasing'),
+            tabBarAccessibilityLabel: t('tabs.purchasing'),
             tabBarIcon: ({ color }) => (
               <ShoppingCart size={ICON_SIZE} color={color} strokeWidth={1.75} />
             ),
@@ -84,26 +86,25 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="stock"
           options={{
-            title: 'Stock',
-            tabBarAccessibilityLabel: 'Stock tab',
+            title: t('tabs.stock'),
+            tabBarAccessibilityLabel: t('tabs.stock'),
             tabBarIcon: ({ color }) => (
               <Package size={ICON_SIZE} color={color} strokeWidth={1.75} />
             ),
           }}
         />
-        {/* Agent route kept registered but hidden from tab bar — accessed via FAB */}
+        {/* Agent route hidden from tab bar — accessed via FAB */}
         <Tabs.Screen
           name="agent"
           options={{
-            tabBarButton: () => null,
-            tabBarStyle: { display: 'none' },
+            href: null,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Profile',
-            tabBarAccessibilityLabel: 'Profile tab',
+            title: t('tabs.profile'),
+            tabBarAccessibilityLabel: t('tabs.profile'),
             tabBarIcon: ({ color }) => (
               <User size={ICON_SIZE} color={color} strokeWidth={1.75} />
             ),
@@ -113,6 +114,6 @@ export default function TabsLayout() {
 
       {/* Persistent AI Assistant FAB — visible on all tab screens except agent itself */}
       <FloatingAIButton bottomOffset={fabBottomOffset} />
-    </>
+    </View>
   );
 }

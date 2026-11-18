@@ -1,0 +1,17 @@
+{
+  "sales": {
+    "title": "Sales Entry",
+    "recordToday": "Record portions sold today ({{date}}).",
+    "noActiveItems": "No active menu items. Add items to the menu first.",
+    "saveSales": "Save Sales",
+    "saving": "Saving…",
+    "savedSnack": "Sales saved · Stock updated",
+    "anomalyWarning": "looks much higher than usual — please confirm before saving.",
+    "anomalyWarningPlural": "look much higher than usual — please confirm before saving.",
+    "saveError_one": "{{count}} item could not be saved. Check your connection and save again.",
+    "saveError_other": "{{count}} items could not be saved. Check your connection and save again.",
+    "enterPortionsHint": "Add portions sold to save.",
+    "portions": "portions",
+    "portionsLabel": "{{name}}, portions sold"
+  }
+}

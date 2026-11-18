@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 
 // Stub — delivery data served by useDeliveries() / useDeliveryDetail() hooks.
-interface DeliveryState {
-  // intentionally empty
-}
+/** Intentionally empty: no client state lives here any more. */
+type DeliveryState = Record<string, never>;
 
 export const useDeliveryStore = create<DeliveryState>()(() => ({}));

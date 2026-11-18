@@ -1,51 +1,74 @@
-import { View, Text } from 'react-native';
-import { CheckCircle, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react-native';
+import type { ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { AlertTriangle, CheckCircle, CloudOff, RefreshCw } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import type { SyncPhase } from '@/hooks/useSyncStatus';
+import { fontSize, radius, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 interface Props {
   phase: SyncPhase;
   pendingCount?: number;
 }
 
-const CONFIG: Record<SyncPhase, { icon: React.ReactNode; label: string; className: string }> = {
-  idle: {
-    icon: <CheckCircle size={12} color="#0E8438" strokeWidth={2.5} />,
-    label: 'Saved',
-    className: 'bg-success/10 border-success/30',
-  },
-  pending: {
-    icon: <RefreshCw size={12} color="#F59E0B" strokeWidth={2.5} />,
-    label: 'Pending',
-    className: 'bg-warning/10 border-warning/30',
-  },
-  syncing: {
-    icon: <RefreshCw size={12} color="#60A5FA" strokeWidth={2.5} />,
-    label: 'Syncing',
-    className: 'bg-blue-500/10 border-blue-500/30',
-  },
-  failed: {
-    icon: <CloudOff size={12} color="#EF4444" strokeWidth={2.5} />,
-    label: 'Sync failed',
-    className: 'bg-danger/10 border-danger/30',
-  },
-  conflict: {
-    icon: <AlertTriangle size={12} color="#EF4444" strokeWidth={2.5} />,
-    label: 'Conflict',
-    className: 'bg-danger/10 border-danger/30',
-  },
-};
-
+/** Local-save / sync state of queued changes, as icon + text (never colour alone). */
 export function SyncStatusBadge({ phase, pendingCount }: Props) {
-  const cfg = CONFIG[phase];
-  const label =
-    phase === 'pending' && pendingCount && pendingCount > 0
-      ? `${pendingCount} pending`
-      : cfg.label;
+  const { t } = useTranslation();
+  const tokens = useTheme();
+
+  const config: Record<SyncPhase, { icon: ReactNode; label: string; tint: string; border: string }> = {
+    idle: {
+      icon: <CheckCircle size={12} color={tokens.link} strokeWidth={2.5} />,
+      label: t('common.sync.saved'),
+      tint: tokens.primaryTint,
+      border: tokens.border,
+    },
+    pending: {
+      icon: <RefreshCw size={12} color={tokens.warningText} strokeWidth={2.5} />,
+      label:
+        pendingCount && pendingCount > 0 ? t('common.sync.pendingCount', { count: pendingCount }) : t('common.sync.pending'),
+      tint: tokens.warningTint,
+      border: tokens.warning,
+    },
+    syncing: {
+      icon: <RefreshCw size={12} color={tokens.info} strokeWidth={2.5} />,
+      label: t('common.sync.syncing'),
+      tint: tokens.surfaceSunken,
+      border: tokens.info,
+    },
+    failed: {
+      icon: <CloudOff size={12} color={tokens.danger} strokeWidth={2.5} />,
+      label: t('common.sync.failed'),
+      tint: tokens.dangerTint,
+      border: tokens.danger,
+    },
+    conflict: {
+      icon: <AlertTriangle size={12} color={tokens.danger} strokeWidth={2.5} />,
+      label: t('common.sync.conflict'),
+      tint: tokens.dangerTint,
+      border: tokens.danger,
+    },
+  };
+  const cfg = config[phase];
 
   return (
-    <View className={`flex-row items-center gap-1 rounded-full border px-2 py-0.5 ${cfg.className}`}>
+    <View style={[styles.badge, { backgroundColor: cfg.tint, borderColor: cfg.border }]} accessible accessibilityLabel={cfg.label}>
       {cfg.icon}
-      <Text className="text-surface-300 text-xs">{label}</Text>
+      <Text style={[styles.text, { color: tokens.text }]}>{cfg.label}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  text: { fontSize: fontSize.xs },
+});

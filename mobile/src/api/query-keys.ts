@@ -48,6 +48,9 @@ export const queryKeys = {
     /** Daily sale records for a kitchen */
     records: (chefId: string, kitchenId: string) =>
       ['sales', chefId, kitchenId] as const,
+    /** Same-day portions and revenue (dashboard) — nested under records so one invalidation covers both */
+    daily: (chefId: string, kitchenId: string, day: string) =>
+      ['sales', chefId, kitchenId, 'daily', day] as const,
   },
 
   orders: {

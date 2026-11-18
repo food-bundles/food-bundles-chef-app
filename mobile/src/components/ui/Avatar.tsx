@@ -1,6 +1,8 @@
-import { Pressable, View, Text, Image, StyleSheet } from 'react-native';
-import { User, Camera } from 'lucide-react-native';
-import { colors, radius } from '@/lib/theme';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { Camera, User } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { AppPressable } from './AppPressable';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface AvatarProps {
   uri?: string | null;
@@ -10,67 +12,73 @@ export interface AvatarProps {
   showCameraBadge?: boolean;
 }
 
-function getInitials(name: string | null | undefined): string | null {
+/** Initials from a person's name ("Jean Claude" → "JC"); null when there are no letters (never phone digits). */
+export function getInitials(name: string | null | undefined): string | null {
   if (!name) return null;
-  const stripped = name.replace(/[^a-zA-Z\s]/g, '').trim();
-  if (!stripped) return null;
-  const words = stripped.split(/\s+/).filter((w): w is string => Boolean(w));
-  if (words.length === 0) return null;
-  const first = words[0] ?? '';
-  if (words.length === 1) return first.charAt(0).toUpperCase();
-  const second = words[1] ?? '';
-  return (first.charAt(0) + second.charAt(0)).toUpperCase();
+  // Latin letters incl. accents (names in Kinyarwanda, French and English); digits are dropped.
+  const words = name
+    .replace(/[^A-Za-zÀ-ÖØ-öø-ÿĀ-ž\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+  const first = words[0];
+  if (!first) return null;
+  const second = words[1];
+  return (first.charAt(0) + (second ? second.charAt(0) : '')).toUpperCase();
 }
 
-export function Avatar({
-  uri,
-  name,
-  size = 64,
-  onPress,
-  showCameraBadge = false,
-}: AvatarProps) {
+/** Round profile photo, or initials on the brand colour (contrast-checked pair). */
+export function Avatar({ uri, name, size = 64, onPress, showCameraBadge = false }: AvatarProps) {
+  const { t } = useTranslation();
+  const tokens = useTheme();
   const initials = getInitials(name);
   const fontSize = Math.round(size * 0.36);
   const badgeSize = 22;
+  const label = name ? t('profile.photoLabelNamed', { name }) : t('profile.photoLabel');
 
   const inner = uri ? (
     <Image
       source={{ uri }}
       style={{ width: size, height: size, borderRadius: size / 2 }}
-      accessibilityLabel={name ?? 'Profile photo'}
+      accessibilityLabel={label}
+      accessibilityIgnoresInvertColors
     />
   ) : (
     <View
-      style={[
-        styles.initialsContainer,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
+      style={[styles.initialsContainer, { width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.primary }]}
+      accessible={!onPress}
+      accessibilityLabel={label}
     >
       {initials ? (
-        <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
+        <Text style={[styles.initials, { fontSize, color: tokens.onPrimary }]}>{initials}</Text>
       ) : (
-        <User size={fontSize + 4} color={colors.white} />
+        <User size={fontSize + 4} color={tokens.onPrimary} />
       )}
     </View>
   );
 
   const badge = showCameraBadge ? (
-    <View style={[styles.cameraBadge, { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2 }]}>
-      <Camera size={12} color={colors.white} />
+    <View
+      style={[
+        styles.cameraBadge,
+        { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2, borderColor: tokens.surfaceRaised, backgroundColor: tokens.text },
+      ]}
+    >
+      <Camera size={12} color={tokens.surfaceRaised} />
     </View>
   ) : null;
 
   if (onPress) {
     return (
-      <Pressable
+      <AppPressable
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={name ? `${name}'s profile photo` : 'Profile photo'}
-        style={{ position: 'relative', width: size, height: size }}
+        accessibilityLabel={label}
+        style={({ pressed }) => [{ position: 'relative', width: size, height: size }, pressed && { opacity: 0.8 }]}
       >
         {inner}
         {badge}
-      </Pressable>
+      </AppPressable>
     );
   }
 
@@ -83,24 +91,14 @@ export function Avatar({
 }
 
 const styles = StyleSheet.create({
-  initialsContainer: {
-    backgroundColor: '#0E8438',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    color: colors.white,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  initialsContainer: { alignItems: 'center', justifyContent: 'center' },
+  initials: { fontWeight: '700', letterSpacing: 1 },
   cameraBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: colors.surface[700],
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.surface[900],
   },
 });

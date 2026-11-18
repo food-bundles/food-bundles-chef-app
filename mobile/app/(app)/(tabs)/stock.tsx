@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { RefreshCw, Plus, Package, Utensils, ShoppingCart } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
@@ -15,6 +16,7 @@ import type { StockLevelDto } from '@/api/inventory-api';
 type StockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'in_recipes';
 
 export default function StockScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { data: allItems = [], isLoading, refetch } = useStockLevels();
   const { phase, pendingCount, sync } = useSyncStatus();
@@ -63,13 +65,13 @@ export default function StockScreen() {
   return (
     <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
       <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center justify-between">
-        <Text className="text-surface-900 dark:text-white text-lg font-bold">Stock</Text>
+        <Text className="text-surface-900 dark:text-white text-lg font-bold">{t('stock.title')}</Text>
         <View className="flex-row items-center gap-3">
           {phase !== 'idle' && <SyncStatusBadge phase={phase} pendingCount={pendingCount} />}
           <TouchableOpacity
             onPress={handleSync}
             disabled={phase === 'syncing'}
-            accessibilityLabel="Sync now"
+            accessibilityLabel={t('stock.syncNow')}
             hitSlop={8}
           >
             <RefreshCw
@@ -81,7 +83,7 @@ export default function StockScreen() {
           <Pressable
             onPress={() => router.push('/(app)/ingredients/create' as never)}
             accessibilityRole="button"
-            accessibilityLabel="Add ingredient"
+            accessibilityLabel={t('stock.addIngredientLabel')}
             hitSlop={8}
           >
             <Plus size={22} color={colors.brand[500]} strokeWidth={2.5} />
@@ -93,14 +95,14 @@ export default function StockScreen() {
         <SearchInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search ingredients…"
+          placeholder={t('stock.searchPlaceholder')}
         />
         <View className="flex-row gap-2 pb-2">
           {([
-            ['all', 'All', allItems.length],
-            ['in_stock', 'In Stock', allItems.length - outOfStockCount],
-            ['out_of_stock', 'Out of Stock', outOfStockCount],
-            ['in_recipes', 'In Recipes', inRecipesCount],
+            ['all', t('stock.filterAll'), allItems.length],
+            ['in_stock', t('stock.filterInStock'), allItems.length - outOfStockCount],
+            ['out_of_stock', t('stock.filterOutOfStock'), outOfStockCount],
+            ['in_recipes', t('stock.filterInRecipes'), inRecipesCount],
           ] as [StockFilter, string, number][]).map(([key, label, count]) => (
             <Pressable
               key={key}
@@ -109,9 +111,9 @@ export default function StockScreen() {
               accessibilityState={{ selected: filter === key }}
               className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border ${filter === key ? 'bg-brand-500/10 border-brand-500/40' : 'bg-white dark:bg-surface-800 border-surface-200 dark:border-surface-700'}`}
             >
-              <Text className={`text-xs font-semibold ${filter === key ? 'text-brand-400' : 'text-surface-600 dark:text-surface-400'}`}>{label}</Text>
+              <Text className={`text-xs font-semibold ${filter === key ? 'text-brand-600 dark:text-brand-300' : 'text-surface-600 dark:text-surface-400'}`}>{label}</Text>
               <View className={`min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 ${filter === key ? 'bg-brand-500/20' : 'bg-surface-200 dark:bg-surface-700'}`}>
-                <Text className={`text-[10px] font-bold ${filter === key ? 'text-brand-400' : 'text-surface-500'}`}>{count}</Text>
+                <Text className={`text-[10px] font-bold ${filter === key ? 'text-brand-600 dark:text-brand-300' : 'text-surface-500'}`}>{count}</Text>
               </View>
             </Pressable>
           ))}
@@ -123,7 +125,7 @@ export default function StockScreen() {
         <Pressable
           onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
           accessibilityRole="button"
-          accessibilityLabel={`${reorderItems.length} items need reordering — tap to open Requisitions`}
+          accessibilityLabel={t('stock.reorderTapHint', { count: reorderItems.length })}
           className="mx-4 mb-2 rounded-xl overflow-hidden active:opacity-80"
         >
           <View className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl px-4 py-3 gap-2">
@@ -131,15 +133,15 @@ export default function StockScreen() {
               <View className="flex-row items-center gap-2">
                 <ShoppingCart size={14} color={colors.warning} strokeWidth={2} />
                 <Text className="text-amber-700 dark:text-amber-400 font-semibold text-sm">
-                  {reorderItems.length} item{reorderItems.length > 1 ? 's' : ''} need reordering
+                  {t('stock.reorderNeed', { count: reorderItems.length })}
                 </Text>
               </View>
-              <Text className="text-amber-600 dark:text-amber-500 text-xs font-medium">Order now →</Text>
+              <Text className="text-amber-600 dark:text-amber-500 text-xs font-medium">{t('stock.orderNow')}</Text>
             </View>
             <View className="gap-1">
               {reorderItems.map((s) => (
                 <Text key={s.ingredient_id} className="text-amber-800 dark:text-amber-300 text-xs" numberOfLines={1}>
-                  · {s.ingredient_name} — suggest {parseFloat(s.suggested_qty) % 1 === 0 ? Math.round(parseFloat(s.suggested_qty)) : parseFloat(s.suggested_qty).toFixed(1)} {s.unit}
+                  {t('stock.reorderSuggest', { name: s.ingredient_name, qty: parseFloat(s.suggested_qty) % 1 === 0 ? Math.round(parseFloat(s.suggested_qty)) : parseFloat(s.suggested_qty).toFixed(1), unit: s.unit })}
                 </Text>
               ))}
             </View>
@@ -162,10 +164,10 @@ export default function StockScreen() {
             query || filter !== 'all' ? (
               <View className="items-center py-10 px-6 gap-2">
                 <Text className="text-surface-900 dark:text-white font-semibold text-base">
-                  {filter === 'out_of_stock' ? 'No out-of-stock items' : filter === 'in_stock' ? 'No items in stock' : filter === 'in_recipes' ? 'No recipe ingredients yet' : 'No results'}
+                  {filter === 'out_of_stock' ? t('stock.emptyOutOfStockTitle') : filter === 'in_stock' ? t('stock.emptyInStockTitle') : filter === 'in_recipes' ? t('stock.emptyInRecipesTitle') : t('stock.emptySearchTitle')}
                 </Text>
                 <Text className="text-surface-500 text-sm text-center">
-                  {filter === 'out_of_stock' ? "Great — all ingredients have stock." : filter === 'in_stock' ? "All ingredients are currently out of stock." : filter === 'in_recipes' ? "Link ingredients to your menu items to see them here. Open a menu item and add ingredients to its recipe." : "Try a different search term."}
+                  {filter === 'out_of_stock' ? t('stock.emptyOutOfStockDesc') : filter === 'in_stock' ? t('stock.emptyInStockDesc') : filter === 'in_recipes' ? t('stock.emptyInRecipesDesc') : t('stock.emptySearchDesc')}
                 </Text>
               </View>
             ) : (
@@ -174,23 +176,19 @@ export default function StockScreen() {
                   <Package size={28} color={colors.brand[500]} strokeWidth={1.75} />
                 </View>
                 <View className="items-center gap-1">
-                  <Text className="text-surface-900 dark:text-white font-semibold text-base">No ingredients yet</Text>
-                  <Text className="text-surface-500 text-sm text-center">
-                    Add your ingredients to start tracking stock levels and purchase needs.
-                  </Text>
+                  <Text className="text-surface-900 dark:text-white font-semibold text-base">{t('stock.emptyTitle')}</Text>
+                  <Text className="text-surface-500 text-sm text-center">{t('stock.emptyDesc')}</Text>
                 </View>
                 <Pressable
                   onPress={() => router.push('/(app)/ingredients/create' as never)}
                   accessibilityRole="button"
-                  accessibilityLabel="Add first ingredient"
+                  accessibilityLabel={t('stock.addFirstIngredientLabel')}
                   className="bg-brand-500 rounded-xl px-6 py-3 flex-row items-center gap-2 active:opacity-80"
                 >
                   <Plus size={16} color={colors.white} strokeWidth={2.5} />
-                  <Text className="text-white font-semibold text-sm">Add Ingredient</Text>
+                  <Text className="text-white font-semibold text-sm">{t('stock.addIngredient')}</Text>
                 </Pressable>
-                <Text className="text-surface-400 text-xs text-center">
-                  You can also ask the AI Assistant to add ingredients for you.
-                </Text>
+                <Text className="text-surface-400 text-xs text-center">{t('stock.aiHint')}</Text>
               </View>
             )
           }
@@ -201,18 +199,20 @@ export default function StockScreen() {
 }
 
 function StockRow({ item }: { item: StockLevelDto }) {
+  const { t } = useTranslation();
   const days = item.days_cover != null ? parseFloat(item.days_cover) : Infinity;
   const dailyUse = item.expected_daily_use != null ? parseFloat(item.expected_daily_use) : null;
   const stock = parseFloat(item.current_stock);
   const isOut = stock === 0;
   const isLow = !isOut && item.is_low_stock;
   const isInRecipe = dailyUse != null && dailyUse > 0;
-  const coverLabel = isFinite(days) ? `${days.toFixed(1)} days cover` : 'unlimited cover';
+  const coverLabel = isFinite(days) ? t('stock.daysCoverLabel', { days: days.toFixed(1) }) : t('stock.unlimitedCover');
+  const stockDisplay = stock % 1 === 0 ? Math.round(stock) : parseFloat(stock.toFixed(2).replace(/\.?0+$/, ''));
   return (
     <Pressable
       onPress={() => router.push(`/(app)/ingredients/${item.ingredient_id}` as never)}
       accessibilityRole="button"
-      accessibilityLabel={`${item.ingredient_name}: ${item.current_stock} ${item.unit} on hand, ${coverLabel}`}
+      accessibilityLabel={t('stock.accessibilityRow', { name: item.ingredient_name, stock: stockDisplay, unit: item.unit, cover: coverLabel })}
       className={`rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isOut ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50' : isLow ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent'}`}
     >
       <View className="flex-1 mr-3">
@@ -220,26 +220,26 @@ function StockRow({ item }: { item: StockLevelDto }) {
           <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
           {isOut && (
             <View className="bg-red-100 dark:bg-red-900/40 rounded px-1.5 py-0.5">
-              <Text className="text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wide">Out of Stock</Text>
+              <Text className="text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wide">{t('stock.outOfStock')}</Text>
             </View>
           )}
           {isLow && !isOut && (
             <View className="bg-amber-100 dark:bg-amber-900/40 rounded px-1.5 py-0.5">
-              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">Low Stock</Text>
+              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">{t('stock.lowStock')}</Text>
             </View>
           )}
           {isInRecipe && (
             <View className="bg-brand-500/10 rounded px-1.5 py-0.5 flex-row items-center gap-0.5">
               <Utensils size={8} color={colors.brand[500]} strokeWidth={2.5} />
-              <Text className="text-brand-400 text-[10px] font-bold uppercase tracking-wide">In Recipe</Text>
+              <Text className="text-brand-600 dark:text-brand-300 text-[10px] font-bold uppercase tracking-wide">{t('stock.inRecipe')}</Text>
             </View>
           )}
         </View>
         <Text className={`text-sm mt-0.5 ${isOut ? 'text-red-500 dark:text-red-400' : isLow ? 'text-amber-600 dark:text-amber-400' : 'text-surface-600 dark:text-surface-400'}`}>
           {isOut
-            ? 'No stock — reorder needed'
-            : `${stock % 1 === 0 ? Math.round(stock) : stock.toFixed(2).replace(/\.?0+$/, '')} ${item.unit} on hand`}
-          {!isOut && dailyUse != null && dailyUse > 0 ? ` · ${dailyUse % 1 === 0 ? Math.round(dailyUse) : dailyUse.toFixed(1)} ${item.unit}/day` : ''}
+            ? t('stock.noStockReorder')
+            : t('stock.onHand', { qty: stockDisplay, unit: item.unit })}
+          {!isOut && dailyUse != null && dailyUse > 0 ? ` · ${t('stock.dailyUseRate', { qty: dailyUse % 1 === 0 ? Math.round(dailyUse) : dailyUse.toFixed(1), unit: item.unit })}` : ''}
         </Text>
       </View>
       <StockIndicator daysOfCover={days} />

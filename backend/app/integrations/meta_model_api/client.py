@@ -122,6 +122,48 @@ class MetaModelAPIClient:
         except (KeyError, IndexError) as exc:
             raise MetaModelAPIError(0, f"Unexpected Muse Spark response shape: {exc}") from exc
 
+    async def chat_completion(
+        self,
+        messages: list[dict],
+        model: str,
+        timeout_seconds: float,
+        max_tokens: int = 4096,
+    ) -> tuple[str, dict]:
+        """One chat completion with an explicit model and time budget.
+
+        Returns (content, usage). Retries once on connection errors only — a timeout
+        is surfaced immediately so the caller stays within its latency budget.
+        Raises httpx.TimeoutException on timeout and MetaModelAPIError otherwise.
+        Never logs message content (AI_LOG_CONTENT=False).
+        """
+        url = f"{self._base_url}/chat/completions"
+        headers = {**_DEFAULT_HEADERS, "Authorization": f"Bearer {self._api_key}"}
+        payload = {"model": model, "messages": messages, "max_tokens": max_tokens}
+        ssl_verify = os.environ.get("SSL_CERT_FILE", certifi.where())
+        last_exc: Exception | None = None
+        for _attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=timeout_seconds, verify=ssl_verify) as client:
+                    response = await client.post(url, headers=headers, json=payload)
+                break
+            except httpx.ConnectError as exc:
+                last_exc = exc
+        else:
+            raise MetaModelAPIError(0, f"Meta API unreachable: {last_exc}")
+
+        if response.status_code == 429:
+            raise MetaModelAPIError(429, "Meta API rate limited")
+        if response.status_code >= 400:
+            raise MetaModelAPIError(response.status_code, f"Meta API error: {response.status_code}")
+        body = response.json()
+        try:
+            content = body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise MetaModelAPIError(0, "Unexpected Meta API response shape") from exc
+        if content is None:
+            raise MetaModelAPIError(0, "Meta API returned empty content")
+        return str(content), dict(body.get("usage") or {})
+
     async def post_multipart(self, path: str, fields: dict, files: dict) -> dict:
         """POST multipart form data (for image/audio uploads)."""
         url = f"{self._base_url}/{path.lstrip('/')}"
@@ -158,3 +200,8 @@ async def chat(
 ) -> str:
     """Module-level chat helper."""
     return await _client.chat(system_prompt=system_prompt, messages=messages, max_tokens=max_tokens)
+
+
+def get_client() -> MetaModelAPIClient:
+    """Shared client instance (reads settings at construction)."""
+    return _client

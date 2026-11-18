@@ -1,749 +1,813 @@
-import { useState, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
+  AccessibilityInfo,
   ActivityIndicator,
-  Alert,
-  Modal,
+  FlatList,
   Image,
-  useColorScheme,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type TextInput,
 } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
-import { Bot, Mic, Send, CheckCircle, XCircle, RotateCcw, Paperclip, Camera, Images, FileUp, X } from 'lucide-react-native';
+import { File } from 'expo-file-system';
+import { Bot, MessageSquarePlus, Mic, Paperclip, Send, Square, X, type LucideIcon } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppPressable } from '@/components/ui/AppPressable';
+import { Snackbar } from '@/components/ui/Snackbar';
+import { ThemedTextInput } from '@/components/ui/ThemedTextInput';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { useSessionStore } from '@/store/session-store';
 import { useAgentTurn, useConfirmAction } from '@/features/agent/useAgent';
-import { transcribeAudio } from '@/api/ai-api';
+import { usePersistentChat } from '@/features/agent/usePersistentChat';
+import { buildAgentHistory } from '@/features/agent/build-history';
+import { ActionCard } from '@/features/agent/ActionCard';
+import { AttachSheet, type AttachSource } from '@/features/agent/AttachSheet';
+import {
+  AgentLabel,
+  AsOf,
+  ClarificationRow,
+  MessageBubble,
+  NoticeRow,
+  RouteCard,
+  TypingIndicator,
+} from '@/features/agent/ChatRows';
+import { ComposerNotice, VoiceBar } from '@/features/agent/VoiceBar';
+import type { ChatEntry } from '@/features/agent/chat-types';
+import { useMenuItems } from '@/features/menu/useMenuItems';
+import { AI_TIMEOUTS, AiError, newRequestId } from '@/features/ai/ai-client';
+import { classifyImage, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
+import { ImageTooLargeError, prepareImageForAi, type PreparedImage } from '@/features/ai/image-prep';
+import { getSpokenReplies } from '@/features/ai/consent';
+import { speakReply, stopSpeaking } from '@/features/ai/speak';
+import { useVoiceInput, voiceAvailability, type VoiceState } from '@/features/ai/useVoiceInput';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { ApiError } from '@/api/errors';
-import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
-import type { AgentMessage, AgentResponse, ActionProposal, ClarifyingQuestion } from '@/api/agent-api';
+import { toAppLanguage } from '@/lib/format';
+import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
+import type { ActionProposal, AgentRequest, AgentResponse } from '@/api/agent-api';
 
-// Voice input disabled — expo-av removed pending JSI ABI fix for RN 0.88 New Architecture
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Audio = null as any;
+type ProposalEntry = Extract<ChatEntry, { type: 'proposal' }>;
+type NoticeEntry = Extract<ChatEntry, { type: 'notice' }>;
+type RouteEntry = Extract<ChatEntry, { type: 'route' }>;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+/** "Still working…" after this long. */
+const SLOW_AFTER_MS = 10_000;
 
-type ChatEntry =
-  | { type: 'message'; role: 'chef' | 'agent'; content: string; id: string; imageUri?: string }
-  | { type: 'proposal'; proposal: ActionProposal; replyText: string; id: string; confirmed?: boolean; cancelled?: boolean }
-  | { type: 'clarification'; question: ClarifyingQuestion; replyText: string; id: string }
-  | { type: 'error'; content: string; id: string };
+const VOICE_ERROR_KEYS: Record<Extract<VoiceState, { status: 'error' }>['code'], string> = {
+  mic_denied: 'agent.voice.micDenied',
+  no_speech: 'agent.voice.noSpeech',
+  offline: 'ai.errors.offline',
+  timeout: 'ai.errors.timeout',
+  unavailable: 'agent.voice.unavailable',
+  failed: 'agent.voice.failed',
+};
 
-let _idCounter = 0;
-const nextId = () => `entry-${++_idCounter}`;
+/** Notice keys that offer an "Open Settings" link (a permission was denied). */
+const SETTINGS_NOTICES = new Set(['agent.voice.micDenied', 'agent.cameraDenied']);
 
-// ── Main screen ───────────────────────────────────────────────────────────────
+function entryFromResponse(res: AgentResponse, requestId: string): ChatEntry {
+  if (res.proposal) {
+    return {
+      type: 'proposal',
+      id: newRequestId(),
+      replyText: res.reply_text,
+      proposal: res.proposal,
+      idempotencyKey: newRequestId(),
+      requestId,
+      status: 'pending',
+      asOf: res.as_of ?? null,
+    };
+  }
+  if (res.clarification) {
+    return { type: 'clarification', id: newRequestId(), replyText: res.reply_text, question: res.clarification };
+  }
+  return { type: 'message', id: newRequestId(), role: 'agent', content: res.reply_text, asOf: res.as_of ?? null };
+}
+
+/** i18n key for a failed assistant call — one specific message per failure, never raw text. */
+function turnErrorKey(err: unknown, timedOut: boolean): string {
+  if (timedOut) return 'ai.errors.timeout';
+  if (err instanceof AiError) return `ai.errors.${err.code}`;
+  if (err instanceof ApiError) {
+    if (err.kind === 'transport') return 'ai.errors.offline';
+    if (err.kind === 'rate_limit') return 'ai.errors.rate_limited';
+    if (err.kind === 'auth' || err.kind === 'forbidden') return 'ai.errors.auth';
+    if (err.status === 503 || err.errorCode === 'AI_DISABLED') return 'ai.errors.unavailable';
+    if (err.status === 504) return 'ai.errors.timeout';
+    if (err.status === 413) return 'ai.errors.too_large';
+    if (err.errorCode === 'AI_BAD_OUTPUT') return 'ai.errors.bad_output';
+  }
+  return 'ai.errors.server';
+}
+
+/** i18n key for a failed confirmation — the write is safe to retry with the same key. */
+function confirmErrorKey(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.kind === 'transport') return 'agent.card.failedOffline';
+    if (err.kind === 'conflict') return 'agent.card.failedConflict';
+    if (err.kind === 'validation') return 'agent.card.failedInvalid';
+    if (err.kind === 'not_found') return 'agent.card.failedNotFound';
+  }
+  return 'agent.card.failed';
+}
+
+/** Minimal PreparedImage for a photo that is already prepared and cached (retries). */
+function cachedImage(uri: string): PreparedImage {
+  return { uri, width: 0, height: 0, bytes: 0, mimeType: 'image/jpeg' };
+}
 
 export default function AgentScreen() {
+  const { t, i18n } = useTranslation();
+  const tokens = useTheme();
   const insets = useSafeAreaInsets();
-  const isDark = useColorScheme() === 'dark';
+  const router = useRouter();
+  const params = useLocalSearchParams<{ voice?: string }>();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
-  const agentTurnMutation = useAgentTurn();
-  const confirmMutation = useConfirmAction();
+  const chefId = useSessionStore((s) => s.chef?.id ?? '');
+  const kitchenId = activeKitchen?.id ?? '';
+  const language = toAppLanguage(i18n.language);
 
-  const [entries, setEntries] = useState<ChatEntry[]>([
-    {
-      type: 'message',
-      role: 'agent',
-      content: activeKitchen
-        ? `Hello! I'm your kitchen assistant for ${activeKitchen.name}. I can record sales, manage stock, create orders, and handle deliveries on your behalf. What would you like me to do?`
-        : 'Hello! Select a kitchen to get started.',
-      id: nextId(),
-    },
-  ]);
-  const [inputText, setInputText] = useState('');
-  const [lastAction, setLastAction] = useState<ActionProposal | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [showAttachSheet, setShowAttachSheet] = useState(false);
-  const listRef = useRef<FlatList>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recordingRef = useRef<any>(null);
+  const { features, isLoading: featuresLoading, isError: featuresError, refetch: refetchFeatures } = useAiFeatures();
+  const agentTurn = useAgentTurn();
+  const confirmAction = useConfirmAction();
+  const { data: menuItems = [] } = useMenuItems();
+  const { entries, loaded, setEntries } = usePersistentChat(chefId, kitchenId);
+  const { ref: insetRef, inset: keyboardInset, onLayout: onInsetLayout } = useKeyboardInset();
 
-  // Build conversation history for the API — includes all entry types so the
-  // model knows what it already proposed, what was confirmed, and what was cancelled.
-  const buildHistory = useCallback(
-    (extra?: AgentMessage): AgentMessage[] => {
-      const msgs: AgentMessage[] = [];
-      for (const e of entries) {
-        if (e.type === 'message') {
-          msgs.push({ role: e.role, content: e.content });
-        } else if (e.type === 'clarification') {
-          // The question the assistant asked
-          msgs.push({ role: 'agent', content: `${e.replyText} ${e.question.question}` });
-        } else if (e.type === 'proposal') {
-          // What the assistant proposed
-          msgs.push({ role: 'agent', content: `${e.replyText} [Proposed: ${e.proposal.summary}]` });
-          // What happened to it
-          if (e.confirmed) {
-            msgs.push({ role: 'chef', content: `Confirmed. Action executed: ${e.proposal.summary}` });
-          } else if (e.cancelled) {
-            msgs.push({ role: 'chef', content: `Cancelled that action.` });
-          }
-        } else if (e.type === 'error') {
-          msgs.push({ role: 'agent', content: `Error: ${e.content}` });
-        }
-      }
-      if (extra) msgs.push(extra);
-      return msgs;
-    },
-    [entries],
+  const [input, setInput] = useState('');
+  const [attachment, setAttachment] = useState<PreparedImage | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [pending, setPending] = useState<{ slow: boolean } | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [snack, setSnack] = useState<{ message: string; onUndo?: () => void } | null>(null);
+
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const stopReasonRef = useRef<'user' | 'timeout' | null>(null);
+  const kitchenRef = useRef(kitchenId);
+  const lastActionRef = useRef<ActionProposal | null>(null);
+  const spokenRef = useRef(false);
+
+  const busy = pending !== null;
+  const available = features.assistant;
+
+  // A different kitchen is a different conversation: drop drafts while rendering the new
+  // kitchen (React's "adjust state when a prop changes" pattern — no effect, no extra pass)…
+  const [draftKitchen, setDraftKitchen] = useState(kitchenId);
+  if (draftKitchen !== kitchenId) {
+    setDraftKitchen(kitchenId);
+    setInput('');
+    setAttachment(null);
+    setNotice(null);
+    setPending(null);
+  }
+  // …and cancel the old kitchen's in-flight request.
+  useEffect(() => {
+    kitchenRef.current = kitchenId;
+    lastActionRef.current = null;
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, [kitchenId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void getSpokenReplies().then((on) => {
+        if (active) spokenRef.current = on;
+      });
+      return () => {
+        active = false;
+        stopSpeaking();
+      };
+    }, []),
   );
 
-  const scrollToBottom = useCallback(() => {
-    // Small delay lets the layout settle before scrolling
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 120);
-  }, []);
+  const append = useCallback((...rows: ChatEntry[]) => setEntries((prev) => [...prev, ...rows]), [setEntries]);
+  const pushNotice = useCallback(
+    (key: string, tone: NoticeEntry['tone'], retryOf?: string) => append({ type: 'notice', id: newRequestId(), tone, key, retryOf }),
+    [append],
+  );
 
-  const appendEntry = (entry: ChatEntry) => {
-    setEntries((prev) => [...prev, entry]);
-    scrollToBottom();
-  };
+  // ── Voice ───────────────────────────────────────────────────────────────────
+  const voiceReason = voiceAvailability(features, language);
+  const onTranscript = useCallback(
+    (text: string) => {
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+      setTimeout(() => inputRef.current?.focus(), 50);
+    },
+    [setInput],
+  );
+  const voice = useVoiceInput({ kitchenId, language, onTranscript });
+  const startVoice = voice.start;
+  const voiceActive = voice.state.status === 'recording' || voice.state.status === 'transcribing';
 
-  const handleAttachCamera = async () => {
-    setShowAttachSheet(false);
-    // expo-camera permissions handled by CameraView inline — use ImagePicker camera here
-    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-    if (!granted) {
-      Alert.alert('Permission required', 'Camera access is needed to take a photo.');
+  // Long-press on the assistant button opens this screen with ?voice=1: start recording
+  // once the screen is ready (recording is an external side effect, so it lives in an effect).
+  const voiceRequested = params.voice === '1';
+  useEffect(() => {
+    if (!voiceRequested || !loaded || featuresLoading || voiceReason !== null) return;
+    router.setParams({ voice: '' });
+    void startVoice();
+  }, [voiceRequested, loaded, featuresLoading, voiceReason, startVoice, router]);
+
+  // Unsupported voice language reached from the long-press: say so, derived from the param.
+  const fabLanguageNotice = voiceRequested && voiceReason === 'language_not_supported';
+  const composerNoticeKey =
+    voice.state.status === 'error'
+      ? VOICE_ERROR_KEYS[voice.state.code]
+      : (notice ?? (fabLanguageNotice ? 'agent.voice.languageUnavailable' : null));
+
+  const onMic = () => {
+    setNotice(null);
+    if (voiceReason === 'language_not_supported') {
+      setNotice('agent.voice.languageUnavailable');
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    await _processPickedImage(result.assets[0].uri);
+    void startVoice();
   };
 
-  const handleAttachPhotos = async () => {
-    setShowAttachSheet(false);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Gallery access is needed to upload a photo.');
-      return;
+  // ── Assistant turn ──────────────────────────────────────────────────────────
+  const finishRequest = (controller: AbortController) => {
+    if (abortRef.current === controller) {
+      abortRef.current = null;
+      setPending(null);
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    await _processPickedImage(result.assets[0].uri);
   };
 
-  const handleAttachFiles = async () => {
-    setShowAttachSheet(false);
-    const result = await DocumentPicker.getDocumentAsync({ type: 'image/*', copyToCacheDirectory: true });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    await _processPickedImage(result.assets[0].uri);
-  };
-
-  const _processPickedImage = async (uri: string) => {
+  const askAgent = async (text: string, imageUri: string | null, prior: ChatEntry[], chefEntryId: string) => {
+    if (!kitchenId) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    stopReasonRef.current = null;
+    const requestKitchen = kitchenId;
+    setPending({ slow: false });
+    const slowTimer = setTimeout(() => setPending((p) => (p ? { slow: true } : p)), SLOW_AFTER_MS);
+    const timeoutTimer = setTimeout(() => {
+      stopReasonRef.current = 'timeout';
+      controller.abort();
+    }, AI_TIMEOUTS.chat);
     try {
-      const compressed = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 800 } }],
-        { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG },
-      );
-      setAttachedImage(compressed.uri);
-    } catch {
-      Alert.alert('Error', 'Could not load the selected image.');
-    }
-  };
-
-  const sendMessage = async (text: string) => {
-    const hasText = text.trim();
-    const hasImage = !!attachedImage;
-    if (!hasText && !hasImage) return;
-    if (!activeKitchen) return;
-    setInputText('');
-    const imageUri = attachedImage;
-    setAttachedImage(null);
-
-    // Build display content
-    const displayContent = hasText ? text.trim() : '📎 [Image attached]';
-
-    const userEntry: ChatEntry = {
-      type: 'message',
-      role: 'chef',
-      content: displayContent,
-      id: nextId(),
-      imageUri: imageUri ?? undefined,
-    };
-    setEntries((prev) => [...prev, userEntry]);
-    scrollToBottom();
-
-    // Encode attached image to base64 so Muse Spark can see it
-    let imageBase64: string | null = null;
-    if (imageUri) {
-      try {
-        imageBase64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-      } catch {
-        // If encoding fails, still send the text — vision just won't work
-      }
-    }
-
-    const agentContent = hasImage && hasText
-      ? `${text.trim()} [Chef attached a photo]`
-      : hasImage
-      ? 'Chef attached a photo for context — please describe what you see.'
-      : text.trim();
-
-    try {
-      const chefMessage: AgentMessage = {
-        role: 'chef',
-        content: agentContent,
-        image_data: imageBase64 ?? undefined,
+      const imageData = imageUri ? await new File(imageUri).base64() : undefined;
+      const body: AgentRequest = {
+        messages: buildAgentHistory(prior, {
+          role: 'chef',
+          content: text || t('agent.photoPrompt'),
+          image_data: imageData,
+        }),
+        last_confirmed_action: lastActionRef.current,
+        language,
       };
-      const history = buildHistory(chefMessage);
-      const response = await agentTurnMutation.mutateAsync({
-        messages: history,
-        last_confirmed_action: lastAction,
-      });
-      handleAgentResponse(response);
+      const requestId = newRequestId();
+      const res = await agentTurn.mutateAsync({ body, signal: controller.signal, requestId });
+      if (controller.signal.aborted || kitchenRef.current !== requestKitchen) return;
+      append(entryFromResponse(res, requestId));
+      AccessibilityInfo.announceForAccessibility(res.reply_text);
+      if (spokenRef.current) void speakReply(res.reply_text, language);
     } catch (err) {
-      const isUnavailable = err instanceof ApiError && (err.status === 503 || err.status === 502);
-      appendEntry({
-        type: 'error',
-        content: isUnavailable
-          ? 'The AI assistant could not reach the language model. Check your connection and try again.'
-          : 'Something went wrong. Please try again.',
-        id: nextId(),
-      });
+      if (kitchenRef.current !== requestKitchen) return;
+      if (stopReasonRef.current === 'user') pushNotice('agent.stopped', 'info');
+      else pushNotice(turnErrorKey(err, stopReasonRef.current === 'timeout'), 'error', chefEntryId);
+    } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(timeoutTimer);
+      finishRequest(controller);
     }
   };
 
-  const handleAgentResponse = (response: AgentResponse) => {
-    if (response.proposal) {
-      appendEntry({
-        type: 'proposal',
-        proposal: response.proposal,
-        replyText: response.reply_text,
-        id: nextId(),
-      });
-    } else if (response.clarification) {
-      appendEntry({
-        type: 'clarification',
-        question: response.clarification,
-        replyText: response.reply_text,
-        id: nextId(),
-      });
-    } else {
-      appendEntry({
-        type: 'message',
-        role: 'agent',
-        content: response.reply_text,
-        id: nextId(),
-      });
-    }
-  };
-
-  const handleConfirm = async (entry: Extract<ChatEntry, { type: 'proposal' }>) => {
+  /** Photos go through the classifier first; only stock photos (or a question about the photo) reach the chat model. */
+  const classifyAndRoute = async (image: PreparedImage, text: string, prior: ChatEntry[], chefEntryId: string) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    stopReasonRef.current = null;
+    const requestKitchen = kitchenId;
+    setPending({ slow: false });
+    const slowTimer = setTimeout(() => setPending((p) => (p ? { slow: true } : p)), SLOW_AFTER_MS);
+    let handedOff = false;
     try {
-      await confirmMutation.mutateAsync(entry.proposal);
-      setLastAction(entry.proposal);
-      // Mark confirmed and add success message in one atomic update so the
-      // next buildHistory() call sees both changes.
-      setEntries((prev) => {
-        const updated = prev.map((e) =>
-          e.id === entry.id && e.type === 'proposal' ? { ...e, confirmed: true } : e,
-        );
-        return [
-          ...updated,
-          {
-            type: 'message' as const,
-            role: 'agent' as const,
-            content: `Done — ${entry.proposal.summary}. You can say "undo" to reverse this.`,
-            id: nextId(),
-          },
-        ];
+      const result = await classifyImage(kitchenId, image, language, {
+        signal: controller.signal,
+        onProgress: () => undefined,
+        onUploaded: () => undefined,
       });
-      scrollToBottom();
-    } catch {
-      appendEntry({
-        type: 'error',
-        content: 'Action failed. Please check and try again.',
-        id: nextId(),
-      });
-    }
-  };
-
-  const handleCancel = (entryId: string) => {
-    setEntries((prev) => {
-      const updated = prev.map((e) =>
-        e.id === entryId && e.type === 'proposal' ? { ...e, cancelled: true } : e,
-      );
-      return [
-        ...updated,
-        {
-          type: 'message' as const,
-          role: 'agent' as const,
-          content: 'Cancelled. What else would you like to do?',
-          id: nextId(),
-        },
-      ];
-    });
-    scrollToBottom();
-  };
-
-  const handleOptionSelect = (option: string) => {
-    void sendMessage(option);
-  };
-
-  const handleUndo = () => {
-    if (!lastAction) return;
-    void sendMessage(`Undo: ${lastAction.summary}`);
-  };
-
-  const handleVoiceInput = async () => {
-    if (!activeKitchen) return;
-    if (!Audio) {
-      // Voice input disabled — Audio = null while expo-av JSI ABI fix is pending
-      return;
-    }
-
-    // If already recording: stop and transcribe
-    if (isRecording && recordingRef.current) {
-      try {
-        setIsRecording(false);
-        await recordingRef.current.stopAndUnloadAsync();
-        const uri = recordingRef.current.getURI();
-        recordingRef.current = null;
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-
-        if (!uri) return;
-        setIsTranscribing(true);
-        try {
-          const result = await transcribeAudio(activeKitchen.id, uri, 'rw');
-          if (result.text.trim()) {
-            setInputText(result.text.trim());
-          } else {
-            Alert.alert('No speech detected', 'Could not hear anything. Please try again.');
-          }
-        } catch {
-          Alert.alert('Transcription failed', 'Could not transcribe audio. Please type your message.');
-        } finally {
-          setIsTranscribing(false);
-        }
-      } catch {
-        setIsRecording(false);
-        recordingRef.current = null;
-      }
-      return;
-    }
-
-    // Start recording
-    try {
-      const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) {
-        Alert.alert('Permission required', 'Microphone access is needed for voice input.');
+      if (kitchenRef.current !== requestKitchen) return;
+      if (result.image_quality !== 'ok') {
+        pushNotice(`ai.errors.${result.image_quality}`, 'error');
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      recordingRef.current = recording;
-      setIsRecording(true);
-    } catch {
-      Alert.alert('Recording failed', 'Could not start recording. Please type your message.');
+      if (result.kind === 'stock_shelf' || (result.kind === 'other' && text)) {
+        clearTimeout(slowTimer);
+        handedOff = true;
+        await askAgent(text || t('agent.stockPhotoPrompt'), image.uri, prior, chefEntryId);
+        return;
+      }
+      append({ type: 'route', id: newRequestId(), kind: result.kind, imageUri: image.uri });
+    } catch (err) {
+      if (kitchenRef.current !== requestKitchen) return;
+      if (stopReasonRef.current === 'user' || (err instanceof AiError && err.code === 'cancelled')) pushNotice('agent.stopped', 'info');
+      else pushNotice(turnErrorKey(err, false), 'error', chefEntryId);
+    } finally {
+      clearTimeout(slowTimer);
+      if (!handedOff) finishRequest(controller);
     }
   };
 
-  const bg = isDark ? colors.surface[900] : colors.surface[50];
-  const bgCard = isDark ? colors.surface[800] : colors.white;
-  const borderColor = isDark ? colors.surface[800] : colors.surface[200];
-  const textPrimary = isDark ? colors.white : colors.surface[900];
-  const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
+  const send = async (raw: string) => {
+    const text = raw.trim();
+    const image = attachment;
+    if ((!text && !image) || busy || !kitchenId || !available) return;
+    const prior = entries;
+    const chefEntry: ChatEntry = { type: 'message', id: newRequestId(), role: 'chef', content: text, imageUri: image?.uri };
+    setInput('');
+    setAttachment(null);
+    setNotice(null);
+    stopSpeaking();
+    setEntries((prev) => [
+      ...prev.map((e) => (e.type === 'clarification' && !e.answered ? { ...e, answered: true } : e)),
+      chefEntry,
+    ]);
+    if (image && features.image_classify) await classifyAndRoute(image, text, prior, chefEntry.id);
+    else await askAgent(text, image?.uri ?? null, prior, chefEntry.id);
+  };
+
+  const stop = () => {
+    stopReasonRef.current = 'user';
+    abortRef.current?.abort();
+  };
+
+  const retry = (row: NoticeEntry) => {
+    if (busy || !row.retryOf) return;
+    const index = entries.findIndex((e) => e.id === row.retryOf);
+    const chef = entries[index];
+    if (!chef || chef.type !== 'message') return;
+    const prior = entries.slice(0, index);
+    setEntries((prev) => prev.filter((e) => e.id !== row.id));
+    if (chef.imageUri && features.image_classify) void classifyAndRoute(cachedImage(chef.imageUri), chef.content, prior, chef.id);
+    else void askAgent(chef.content, chef.imageUri ?? null, prior, chef.id);
+  };
+
+  // ── Action cards ────────────────────────────────────────────────────────────
+  const updateProposal = (id: string, patch: Partial<ProposalEntry>) =>
+    setEntries((prev) => prev.map((e) => (e.id === id && e.type === 'proposal' ? { ...e, ...patch } : e)));
+
+  const onConfirm = async (entry: ProposalEntry) => {
+    if (confirmingId) return;
+    setConfirmingId(entry.id);
+    try {
+      await confirmAction.mutateAsync({ proposal: entry.proposal, idempotencyKey: entry.idempotencyKey });
+      updateProposal(entry.id, { status: 'confirmed', errorKey: undefined });
+      lastActionRef.current = entry.proposal;
+      AccessibilityInfo.announceForAccessibility(t('agent.card.done'));
+      if (entry.requestId) {
+        sendAiFeedback(kitchenId, {
+          request_id: entry.requestId,
+          feature: 'assistant',
+          outcome: entry.edited ? 'user_edited' : 'user_confirmed',
+        });
+      }
+    } catch (err) {
+      updateProposal(entry.id, { status: 'failed', errorKey: confirmErrorKey(err) });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  // Edited values are a different write, so they get a fresh idempotency key.
+  const onEditProposal = (entry: ProposalEntry, proposal: ActionProposal) =>
+    updateProposal(entry.id, { proposal, edited: true, status: 'pending', errorKey: undefined, idempotencyKey: newRequestId() });
+
+  const onCancelProposal = (entry: ProposalEntry) => {
+    updateProposal(entry.id, { status: 'cancelled' });
+    if (entry.requestId) sendAiFeedback(kitchenId, { request_id: entry.requestId, feature: 'assistant', outcome: 'user_rejected' });
+  };
+
+  const openRoute = (row: RouteEntry) => {
+    if (!row.imageUri) return;
+    if (row.kind === 'menu') router.push({ pathname: '/(app)/(tabs)/menu', params: { scanPhotoUri: row.imageUri } });
+    if (row.kind === 'dish') router.push({ pathname: '/(app)/menu/create-item', params: { photoUri: row.imageUri } });
+    if (row.kind === 'receipt' || row.kind === 'delivery_note') {
+      router.push({ pathname: '/(app)/receiving/quick', params: { photoUri: row.imageUri } });
+    }
+  };
+
+  // ── Attachments ─────────────────────────────────────────────────────────────
+  const pickImage = async (source: AttachSource) => {
+    setAttachOpen(false);
+    setNotice(null);
+    let uri: string | undefined;
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setNotice('agent.cameraDenied');
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 });
+        uri = result.canceled ? undefined : result.assets[0]?.uri;
+      } else if (source === 'photos') {
+        // The system photo picker needs no library permission (iOS 14+, Android 13+).
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+        uri = result.canceled ? undefined : result.assets[0]?.uri;
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({ type: 'image/*', copyToCacheDirectory: true });
+        uri = result.canceled ? undefined : result.assets[0]?.uri;
+      }
+    } catch {
+      setNotice('agent.attachFailed');
+      return;
+    }
+    if (!uri) return;
+    setPreparingPhoto(true);
+    try {
+      // Rotated, HEIC→JPEG, ≤1600 px, < 1 MB, metadata stripped.
+      setAttachment(await prepareImageForAi(uri, 'menu'));
+    } catch (err) {
+      setNotice(err instanceof ImageTooLargeError ? 'ai.errors.too_large' : 'agent.attachFailed');
+    } finally {
+      setPreparingPhoto(false);
+    }
+  };
+
+  // ── New chat ────────────────────────────────────────────────────────────────
+  const startNewChat = () => {
+    if (busy || entries.length === 0) return;
+    const previous = entries;
+    stopSpeaking();
+    setEntries(() => []);
+    lastActionRef.current = null;
+    setSnack({ message: t('agent.newChatStarted'), onUndo: () => setEntries(() => previous) });
+  };
+
+  // ── Suggestions for an empty chat ───────────────────────────────────────────
+  const suggestions = useMemo(() => {
+    const dish = menuItems.find((m) => m.is_active)?.name;
+    return [
+      t('agent.suggestions.lowStock'),
+      t('agent.suggestions.recordSales'),
+      dish ? t('agent.suggestions.foodCost', { dish }) : t('agent.suggestions.foodCostAny'),
+    ];
+  }, [menuItems, t]);
+
+  const listData = useMemo(() => [...entries].reverse(), [entries]);
+  const canSend = (input.trim().length > 0 || attachment !== null) && !busy && !preparingPhoto && available;
+
+  const renderItem = ({ item }: { item: ChatEntry }) => {
+    switch (item.type) {
+      case 'message':
+        return <MessageBubble entry={item} />;
+      case 'proposal':
+        return (
+          <View style={styles.proposal}>
+            <AgentLabel />
+            {item.replyText ? <Text style={[styles.replyText, { color: tokens.text }]}>{item.replyText}</Text> : null}
+            <ActionCard
+              entry={item}
+              confirming={confirmingId === item.id}
+              busy={confirmingId !== null}
+              onConfirm={(e) => void onConfirm(e)}
+              onCancel={onCancelProposal}
+              onEdit={onEditProposal}
+            />
+            <AsOf time={item.asOf} />
+          </View>
+        );
+      case 'clarification':
+        return <ClarificationRow entry={item} disabled={busy || !available} onSelect={(option) => void send(option)} />;
+      case 'notice':
+        return <NoticeRow entry={item} onRetry={item.retryOf && !busy && available ? () => retry(item) : undefined} />;
+      case 'route':
+        return <RouteCard entry={item} onOpen={openRoute} />;
+    }
+  };
+
+  // ── Body ────────────────────────────────────────────────────────────────────
+  let body: ReactNode;
+  if (!activeKitchen) {
+    body = (
+      <CenteredMessage title={t('agent.noKitchenTitle')} body={t('agent.noKitchenBody')}>
+        <AppButton label={t('agent.chooseKitchen')} onPress={() => router.push('/(app)/kitchens')} />
+      </CenteredMessage>
+    );
+  } else if (!loaded) {
+    body = (
+      <View style={styles.centered}>
+        <ActivityIndicator color={tokens.textMuted} accessibilityLabel={t('agent.loadingChat')} />
+      </View>
+    );
+  } else if (entries.length === 0) {
+    body = (
+      <ScrollView contentContainerStyle={styles.emptyWrap} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <View style={[styles.emptyIcon, { backgroundColor: tokens.primaryTint }]}>
+          <Bot size={28} color={tokens.onPrimaryTint} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: tokens.text }]} accessibilityRole="header">
+          {t('agent.emptyTitle', { kitchen: activeKitchen.name })}
+        </Text>
+        <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('agent.emptyBody')}</Text>
+        {available && (
+          <View style={styles.suggestions}>
+            <Text style={[styles.suggestionsLabel, { color: tokens.textMuted }]}>{t('agent.suggestions.title')}</Text>
+            {suggestions.map((s) => (
+              <AppPressable
+                key={s}
+                onPress={() => void send(s)}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={s}
+                style={({ pressed }) => [
+                  styles.suggestion,
+                  { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.suggestionText, { color: tokens.text }]}>{s}</Text>
+              </AppPressable>
+            ))}
+          </View>
+        )}
+        {busy && <TypingIndicator slow={pending?.slow ?? false} />}
+      </ScrollView>
+    );
+  } else {
+    body = (
+      <FlatList
+        inverted
+        data={listData}
+        keyExtractor={(e) => e.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={busy ? <TypingIndicator slow={pending?.slow ?? false} /> : undefined}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      />
+    );
+  }
+
+  // ── Composer ────────────────────────────────────────────────────────────────
+  let composer: ReactNode = null;
+  if (activeKitchen && loaded) {
+    if (!available && !featuresLoading) {
+      composer = (
+        <View style={[styles.unavailable, { backgroundColor: tokens.surfaceSunken }]}>
+          <Text style={[styles.unavailableText, { color: tokens.text }]}>
+            {featuresError ? t('ai.errors.offline') : t('ai.unavailable')}
+          </Text>
+          <View style={styles.manualLinks}>
+            {featuresError && <AppButton label={t('ai.retry')} variant="secondary" onPress={refetchFeatures} />}
+            <AppButton label={t('agent.manual.recordSales')} variant="secondary" onPress={() => router.push('/(app)/sales/entry')} />
+            <AppButton label={t('agent.manual.logDelivery')} variant="secondary" onPress={() => router.push('/(app)/receiving/quick')} />
+          </View>
+        </View>
+      );
+    } else {
+      composer = (
+        <View style={styles.composerInner}>
+          {composerNoticeKey ? (
+            <ComposerNotice
+              messageKey={composerNoticeKey}
+              showSettings={SETTINGS_NOTICES.has(composerNoticeKey)}
+              onDismiss={() => {
+                voice.reset();
+                setNotice(null);
+                if (voiceRequested) router.setParams({ voice: '' });
+              }}
+            />
+          ) : null}
+          {(attachment || preparingPhoto) && (
+            <View style={styles.attachment}>
+              {attachment ? (
+                <Image source={{ uri: attachment.uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
+              ) : (
+                <View style={[styles.thumb, styles.centered, { backgroundColor: tokens.surfaceSunken }]}>
+                  <ActivityIndicator size="small" color={tokens.textMuted} />
+                </View>
+              )}
+              <Text style={[styles.attachmentText, { color: tokens.textMuted }]}>
+                {attachment ? t('agent.imageAttached') : t('ai.status.preparing')}
+              </Text>
+              {attachment && (
+                <IconButton Icon={X} label={t('agent.removePhoto')} onPress={() => setAttachment(null)} />
+              )}
+            </View>
+          )}
+          {voiceActive ? (
+            <VoiceBar
+              state={voice.state as Extract<VoiceState, { status: 'recording' } | { status: 'transcribing' }>}
+              onStop={() => void voice.stop()}
+              onCancel={() => void voice.cancel()}
+            />
+          ) : (
+            <View style={styles.inputRow}>
+              <IconButton
+                Icon={Paperclip}
+                label={t('agent.attach')}
+                onPress={() => setAttachOpen(true)}
+                disabled={busy || preparingPhoto}
+              />
+              <ThemedTextInput
+                ref={inputRef}
+                value={input}
+                onChangeText={setInput}
+                placeholder={t('agent.placeholder')}
+                multiline
+                submitBehavior="submit"
+                returnKeyType="send"
+                onSubmitEditing={() => void send(input)}
+                accessibilityLabel={t('agent.inputLabel')}
+                style={[
+                  styles.input,
+                  { color: tokens.text, backgroundColor: tokens.surface, borderColor: tokens.border },
+                ]}
+              />
+              {voiceReason !== 'disabled' && (
+                <IconButton Icon={Mic} label={t('agent.voice.start')} onPress={onMic} disabled={busy} />
+              )}
+              {busy ? (
+                <IconButton Icon={Square} label={t('agent.stop')} onPress={stop} tone="stop" />
+              ) : (
+                <IconButton Icon={Send} label={t('agent.send')} onPress={() => void send(input)} disabled={!canSend} tone="send" />
+              )}
+            </View>
+          )}
+        </View>
+      );
+    }
+  }
 
   return (
-    <View style={{ flex: 1, backgroundColor: bg, paddingTop: insets.top }}>
-      {/* Header */}
-      <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: borderColor, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <Bot size={20} color={colors.brand[400]} strokeWidth={1.75} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: textPrimary, fontWeight: fontWeight.bold, fontSize: fontSize.base }}>Kitchen Assistant</Text>
+    <View style={[styles.root, { backgroundColor: tokens.surface }]}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + spacing.sm, backgroundColor: tokens.surfaceRaised, borderBottomColor: tokens.border },
+        ]}
+      >
+        <View style={[styles.headerIcon, { backgroundColor: tokens.primaryTint }]}>
+          <Bot size={20} color={tokens.onPrimaryTint} />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={[styles.headerTitle, { color: tokens.text }]} accessibilityRole="header" numberOfLines={1}>
+            {t('agent.title')}
+          </Text>
           {activeKitchen ? (
-            <Text style={{ color: textSecondary, fontSize: fontSize.xs }}>{activeKitchen.name}</Text>
+            <Text style={[styles.headerSub, { color: tokens.textMuted }]} numberOfLines={1}>
+              {activeKitchen.name}
+            </Text>
           ) : null}
         </View>
-        {lastAction ? (
-          <Pressable
-            onPress={handleUndo}
-            accessibilityRole="button"
-            accessibilityLabel="Undo last action"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 4, backgroundColor: bgCard, borderRadius: radius.sm }}
-          >
-            <RotateCcw size={14} color={colors.surface[400]} />
-            <Text style={{ color: colors.surface[400], fontSize: fontSize.xs }}>Undo</Text>
-          </Pressable>
+        <IconButton
+          Icon={MessageSquarePlus}
+          label={t('agent.newChat')}
+          onPress={startNewChat}
+          disabled={busy || entries.length === 0}
+        />
+      </View>
+
+      <View ref={insetRef} onLayout={onInsetLayout} style={[styles.body, { paddingBottom: keyboardInset }]}>
+        <View style={styles.flex}>{body}</View>
+        {composer ? (
+          <View style={[styles.composer, { backgroundColor: tokens.surfaceRaised, borderTopColor: tokens.border }]}>{composer}</View>
         ) : null}
       </View>
 
-      {/* Chat list + input bar — KAV wraps both so keyboard pushes input up */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <FlatList
-          ref={listRef}
-          data={entries}
-          keyExtractor={(e) => e.id}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 16 }}
-          renderItem={({ item }) => <ChatEntryRow entry={item} onConfirm={handleConfirm} onCancel={handleCancel} onOptionSelect={handleOptionSelect} confirmingId={confirmMutation.isPending ? (entries.find((e) => e.type === 'proposal' && !('confirmed' in e && e.confirmed) && !('cancelled' in e && e.cancelled))?.id ?? null) : null} />}
-          onContentSizeChange={scrollToBottom}
-          onLayout={scrollToBottom}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 20 }}
-        />
-
-        {/* Input bar */}
-        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: insets.bottom + spacing.sm, borderTopWidth: 1, borderTopColor: borderColor, gap: 8 }}>
-          {/* Attached image preview */}
-          {attachedImage && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ position: 'relative' }}>
-                <Image
-                  source={{ uri: attachedImage }}
-                  style={{ width: 56, height: 56, borderRadius: 8 }}
-                  resizeMode="cover"
-                />
-                <Pressable
-                  onPress={() => setAttachedImage(null)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove image"
-                  style={{ position: 'absolute', top: -6, right: -6, backgroundColor: colors.surface[700], borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <X size={12} color={colors.white} />
-                </Pressable>
-              </View>
-              <Text style={{ color: textSecondary, fontSize: fontSize.xs, flex: 1 }}>Image attached — add a message or send directly</Text>
-            </View>
-          )}
-
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
-            {/* Attach button */}
-            <Pressable
-              onPress={() => setShowAttachSheet(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Attach image"
-              style={{ borderRadius: radius.md, padding: spacing.sm, backgroundColor: bgCard }}
-            >
-              <Paperclip size={20} color={attachedImage ? colors.brand[400] : colors.surface[400]} />
-            </Pressable>
-
-            <TextInput
-              style={{
-                flex: 1,
-                backgroundColor: bgCard,
-                borderRadius: radius.md,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                color: textPrimary,
-                fontSize: fontSize.base,
-                maxHeight: 100,
-              }}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Ask me anything…"
-              placeholderTextColor={colors.surface[500]}
-              multiline
-              returnKeyType="send"
-              onSubmitEditing={() => void sendMessage(inputText)}
-              onFocus={scrollToBottom}
-              blurOnSubmit={false}
-              accessibilityLabel="Message input"
-            />
-            {/* Mic button — hidden when Audio is disabled (expo-av JSI ABI pending) */}
-            {Audio !== null && (
-              <Pressable
-                onPress={() => void handleVoiceInput()}
-                disabled={isTranscribing}
-                accessibilityRole="button"
-                accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
-                style={[
-                  { borderRadius: radius.md, padding: spacing.sm },
-                  isRecording ? { backgroundColor: colors.danger } : { backgroundColor: bgCard },
-                  isTranscribing && { opacity: 0.5 },
-                ]}
-              >
-                {isTranscribing ? (
-                  <ActivityIndicator size="small" color={colors.surface[400]} />
-                ) : (
-                  <Mic size={20} color={isRecording ? colors.white : colors.surface[400]} />
-                )}
-              </Pressable>
-            )}
-            <Pressable
-              onPress={() => void sendMessage(inputText)}
-              disabled={(!inputText.trim() && !attachedImage) || agentTurnMutation.isPending}
-              accessibilityRole="button"
-              accessibilityLabel="Send message"
-              style={[
-                { backgroundColor: colors.brand[500], borderRadius: radius.md, padding: spacing.sm },
-                ((!inputText.trim() && !attachedImage) || agentTurnMutation.isPending) && { opacity: 0.5 },
-              ]}
-            >
-              {agentTurnMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Send size={20} color={colors.white} />
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-
-      {/* Attachment bottom sheet */}
-      <Modal
-        visible={showAttachSheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAttachSheet(false)}
-      >
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
-          onPress={() => setShowAttachSheet(false)}
-        >
-          <Pressable onPress={() => {/* stop propagation */}}>
-            <View style={{
-              backgroundColor: isDark ? colors.surface[900] : colors.surface[50],
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingTop: 12,
-              paddingBottom: insets.bottom + 24,
-              paddingHorizontal: spacing.md,
-            }}>
-              {/* Handle */}
-              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.surface[600], alignSelf: 'center', marginBottom: 20 }} />
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Text style={{ color: textPrimary, fontSize: fontSize.lg, fontWeight: fontWeight.bold }}>Add context</Text>
-                <Pressable onPress={() => setShowAttachSheet(false)} accessibilityRole="button" accessibilityLabel="Close">
-                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.surface[700] : colors.surface[200], alignItems: 'center', justifyContent: 'center' }}>
-                    <X size={16} color={textSecondary} />
-                  </View>
-                </Pressable>
-              </View>
-
-              {/* 3-column options */}
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                {[
-                  { label: 'Camera', icon: Camera, onPress: handleAttachCamera },
-                  { label: 'Photos', icon: Images, onPress: handleAttachPhotos },
-                  { label: 'Files', icon: FileUp, onPress: handleAttachFiles },
-                ].map(({ label, icon: Icon, onPress }) => (
-                  <Pressable
-                    key={label}
-                    onPress={onPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={label}
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? colors.surface[800] : colors.surface[100],
-                      borderRadius: 16,
-                      paddingVertical: 20,
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <Icon size={28} color={textPrimary} strokeWidth={1.5} />
-                    <Text style={{ color: textPrimary, fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>{label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AttachSheet visible={attachOpen} onClose={() => setAttachOpen(false)} onPick={(s) => void pickImage(s)} />
+      <Snackbar
+        visible={snack !== null}
+        message={snack?.message ?? ''}
+        actionLabel={snack?.onUndo ? t('common.undo') : undefined}
+        onAction={snack?.onUndo}
+        onDismiss={() => setSnack(null)}
+      />
     </View>
   );
 }
 
-// ── Chat entry row ────────────────────────────────────────────────────────────
-
-function ChatEntryRow({
-  entry,
-  onConfirm,
-  onCancel,
-  onOptionSelect,
-  confirmingId,
+function IconButton({
+  Icon,
+  label,
+  onPress,
+  disabled = false,
+  tone = 'plain',
 }: {
-  entry: ChatEntry;
-  onConfirm: (e: Extract<ChatEntry, { type: 'proposal' }>) => void;
-  onCancel: (id: string) => void;
-  onOptionSelect: (option: string) => void;
-  confirmingId: string | null;
+  Icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  tone?: 'plain' | 'send' | 'stop';
 }) {
-  const isDark = useColorScheme() === 'dark';
-  const bgCard = isDark ? colors.surface[800] : colors.white;
-  const textPrimary = isDark ? colors.white : colors.surface[900];
-  const textSecondary = isDark ? colors.surface[300] : colors.surface[700];
-  const textMuted = isDark ? colors.surface[400] : colors.surface[600];
-  const bgInner = isDark ? (colors.surface[850] ?? colors.surface[900]) : colors.surface[100];
-  const btnSecondaryBg = isDark ? colors.surface[700] : colors.surface[200];
-
-  if (entry.type === 'message') {
-    const isChef = entry.role === 'chef';
-    return (
-      <View style={{ alignItems: isChef ? 'flex-end' : 'flex-start' }}>
-        {!isChef && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <Bot size={12} color={colors.brand[400]} />
-            <Text style={{ color: colors.brand[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold }}>Assistant</Text>
-          </View>
-        )}
-        <View style={{
-          backgroundColor: isChef ? colors.brand[600] : bgCard,
-          borderRadius: radius.lg,
-          borderBottomRightRadius: isChef ? 4 : radius.lg,
-          borderBottomLeftRadius: isChef ? radius.lg : 4,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          maxWidth: '85%',
-          gap: 8,
-          overflow: 'hidden',
-        }}>
-          {entry.imageUri && (
-            <Image
-              source={{ uri: entry.imageUri }}
-              style={{ width: 180, height: 135, borderRadius: 8 }}
-              resizeMode="cover"
-              accessibilityLabel="Attached image"
-            />
-          )}
-          {(entry.content && entry.content !== '📎 [Image attached]') && (
-            <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
-          )}
-          {(!entry.content || entry.content === '📎 [Image attached]') && !entry.imageUri && (
-            <Text style={{ color: isChef ? colors.white : textPrimary, fontSize: fontSize.base, lineHeight: 22 }}>{entry.content}</Text>
-          )}
-        </View>
-      </View>
-    );
-  }
-
-  if (entry.type === 'error') {
-    return (
-      <View style={{ backgroundColor: `${colors.danger}1A`, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: `${colors.danger}40` }}>
-        <Text style={{ color: colors.danger, fontSize: fontSize.sm }}>{entry.content}</Text>
-      </View>
-    );
-  }
-
-  if (entry.type === 'clarification') {
-    return (
-      <View style={{ alignItems: 'flex-start' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-          <Bot size={12} color={colors.brand[400]} />
-          <Text style={{ color: colors.brand[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold }}>Assistant</Text>
-        </View>
-        <View style={{ backgroundColor: bgCard, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '90%', gap: spacing.sm }}>
-          <Text style={{ color: textPrimary, fontSize: fontSize.base }}>{entry.replyText}</Text>
-          <Text style={{ color: textSecondary, fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>{entry.question.question}</Text>
-          {entry.question.options && (
-            <View style={{ gap: spacing.xs }}>
-              {entry.question.options.map((opt) => (
-                <Pressable
-                  key={opt}
-                  onPress={() => onOptionSelect(opt)}
-                  accessibilityRole="button"
-                  style={{ backgroundColor: btnSecondaryBg, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 6 }}
-                >
-                  <Text style={{ color: textPrimary, fontSize: fontSize.sm }}>{opt}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  }
-
-  if (entry.type === 'proposal') {
-    const isDone = entry.confirmed || entry.cancelled;
-    const isConfirming = confirmingId === entry.id;
-
-    return (
-      <View style={{ alignItems: 'flex-start' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-          <Bot size={12} color={colors.brand[400]} />
-          <Text style={{ color: colors.brand[400], fontSize: fontSize.xs, fontWeight: fontWeight.semibold }}>Assistant</Text>
-        </View>
-        <View style={{ backgroundColor: bgCard, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: spacing.md, maxWidth: '95%', gap: spacing.md }}>
-          <Text style={{ color: textPrimary, fontSize: fontSize.base }}>{entry.replyText}</Text>
-
-          {/* Confirmation card */}
-          <View style={{ backgroundColor: bgInner, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: isDark ? colors.surface[700] : colors.surface[200] }}>
-            <Text style={{ color: textMuted, fontSize: fontSize.xs, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: fontWeight.semibold }}>
-              Proposed Action
-            </Text>
-            <Text style={{ color: textPrimary, fontWeight: fontWeight.semibold, fontSize: fontSize.base }}>
-              {entry.proposal.summary}
-            </Text>
-            <Text style={{ color: colors.surface[500], fontSize: fontSize.xs }}>
-              Type: {entry.proposal.action_type.replace(/_/g, ' ')}
-            </Text>
-          </View>
-
-          {entry.confirmed && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-              <CheckCircle size={14} color={colors.success} />
-              <Text style={{ color: colors.success, fontSize: fontSize.sm }}>Confirmed and executed</Text>
-            </View>
-          )}
-
-          {entry.cancelled && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-              <XCircle size={14} color={colors.surface[500]} />
-              <Text style={{ color: colors.surface[500], fontSize: fontSize.sm }}>Cancelled</Text>
-            </View>
-          )}
-
-          {!isDone && (
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Pressable
-                onPress={() => onCancel(entry.id)}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel proposed action"
-                style={{ flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: btnSecondaryBg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
-              >
-                <XCircle size={16} color={colors.surface[400]} />
-                <Text style={{ color: textSecondary, fontWeight: fontWeight.medium, fontSize: fontSize.sm }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => onConfirm(entry)}
-                disabled={isConfirming}
-                accessibilityRole="button"
-                accessibilityLabel="Confirm proposed action"
-                style={[
-                  { flex: 1, borderRadius: radius.md, padding: spacing.sm, backgroundColor: colors.brand[500], alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
-                  isConfirming && { opacity: 0.6 },
-                ]}
-              >
-                {isConfirming ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <CheckCircle size={16} color={colors.white} />
-                    <Text style={{ color: colors.white, fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Confirm</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  }
-
-  return null;
+  const tokens = useTheme();
+  const filled = tone !== 'plain';
+  const bg = tone === 'send' ? tokens.action : tone === 'stop' ? tokens.text : 'transparent';
+  const fg = tone === 'send' ? tokens.onAction : tone === 'stop' ? tokens.surface : tokens.text;
+  return (
+    <AppPressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [
+        styles.iconButton,
+        filled && { backgroundColor: bg },
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+      ]}
+    >
+      <Icon size={20} color={fg} fill={tone === 'stop' ? fg : 'none'} />
+    </AppPressable>
+  );
 }
+
+function CenteredMessage({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
+  const tokens = useTheme();
+  return (
+    <View style={[styles.centered, styles.centeredPad]}>
+      <Text style={[styles.emptyTitle, { color: tokens.text }]} accessibilityRole="header">
+        {title}
+      </Text>
+      <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{body}</Text>
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  body: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  headerText: { flex: 1 },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
+  headerSub: { fontSize: fontSize.sm },
+  list: { padding: spacing.md, gap: spacing.md },
+  proposal: { alignItems: 'stretch', gap: spacing.xs },
+  replyText: { fontSize: fontSize.base, lineHeight: 22, marginBottom: spacing.xs },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centeredPad: { padding: spacing.lg, gap: spacing.md },
+  emptyWrap: { padding: spacing.lg, gap: spacing.md, alignItems: 'center', flexGrow: 1, justifyContent: 'center' },
+  emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, textAlign: 'center' },
+  emptyBody: { fontSize: fontSize.base, lineHeight: 22, textAlign: 'center' },
+  suggestions: { alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.sm },
+  suggestionsLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  suggestion: {
+    minHeight: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    justifyContent: 'center',
+  },
+  suggestionText: { fontSize: fontSize.base, fontWeight: fontWeight.medium },
+  composer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  composerInner: { gap: spacing.sm },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs },
+  input: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: spacing.md,
+    paddingTop: 11,
+    paddingBottom: 11,
+    fontSize: fontSize.base,
+  },
+  iconButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  disabled: { opacity: 0.4 },
+  pressed: { opacity: 0.7 },
+  attachment: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  thumb: { width: 56, height: 56, borderRadius: radius.md },
+  attachmentText: { flex: 1, fontSize: fontSize.sm },
+  unavailable: { borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  unavailableText: { fontSize: fontSize.sm, lineHeight: 20 },
+  manualLinks: { gap: spacing.sm },
+});

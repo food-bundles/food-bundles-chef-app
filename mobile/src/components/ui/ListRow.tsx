@@ -1,17 +1,23 @@
-import { Pressable, View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { AppPressable } from './AppPressable';
 import { ChevronRight } from 'lucide-react-native';
 import { colors, spacing, fontSize, fontWeight, MIN_TOUCH_SIZE, radius } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 export interface ListRowProps {
   icon?: React.ReactNode;
   iconBg?: string;
   title: string;
+  /** Rendered inline after the title, e.g. an ACTIVE badge. */
+  titleAccessory?: React.ReactNode;
   subtitle?: string;
   trailing?: React.ReactNode;
   onPress?: () => void;
   destructive?: boolean;
   disabled?: boolean;
   separator?: boolean;
+  /** Show the trailing chevron on pressable rows without a `trailing` element. Default true. */
+  chevron?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }
@@ -20,12 +26,14 @@ export function ListRow({
   icon,
   iconBg,
   title,
+  titleAccessory,
   subtitle,
   trailing,
   onPress,
   destructive = false,
   disabled = false,
   separator = true,
+  chevron = true,
   accessibilityLabel,
   accessibilityHint,
 }: ListRowProps) {
@@ -33,12 +41,13 @@ export function ListRow({
   const textPrimary = isDark ? colors.white : colors.surface[900];
   const textSecondary = isDark ? colors.surface[400] : colors.surface[600];
   const borderColor = isDark ? colors.surface[700] : colors.surface[200];
-  const titleColor = destructive ? colors.danger : textPrimary;
+  const tokens = useTheme();
+  const titleColor = destructive ? tokens.danger : textPrimary;
 
-  const showChevron = onPress && !trailing;
+  const showChevron = chevron && onPress && trailing == null;
 
   return (
-    <Pressable
+    <AppPressable
       onPress={disabled ? undefined : onPress}
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel ?? title}
@@ -65,12 +74,15 @@ export function ListRow({
       )}
 
       <View style={styles.textBlock}>
-        <Text
-          style={[styles.title, { color: titleColor }]}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text
+            style={[styles.title, { color: titleColor }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {titleAccessory}
+        </View>
         {subtitle && (
           <Text style={[styles.subtitle, { color: textSecondary }]} numberOfLines={2}>
             {subtitle}
@@ -78,10 +90,12 @@ export function ListRow({
         )}
       </View>
 
-      {trailing ?? (showChevron ? (
+      {trailing != null ? (
+        <View style={styles.trailing}>{trailing}</View>
+      ) : showChevron ? (
         <ChevronRight size={16} color={textSecondary} />
-      ) : null)}
-    </Pressable>
+      ) : null}
+    </AppPressable>
   );
 }
 
@@ -93,6 +107,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: MIN_TOUCH_SIZE,
     gap: 12,
+  },
+  trailing: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    alignItems: 'flex-end',
   },
   iconContainer: {
     width: 36,
@@ -107,7 +126,13 @@ const styles = StyleSheet.create({
     gap: 2,
     minWidth: 0,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: fontWeight.semibold,
   },

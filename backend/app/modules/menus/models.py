@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -46,6 +46,12 @@ class MenuItem(Base):
     """One dish/product sold from a menu, with a selling price."""
 
     __tablename__ = "menu_items"
+    __table_args__ = (
+        CheckConstraint(
+            "category IS NULL OR category IN ('main', 'side', 'drink', 'dessert')",
+            name="ck_menu_items_category",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -64,6 +70,8 @@ class MenuItem(Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    # Menu section used for filtering: main | side | drink | dessert (null = uncategorised)
+    category: Mapped[str | None] = mapped_column(String(20))
     # selling_price: price charged to the customer in kitchen currency
     selling_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

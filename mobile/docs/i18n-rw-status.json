@@ -1,0 +1,3970 @@
+{
+  "language": "rw",
+  "note": "Review flag per key. Strings themselves never carry the flag.",
+  "keys": {
+    "agent.title": {
+      "status": "needs-review",
+      "en": "Kitchen Assistant"
+    },
+    "agent.openAssistant": {
+      "status": "needs-review",
+      "en": "Open kitchen assistant"
+    },
+    "agent.undo": {
+      "status": "needs-review",
+      "en": "Undo"
+    },
+    "agent.imageAttached": {
+      "status": "needs-review",
+      "en": "Photo attached — add a message or send it as is."
+    },
+    "agent.addContext": {
+      "status": "needs-review",
+      "en": "Add a photo"
+    },
+    "agent.assistantLabel": {
+      "status": "needs-review",
+      "en": "Assistant"
+    },
+    "agent.confirmed": {
+      "status": "needs-review",
+      "en": "Confirmed and executed"
+    },
+    "agent.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled"
+    },
+    "agent.cancelAction": {
+      "status": "needs-review",
+      "en": "Cancel"
+    },
+    "agent.confirmAction": {
+      "status": "needs-review",
+      "en": "Confirm"
+    },
+    "agent.fabHint": {
+      "status": "needs-review",
+      "en": "Long-press to talk"
+    },
+    "agent.you": {
+      "status": "needs-review",
+      "en": "You"
+    },
+    "agent.photoSent": {
+      "status": "needs-review",
+      "en": "Photo"
+    },
+    "agent.photoPrompt": {
+      "status": "needs-review",
+      "en": "Please look at this photo."
+    },
+    "agent.stockPhotoPrompt": {
+      "status": "needs-review",
+      "en": "Help me count the stock in this photo."
+    },
+    "agent.asOf": {
+      "status": "needs-review",
+      "en": "Data as of {{time}}"
+    },
+    "agent.thinking": {
+      "status": "needs-review",
+      "en": "Thinking…"
+    },
+    "agent.stillWorking": {
+      "status": "needs-review",
+      "en": "Still working… you can stop at any time."
+    },
+    "agent.stopped": {
+      "status": "needs-review",
+      "en": "Stopped. Nothing was changed."
+    },
+    "agent.stop": {
+      "status": "needs-review",
+      "en": "Stop"
+    },
+    "agent.send": {
+      "status": "needs-review",
+      "en": "Send message"
+    },
+    "agent.attach": {
+      "status": "needs-review",
+      "en": "Add a photo"
+    },
+    "agent.removePhoto": {
+      "status": "needs-review",
+      "en": "Remove photo"
+    },
+    "agent.files": {
+      "status": "needs-review",
+      "en": "Files"
+    },
+    "agent.attachHint": {
+      "status": "needs-review",
+      "en": "Send a menu, a dish, a delivery note or a stock shelf. Text in photos is only read as data."
+    },
+    "agent.attachFailed": {
+      "status": "needs-review",
+      "en": "Couldn't load that photo — try another one."
+    },
+    "agent.cameraDenied": {
+      "status": "needs-review",
+      "en": "Camera access is off. Allow it in Settings to take a photo."
+    },
+    "agent.placeholder": {
+      "status": "needs-review",
+      "en": "Ask, or tell me what to record…"
+    },
+    "agent.inputLabel": {
+      "status": "needs-review",
+      "en": "Message to the kitchen assistant"
+    },
+    "agent.newChat": {
+      "status": "needs-review",
+      "en": "New chat"
+    },
+    "agent.newChatStarted": {
+      "status": "needs-review",
+      "en": "New chat started"
+    },
+    "agent.noKitchenTitle": {
+      "status": "needs-review",
+      "en": "No kitchen selected"
+    },
+    "agent.noKitchenBody": {
+      "status": "needs-review",
+      "en": "Choose a kitchen so the assistant knows which stock and menu to use."
+    },
+    "agent.chooseKitchen": {
+      "status": "needs-review",
+      "en": "Choose a kitchen"
+    },
+    "agent.loadingChat": {
+      "status": "needs-review",
+      "en": "Loading chat…"
+    },
+    "agent.emptyTitle": {
+      "status": "needs-review",
+      "en": "Hi! I'm the assistant for {{kitchen}}"
+    },
+    "agent.emptyBody": {
+      "status": "needs-review",
+      "en": "Ask about stock, sales and food cost, or tell me what to record. I always ask before changing anything."
+    },
+    "agent.suggestions.title": {
+      "status": "needs-review",
+      "en": "Try asking"
+    },
+    "agent.suggestions.lowStock": {
+      "status": "needs-review",
+      "en": "What's running low?"
+    },
+    "agent.suggestions.recordSales": {
+      "status": "needs-review",
+      "en": "Record today's sales"
+    },
+    "agent.suggestions.foodCost": {
+      "status": "needs-review",
+      "en": "What's my food cost on {{dish}}?"
+    },
+    "agent.suggestions.foodCostAny": {
+      "status": "needs-review",
+      "en": "Which dish has the highest food cost?"
+    },
+    "agent.manual.recordSales": {
+      "status": "needs-review",
+      "en": "Record sales by hand"
+    },
+    "agent.manual.logDelivery": {
+      "status": "needs-review",
+      "en": "Log a delivery by hand"
+    },
+    "agent.route.menuTitle": {
+      "status": "needs-review",
+      "en": "This looks like a menu."
+    },
+    "agent.route.menuBody": {
+      "status": "needs-review",
+      "en": "Import its dishes? You'll review every item before anything is saved."
+    },
+    "agent.route.menuAction": {
+      "status": "needs-review",
+      "en": "Review menu items"
+    },
+    "agent.route.dishTitle": {
+      "status": "needs-review",
+      "en": "This looks like a dish."
+    },
+    "agent.route.dishBody": {
+      "status": "needs-review",
+      "en": "Add it as one menu item with AI suggestions for ingredients and price?"
+    },
+    "agent.route.dishAction": {
+      "status": "needs-review",
+      "en": "Add this dish"
+    },
+    "agent.route.receiptTitle": {
+      "status": "needs-review",
+      "en": "This looks like a receipt."
+    },
+    "agent.route.deliveryTitle": {
+      "status": "needs-review",
+      "en": "This looks like a delivery note."
+    },
+    "agent.route.deliveryBody": {
+      "status": "needs-review",
+      "en": "Open Log Delivery with this photo? You'll check every line before saving."
+    },
+    "agent.route.deliveryAction": {
+      "status": "needs-review",
+      "en": "Log this delivery"
+    },
+    "agent.route.stockTitle": {
+      "status": "needs-review",
+      "en": "This looks like a stock shelf."
+    },
+    "agent.route.stockBody": {
+      "status": "needs-review",
+      "en": "I'll help you count it — every change needs your confirmation."
+    },
+    "agent.route.otherTitle": {
+      "status": "needs-review",
+      "en": "I couldn't tell what this photo shows."
+    },
+    "agent.route.otherBody": {
+      "status": "needs-review",
+      "en": "Send a printed or handwritten menu, a single dish, a delivery note or a stock shelf, flat and well lit."
+    },
+    "agent.voice.start": {
+      "status": "needs-review",
+      "en": "Talk to the assistant"
+    },
+    "agent.voice.stop": {
+      "status": "needs-review",
+      "en": "Stop recording and transcribe"
+    },
+    "agent.voice.cancel": {
+      "status": "needs-review",
+      "en": "Cancel recording"
+    },
+    "agent.voice.transcribing": {
+      "status": "needs-review",
+      "en": "Transcribing…"
+    },
+    "agent.voice.recordingA11y": {
+      "status": "needs-review",
+      "en": "Recording, {{seconds}} of {{max}} seconds"
+    },
+    "agent.voice.micDenied": {
+      "status": "needs-review",
+      "en": "Microphone access is off. Allow it in Settings to talk to the assistant."
+    },
+    "agent.voice.noSpeech": {
+      "status": "needs-review",
+      "en": "I didn't hear anything — try again a little closer to the phone."
+    },
+    "agent.voice.unavailable": {
+      "status": "needs-review",
+      "en": "Voice input is temporarily unavailable — please type."
+    },
+    "agent.voice.failed": {
+      "status": "needs-review",
+      "en": "Couldn't record — try again or type your message."
+    },
+    "agent.voice.languageUnavailable": {
+      "status": "needs-review",
+      "en": "Voice input in English isn't available yet — please type."
+    },
+    "agent.card.kicker": {
+      "status": "needs-review",
+      "en": "Action — needs your OK"
+    },
+    "agent.card.kickerEdited": {
+      "status": "needs-review",
+      "en": "Action — edited by you"
+    },
+    "agent.card.a11y": {
+      "status": "needs-review",
+      "en": "Proposed action: {{title}}"
+    },
+    "agent.card.today": {
+      "status": "needs-review",
+      "en": "today"
+    },
+    "agent.card.title.recordSale": {
+      "status": "needs-review",
+      "en": "Record {{portions}} × {{name}} sold"
+    },
+    "agent.card.title.inventorySet": {
+      "status": "needs-review",
+      "en": "Set {{name}} stock to {{quantity}} {{unit}}"
+    },
+    "agent.card.title.inventoryAdd": {
+      "status": "needs-review",
+      "en": "Add {{quantity}} {{unit}} of {{name}} to stock"
+    },
+    "agent.card.title.inventoryRemove": {
+      "status": "needs-review",
+      "en": "Remove {{quantity}} {{unit}} of {{name}} from stock"
+    },
+    "agent.card.title.createIngredient": {
+      "status": "needs-review",
+      "en": "Create ingredient {{name}} ({{unit}})"
+    },
+    "agent.card.title.addMenuItem": {
+      "status": "needs-review",
+      "en": "Add {{name}} to the menu at {{price}}"
+    },
+    "agent.card.title.linkRecipe": {
+      "status": "needs-review",
+      "en": "Use {{quantity}} {{unit}} of {{ingredient}} per portion of {{dish}}"
+    },
+    "agent.card.title.createOrder_one": {
+      "status": "needs-review",
+      "en": "Create an order with {{count}} item"
+    },
+    "agent.card.title.createOrder_other": {
+      "status": "needs-review",
+      "en": "Create an order with {{count}} items"
+    },
+    "agent.card.title.submitOrder": {
+      "status": "needs-review",
+      "en": "Submit order {{ref}}"
+    },
+    "agent.card.title.cancelOrder": {
+      "status": "needs-review",
+      "en": "Cancel order {{ref}}"
+    },
+    "agent.card.title.startDelivery": {
+      "status": "needs-review",
+      "en": "Start receiving order {{ref}}"
+    },
+    "agent.card.title.receiveDelivery_one": {
+      "status": "needs-review",
+      "en": "Receive {{count}} line for order {{ref}}"
+    },
+    "agent.card.title.receiveDelivery_other": {
+      "status": "needs-review",
+      "en": "Receive {{count}} lines for order {{ref}}"
+    },
+    "agent.card.title.undo": {
+      "status": "needs-review",
+      "en": "Undo: {{description}}"
+    },
+    "agent.card.dish": {
+      "status": "needs-review",
+      "en": "Dish"
+    },
+    "agent.card.portions": {
+      "status": "needs-review",
+      "en": "Portions"
+    },
+    "agent.card.date": {
+      "status": "needs-review",
+      "en": "Date"
+    },
+    "agent.card.ingredient": {
+      "status": "needs-review",
+      "en": "Ingredient"
+    },
+    "agent.card.change": {
+      "status": "needs-review",
+      "en": "Change"
+    },
+    "agent.card.quantity": {
+      "status": "needs-review",
+      "en": "Quantity"
+    },
+    "agent.card.note": {
+      "status": "needs-review",
+      "en": "Note"
+    },
+    "agent.card.name": {
+      "status": "needs-review",
+      "en": "Name"
+    },
+    "agent.card.unit": {
+      "status": "needs-review",
+      "en": "Unit"
+    },
+    "agent.card.price": {
+      "status": "needs-review",
+      "en": "Price"
+    },
+    "agent.card.category": {
+      "status": "needs-review",
+      "en": "Category"
+    },
+    "agent.card.perPortion": {
+      "status": "needs-review",
+      "en": "Per portion"
+    },
+    "agent.card.deliveryDate": {
+      "status": "needs-review",
+      "en": "Delivery date"
+    },
+    "agent.card.order": {
+      "status": "needs-review",
+      "en": "Order"
+    },
+    "agent.card.changeTypes.set": {
+      "status": "needs-review",
+      "en": "Counted stock (set)"
+    },
+    "agent.card.changeTypes.add": {
+      "status": "needs-review",
+      "en": "Add to stock"
+    },
+    "agent.card.changeTypes.remove": {
+      "status": "needs-review",
+      "en": "Remove from stock"
+    },
+    "agent.card.decisions.accepted": {
+      "status": "needs-review",
+      "en": "accepted"
+    },
+    "agent.card.decisions.partial": {
+      "status": "needs-review",
+      "en": "partly accepted"
+    },
+    "agent.card.decisions.rejected": {
+      "status": "needs-review",
+      "en": "rejected"
+    },
+    "agent.card.errors.required": {
+      "status": "needs-review",
+      "en": "Required"
+    },
+    "agent.card.errors.number": {
+      "status": "needs-review",
+      "en": "Enter a number"
+    },
+    "agent.card.errors.wholeNumber": {
+      "status": "needs-review",
+      "en": "Enter a whole number"
+    },
+    "agent.card.errors.min": {
+      "status": "needs-review",
+      "en": "Must be at least {{min}}"
+    },
+    "agent.card.errors.positive": {
+      "status": "needs-review",
+      "en": "Must be more than 0"
+    },
+    "agent.card.errors.tooLong": {
+      "status": "needs-review",
+      "en": "Too long"
+    },
+    "agent.card.done": {
+      "status": "needs-review",
+      "en": "Done — saved."
+    },
+    "agent.card.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled — nothing was changed."
+    },
+    "agent.card.failed": {
+      "status": "needs-review",
+      "en": "Couldn't save — nothing was changed. Try again."
+    },
+    "agent.card.failedOffline": {
+      "status": "needs-review",
+      "en": "No connection — try again when you're back online. It won't be saved twice."
+    },
+    "agent.card.failedConflict": {
+      "status": "needs-review",
+      "en": "This was already done, or it changed in the meantime."
+    },
+    "agent.card.failedInvalid": {
+      "status": "needs-review",
+      "en": "The server didn't accept these values — edit them and try again."
+    },
+    "agent.card.failedNotFound": {
+      "status": "needs-review",
+      "en": "That item no longer exists."
+    },
+    "agent.card.cancel": {
+      "status": "needs-review",
+      "en": "Cancel"
+    },
+    "agent.card.edit": {
+      "status": "needs-review",
+      "en": "Edit"
+    },
+    "agent.card.confirm": {
+      "status": "needs-review",
+      "en": "Confirm"
+    },
+    "agent.card.retry": {
+      "status": "needs-review",
+      "en": "Try again"
+    },
+    "agent.card.cancelA11y": {
+      "status": "needs-review",
+      "en": "Cancel: {{title}}"
+    },
+    "agent.card.editA11y": {
+      "status": "needs-review",
+      "en": "Edit: {{title}}"
+    },
+    "agent.card.confirmA11y": {
+      "status": "needs-review",
+      "en": "Confirm: {{title}}"
+    },
+    "agent.card.discardEdit": {
+      "status": "needs-review",
+      "en": "Discard changes"
+    },
+    "agent.card.saveEdit": {
+      "status": "needs-review",
+      "en": "Save changes"
+    },
+    "ai.badge": {
+      "status": "needs-review",
+      "en": "AI"
+    },
+    "ai.retry": {
+      "status": "needs-review",
+      "en": "Try again"
+    },
+    "ai.enterManually": {
+      "status": "needs-review",
+      "en": "Enter manually"
+    },
+    "ai.unavailable": {
+      "status": "needs-review",
+      "en": "AI is temporarily unavailable. You can still fill everything in by hand."
+    },
+    "ai.estimateWarning": {
+      "status": "needs-review",
+      "en": "AI estimate — check quantities and price before saving."
+    },
+    "ai.status.preparing": {
+      "status": "needs-review",
+      "en": "Preparing photo…"
+    },
+    "ai.status.uploading": {
+      "status": "needs-review",
+      "en": "Uploading photo… {{percent}}%"
+    },
+    "ai.status.analysing": {
+      "status": "needs-review",
+      "en": "Analysing…"
+    },
+    "ai.status.usuallyTakes": {
+      "status": "needs-review",
+      "en": "Usually takes about 5–10 seconds."
+    },
+    "ai.status.stillWorking": {
+      "status": "needs-review",
+      "en": "Still working…"
+    },
+    "ai.status.retryingIn": {
+      "status": "needs-review",
+      "en": "Retrying in {{seconds}} s."
+    },
+    "ai.errors.offline": {
+      "status": "needs-review",
+      "en": "No connection — we'll retry when you're back online."
+    },
+    "ai.errors.timeout": {
+      "status": "needs-review",
+      "en": "This took too long — try again."
+    },
+    "ai.errors.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled."
+    },
+    "ai.errors.unavailable": {
+      "status": "needs-review",
+      "en": "AI is temporarily unavailable. You can still enter details manually."
+    },
+    "ai.errors.rate_limited": {
+      "status": "needs-review",
+      "en": "Too many AI requests today — try again later or enter details manually."
+    },
+    "ai.errors.too_large": {
+      "status": "needs-review",
+      "en": "This photo is too large — try another photo."
+    },
+    "ai.errors.too_dark": {
+      "status": "needs-review",
+      "en": "Photo too dark — try more light."
+    },
+    "ai.errors.blurry": {
+      "status": "needs-review",
+      "en": "Photo is blurry — hold steady and retake it."
+    },
+    "ai.errors.bad_output": {
+      "status": "needs-review",
+      "en": "The AI answer could not be read — try again or enter details manually."
+    },
+    "ai.errors.auth": {
+      "status": "needs-review",
+      "en": "Your session expired — sign in again."
+    },
+    "ai.errors.server": {
+      "status": "needs-review",
+      "en": "Something went wrong — try again."
+    },
+    "ai.errors.too_small": {
+      "status": "needs-review",
+      "en": "The menu or document is too small in the photo — move closer."
+    },
+    "ai.consent.title": {
+      "status": "needs-review",
+      "en": "AI help with photos and voice"
+    },
+    "ai.consent.body": {
+      "status": "needs-review",
+      "en": "Photos and voice clips you send are processed by an AI service to read menus, dishes and delivery notes. Food Bundles does not keep them after processing. Nothing is saved without your confirmation."
+    },
+    "ai.consent.accept": {
+      "status": "needs-review",
+      "en": "Continue"
+    },
+    "ai.consent.decline": {
+      "status": "needs-review",
+      "en": "Not now"
+    },
+    "ai.consent.policy": {
+      "status": "needs-review",
+      "en": "Privacy policy"
+    },
+    "auth.welcome": {
+      "status": "needs-review",
+      "en": "Food Bundles Chef"
+    },
+    "auth.badge": {
+      "status": "needs-review",
+      "en": "Chef App"
+    },
+    "auth.headline": {
+      "status": "needs-review",
+      "en": "Run your\nkitchen\nsmarter."
+    },
+    "auth.tagline": {
+      "status": "needs-review",
+      "en": "Order right. Receive right. Know your stock before service."
+    },
+    "auth.taglineSub": {
+      "status": "needs-review",
+      "en": "Order right. Receive right.\nKnow your stock before service."
+    },
+    "auth.hint": {
+      "status": "needs-review",
+      "en": "For restaurants, hotels & schools in Rwanda"
+    },
+    "auth.getStarted": {
+      "status": "needs-review",
+      "en": "Get Started  →"
+    },
+    "auth.signIn": {
+      "status": "needs-review",
+      "en": "Sign in"
+    },
+    "auth.enterPhone": {
+      "status": "needs-review",
+      "en": "Enter your phone"
+    },
+    "auth.smsSub": {
+      "status": "needs-review",
+      "en": "We'll send you a one-time code to verify your number."
+    },
+    "auth.phoneLabel": {
+      "status": "needs-review",
+      "en": "Phone Number"
+    },
+    "auth.phonePlaceholder": {
+      "status": "needs-review",
+      "en": "+250 7XX XXX XXX"
+    },
+    "auth.sendingCode": {
+      "status": "needs-review",
+      "en": "Sending code…"
+    },
+    "auth.continueButton": {
+      "status": "needs-review",
+      "en": "Continue"
+    },
+    "auth.phoneError": {
+      "status": "needs-review",
+      "en": "Please enter a valid phone number."
+    },
+    "auth.verify": {
+      "status": "needs-review",
+      "en": "Verify"
+    },
+    "auth.enterCode": {
+      "status": "needs-review",
+      "en": "Enter the code"
+    },
+    "auth.codeSentTo": {
+      "status": "needs-review",
+      "en": "Sent to"
+    },
+    "auth.demoHint": {
+      "status": "needs-review",
+      "en": "Demo: enter any 6 digits"
+    },
+    "auth.verifying": {
+      "status": "needs-review",
+      "en": "Verifying…"
+    },
+    "auth.verifyButton": {
+      "status": "needs-review",
+      "en": "Verify & Continue"
+    },
+    "auth.codeError": {
+      "status": "needs-review",
+      "en": "Invalid code. Please try again."
+    },
+    "auth.phoneNumberLabel": {
+      "status": "needs-review",
+      "en": "Phone number"
+    },
+    "auth.otpLabel": {
+      "status": "needs-review",
+      "en": "One-time code"
+    },
+    "auth.verifyCodeLabel": {
+      "status": "needs-review",
+      "en": "Verify code"
+    },
+    "auth.getStartedLabel": {
+      "status": "needs-review",
+      "en": "Get started"
+    },
+    "auth.features.purchasingTitle": {
+      "status": "needs-review",
+      "en": "Smart purchasing"
+    },
+    "auth.features.purchasingDesc": {
+      "status": "needs-review",
+      "en": "Know what to buy before you run out"
+    },
+    "auth.features.receivingTitle": {
+      "status": "needs-review",
+      "en": "Delivery receiving"
+    },
+    "auth.features.receivingDesc": {
+      "status": "needs-review",
+      "en": "Check and log deliveries in seconds"
+    },
+    "auth.features.insightsTitle": {
+      "status": "needs-review",
+      "en": "Kitchen insights"
+    },
+    "auth.features.insightsDesc": {
+      "status": "needs-review",
+      "en": "Live stock and sales at a glance"
+    },
+    "common.loading": {
+      "status": "needs-review",
+      "en": "Loading…"
+    },
+    "common.error": {
+      "status": "needs-review",
+      "en": "Something went wrong"
+    },
+    "common.retry": {
+      "status": "needs-review",
+      "en": "Retry"
+    },
+    "common.cancel": {
+      "status": "needs-review",
+      "en": "Cancel"
+    },
+    "common.confirm": {
+      "status": "needs-review",
+      "en": "Confirm"
+    },
+    "common.save": {
+      "status": "needs-review",
+      "en": "Save"
+    },
+    "common.back": {
+      "status": "needs-review",
+      "en": "Back"
+    },
+    "common.continue": {
+      "status": "needs-review",
+      "en": "Continue"
+    },
+    "common.done": {
+      "status": "needs-review",
+      "en": "Done"
+    },
+    "common.edit": {
+      "status": "needs-review",
+      "en": "Edit"
+    },
+    "common.delete": {
+      "status": "needs-review",
+      "en": "Delete"
+    },
+    "common.archive": {
+      "status": "needs-review",
+      "en": "Archive"
+    },
+    "common.search": {
+      "status": "needs-review",
+      "en": "Search"
+    },
+    "common.noResults": {
+      "status": "needs-review",
+      "en": "No results found"
+    },
+    "common.add": {
+      "status": "needs-review",
+      "en": "Add"
+    },
+    "common.share": {
+      "status": "needs-review",
+      "en": "Share"
+    },
+    "common.close": {
+      "status": "needs-review",
+      "en": "Close"
+    },
+    "common.tryAgain": {
+      "status": "needs-review",
+      "en": "Try again"
+    },
+    "common.openSettings": {
+      "status": "needs-review",
+      "en": "Open Settings"
+    },
+    "common.enable": {
+      "status": "needs-review",
+      "en": "Enable"
+    },
+    "common.seeAll": {
+      "status": "needs-review",
+      "en": "See all"
+    },
+    "common.camera": {
+      "status": "needs-review",
+      "en": "Camera"
+    },
+    "common.gallery": {
+      "status": "needs-review",
+      "en": "Gallery"
+    },
+    "common.undo": {
+      "status": "needs-review",
+      "en": "Undo"
+    },
+    "common.appName": {
+      "status": "needs-review",
+      "en": "Food Bundles Chef"
+    },
+    "common.sync.saved": {
+      "status": "needs-review",
+      "en": "Saved"
+    },
+    "common.sync.pending": {
+      "status": "needs-review",
+      "en": "Pending"
+    },
+    "common.sync.pendingCount_one": {
+      "status": "needs-review",
+      "en": "{{count}} change waiting to sync"
+    },
+    "common.sync.pendingCount_other": {
+      "status": "needs-review",
+      "en": "{{count}} changes waiting to sync"
+    },
+    "common.sync.syncing": {
+      "status": "needs-review",
+      "en": "Syncing"
+    },
+    "common.sync.failed": {
+      "status": "needs-review",
+      "en": "Sync failed"
+    },
+    "common.sync.conflict": {
+      "status": "needs-review",
+      "en": "Conflict"
+    },
+    "common.searchPlaceholder": {
+      "status": "needs-review",
+      "en": "Search…"
+    },
+    "common.clearSearch": {
+      "status": "needs-review",
+      "en": "Clear search"
+    },
+    "common.quantity": {
+      "status": "needs-review",
+      "en": "Quantity"
+    },
+    "common.decrease": {
+      "status": "needs-review",
+      "en": "Decrease {{subject}}"
+    },
+    "common.increase": {
+      "status": "needs-review",
+      "en": "Increase {{subject}}"
+    },
+    "common.dismissDialog": {
+      "status": "needs-review",
+      "en": "Close dialog"
+    },
+    "tabs.dashboard": {
+      "status": "needs-review",
+      "en": "Dashboard"
+    },
+    "tabs.menu": {
+      "status": "needs-review",
+      "en": "Menu"
+    },
+    "tabs.purchasing": {
+      "status": "needs-review",
+      "en": "Requisition"
+    },
+    "tabs.stock": {
+      "status": "needs-review",
+      "en": "Stock"
+    },
+    "tabs.profile": {
+      "status": "needs-review",
+      "en": "Profile"
+    },
+    "dashboard.title": {
+      "status": "needs-review",
+      "en": "Dashboard"
+    },
+    "dashboard.live": {
+      "status": "needs-review",
+      "en": "LIVE"
+    },
+    "dashboard.switchKitchen": {
+      "status": "needs-review",
+      "en": "Switch Kitchen"
+    },
+    "dashboard.activeKitchen": {
+      "status": "needs-review",
+      "en": "Active Kitchen"
+    },
+    "dashboard.noKitchen": {
+      "status": "needs-review",
+      "en": "No kitchen selected"
+    },
+    "dashboard.lowStock": {
+      "status": "needs-review",
+      "en": "Low Stock"
+    },
+    "dashboard.allStocked": {
+      "status": "needs-review",
+      "en": "All stocked"
+    },
+    "dashboard.actionNeeded": {
+      "status": "needs-review",
+      "en": "Action needed"
+    },
+    "dashboard.pendingOrders": {
+      "status": "needs-review",
+      "en": "Requisitions"
+    },
+    "dashboard.deliveries": {
+      "status": "needs-review",
+      "en": "Deliveries"
+    },
+    "dashboard.sales": {
+      "status": "needs-review",
+      "en": "Sales"
+    },
+    "dashboard.recentDeliveries": {
+      "status": "needs-review",
+      "en": "Recent Deliveries"
+    },
+    "dashboard.procurementReminder": {
+      "status": "needs-review",
+      "en": "Procurement Reminder"
+    },
+    "dashboard.reviewPurchaseList": {
+      "status": "needs-review",
+      "en": "Review Purchase List ›"
+    },
+    "dashboard.alerts": {
+      "status": "needs-review",
+      "en": "Alert"
+    },
+    "dashboard.alertsPlural": {
+      "status": "needs-review",
+      "en": "Alerts"
+    },
+    "dashboard.seeAll": {
+      "status": "needs-review",
+      "en": "See all"
+    },
+    "dashboard.catalog": {
+      "status": "needs-review",
+      "en": "Catalog"
+    },
+    "dashboard.catalogLoading": {
+      "status": "needs-review",
+      "en": "Loading catalog…"
+    },
+    "dashboard.catalogEmpty": {
+      "status": "needs-review",
+      "en": "No products in catalog yet."
+    },
+    "dashboard.browseCatalog": {
+      "status": "needs-review",
+      "en": "Browse Catalog"
+    },
+    "dashboard.viewFullCatalog": {
+      "status": "needs-review",
+      "en": "View full catalog →"
+    },
+    "dashboard.allIngredientsStocked": {
+      "status": "needs-review",
+      "en": "All ingredients are stocked."
+    },
+    "dashboard.onboardingAddMenu": {
+      "status": "needs-review",
+      "en": "Add menu items"
+    },
+    "dashboard.onboardingAddMenuSub": {
+      "status": "needs-review",
+      "en": "Set up your dishes and prices"
+    },
+    "dashboard.onboardingTrackIngredients": {
+      "status": "needs-review",
+      "en": "Track ingredients"
+    },
+    "dashboard.onboardingTrackIngredientsSub": {
+      "status": "needs-review",
+      "en": "Add stock to monitor purchasing needs"
+    },
+    "dashboard.onboardingReceiveDelivery": {
+      "status": "needs-review",
+      "en": "Receive a delivery"
+    },
+    "dashboard.onboardingReceiveDeliverySub": {
+      "status": "needs-review",
+      "en": "Log an incoming supplier order"
+    },
+    "dashboard.salesSub": {
+      "status": "needs-review",
+      "en": "Tap to record today"
+    },
+    "dashboard.quickActions": {
+      "status": "needs-review",
+      "en": "Quick Actions"
+    },
+    "dashboard.qaReceive": {
+      "status": "needs-review",
+      "en": "Receive"
+    },
+    "dashboard.qaReceiveSub": {
+      "status": "needs-review",
+      "en": "Log delivery"
+    },
+    "dashboard.qaOrders": {
+      "status": "needs-review",
+      "en": "Orders"
+    },
+    "dashboard.qaOrdersSub": {
+      "status": "needs-review",
+      "en": "Requisitions"
+    },
+    "dashboard.qaMenu": {
+      "status": "needs-review",
+      "en": "Menu"
+    },
+    "dashboard.qaMenuSub": {
+      "status": "needs-review",
+      "en": "Manage dishes"
+    },
+    "dashboard.qaSales": {
+      "status": "needs-review",
+      "en": "Sales"
+    },
+    "dashboard.qaSalesSub": {
+      "status": "needs-review",
+      "en": "Record sale"
+    },
+    "dashboard.salesToday_one": {
+      "status": "needs-review",
+      "en": "{{count}} portion today"
+    },
+    "dashboard.salesToday_other": {
+      "status": "needs-review",
+      "en": "{{count}} portions today"
+    },
+    "dashboard.lowStockAlert_one": {
+      "status": "needs-review",
+      "en": "{{count}} ingredient is below 1 day of cover — reorder today."
+    },
+    "dashboard.lowStockAlert_other": {
+      "status": "needs-review",
+      "en": "{{count}} ingredients are below 1 day of cover — reorder today."
+    },
+    "dashboard.alertsCount_one": {
+      "status": "needs-review",
+      "en": "{{count}} alert"
+    },
+    "dashboard.alertsCount_other": {
+      "status": "needs-review",
+      "en": "{{count}} alerts"
+    },
+    "dashboard.remaining": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}} left"
+    },
+    "dashboard.reorderBody_one": {
+      "status": "needs-review",
+      "en": "{{count}} ingredient is below the reorder level. Your purchase list is ready to review before tomorrow's service."
+    },
+    "dashboard.reorderBody_other": {
+      "status": "needs-review",
+      "en": "{{count}} ingredients are below the reorder level. Your purchase list is ready to review before tomorrow's service."
+    },
+    "dashboard.catalogItemLabel": {
+      "status": "needs-review",
+      "en": "{{name}} — open the catalog"
+    },
+    "dashboard.pricePerUnit": {
+      "status": "needs-review",
+      "en": "{{price}}/{{unit}}"
+    },
+    "receiving.title": {
+      "status": "needs-review",
+      "en": "Log Delivery"
+    },
+    "receiving.supplierLabel": {
+      "status": "needs-review",
+      "en": "Supplier Name"
+    },
+    "receiving.supplierPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Kigali Fresh Market"
+    },
+    "receiving.kitchenError": {
+      "status": "needs-review",
+      "en": "Please select a kitchen first."
+    },
+    "receiving.itemsError": {
+      "status": "needs-review",
+      "en": "Add at least one item with a quantity."
+    },
+    "receiving.itemsReceived": {
+      "status": "needs-review",
+      "en": "Items Received ({{count}})"
+    },
+    "receiving.addFromCatalog": {
+      "status": "needs-review",
+      "en": "Add from Catalog"
+    },
+    "receiving.addCustomItem": {
+      "status": "needs-review",
+      "en": "Add custom item"
+    },
+    "receiving.trackOnMap": {
+      "status": "needs-review",
+      "en": "Track on Map"
+    },
+    "receiving.gpsRoute": {
+      "status": "needs-review",
+      "en": "GPS route + share location"
+    },
+    "receiving.noCatalogItems": {
+      "status": "needs-review",
+      "en": "No catalog items found"
+    },
+    "receiving.logDelivery": {
+      "status": "needs-review",
+      "en": "Log Delivery"
+    },
+    "receiving.loggingDelivery": {
+      "status": "needs-review",
+      "en": "Logging Delivery…"
+    },
+    "receiving.addDeliveryPhoto": {
+      "status": "needs-review",
+      "en": "Add delivery photo"
+    },
+    "receiving.retake": {
+      "status": "needs-review",
+      "en": "Retake"
+    },
+    "receiving.quantity": {
+      "status": "needs-review",
+      "en": "Quantity"
+    },
+    "receiving.unit": {
+      "status": "needs-review",
+      "en": "Unit"
+    },
+    "receiving.pricePerUnit": {
+      "status": "needs-review",
+      "en": "Price/unit"
+    },
+    "receiving.listTitle": {
+      "status": "needs-review",
+      "en": "Receiving"
+    },
+    "receiving.logWalkIn": {
+      "status": "needs-review",
+      "en": "Log walk-in delivery"
+    },
+    "receiving.loadError": {
+      "status": "needs-review",
+      "en": "Could not load deliveries. Check your connection and try again."
+    },
+    "receiving.expectedDeliveries": {
+      "status": "needs-review",
+      "en": "Expected Deliveries"
+    },
+    "receiving.received": {
+      "status": "needs-review",
+      "en": "Received"
+    },
+    "receiving.emptyTitle": {
+      "status": "needs-review",
+      "en": "No deliveries yet"
+    },
+    "receiving.emptyDesc": {
+      "status": "needs-review",
+      "en": "Your incoming Food Bundles orders and walk-in deliveries will appear here, ready to log into stock."
+    },
+    "receiving.emptyPlaceFirst": {
+      "status": "needs-review",
+      "en": "Place an order first"
+    },
+    "receiving.emptyPlaceFirstDesc": {
+      "status": "needs-review",
+      "en": "Browse the catalog, add products, and submit a requisition. It'll show here when confirmed."
+    },
+    "receiving.emptyWalkIn": {
+      "status": "needs-review",
+      "en": "Log a walk-in delivery"
+    },
+    "receiving.emptyWalkInDesc": {
+      "status": "needs-review",
+      "en": "Got stock from a local supplier? Tap the + button above to record it and update your stock levels."
+    },
+    "receiving.browseCatalogOrder": {
+      "status": "needs-review",
+      "en": "Browse Catalog & Order"
+    },
+    "receiving.logWalkInDelivery": {
+      "status": "needs-review",
+      "en": "Log Walk-in Delivery"
+    },
+    "receiving.deliveryTitle": {
+      "status": "needs-review",
+      "en": "Delivery"
+    },
+    "receiving.deliveryNotFound": {
+      "status": "needs-review",
+      "en": "Order not found."
+    },
+    "receiving.deliveryLoadError": {
+      "status": "needs-review",
+      "en": "Could not load order. Check your connection."
+    },
+    "receiving.startReceiving": {
+      "status": "needs-review",
+      "en": "Start Receiving"
+    },
+    "receiving.starting": {
+      "status": "needs-review",
+      "en": "Starting…"
+    },
+    "receiving.items": {
+      "status": "needs-review",
+      "en": "Items ({{count}})"
+    },
+    "receiving.completeDelivery": {
+      "status": "needs-review",
+      "en": "Complete Delivery"
+    },
+    "receiving.completing": {
+      "status": "needs-review",
+      "en": "Completing…"
+    },
+    "receiving.deliveryCompleted": {
+      "status": "needs-review",
+      "en": "Delivery completed"
+    },
+    "receiving.startDeliveryError": {
+      "status": "needs-review",
+      "en": "Could not start delivery. Please try again."
+    },
+    "receiving.completeDeliveryError": {
+      "status": "needs-review",
+      "en": "Could not complete delivery. Please try again."
+    },
+    "receiving.ordered": {
+      "status": "needs-review",
+      "en": "Ordered: {{qty}} {{unit}}"
+    },
+    "receiving.receivedQty": {
+      "status": "needs-review",
+      "en": "Received: {{qty}} {{unit}}"
+    },
+    "receiving.shortDelivery": {
+      "status": "needs-review",
+      "en": " ⚠ Short delivery"
+    },
+    "receiving.refPrice": {
+      "status": "needs-review",
+      "en": "Ref: {{price}} RWF/{{unit}}"
+    },
+    "receiving.statusSubmitted": {
+      "status": "needs-review",
+      "en": "Awaiting Delivery"
+    },
+    "receiving.statusConfirmed": {
+      "status": "needs-review",
+      "en": "Pending"
+    },
+    "receiving.statusOutForDelivery": {
+      "status": "needs-review",
+      "en": "In Transit"
+    },
+    "receiving.statusDelivered": {
+      "status": "needs-review",
+      "en": "Delivered"
+    },
+    "receiving.receiveItemTitle": {
+      "status": "needs-review",
+      "en": "Receive Item"
+    },
+    "receiving.itemNotFound": {
+      "status": "needs-review",
+      "en": "Item not found."
+    },
+    "receiving.cameraAccessTitle": {
+      "status": "needs-review",
+      "en": "Camera Access Needed"
+    },
+    "receiving.cameraAccessDesc": {
+      "status": "needs-review",
+      "en": "To assess delivery quality, the app needs camera access. You can also skip and enter values manually."
+    },
+    "receiving.grantCamera": {
+      "status": "needs-review",
+      "en": "Grant Camera Access"
+    },
+    "receiving.skipManual": {
+      "status": "needs-review",
+      "en": "Skip — Enter Manually"
+    },
+    "receiving.takePhotoOrGallery": {
+      "status": "needs-review",
+      "en": "Take a photo or choose from gallery"
+    },
+    "receiving.skipPhotoManual": {
+      "status": "needs-review",
+      "en": "Skip Photo — Enter Manually"
+    },
+    "receiving.addNoteTitle": {
+      "status": "needs-review",
+      "en": "Add Note to Photo"
+    },
+    "receiving.addNoteOptional": {
+      "status": "needs-review",
+      "en": "Add a note (optional)"
+    },
+    "receiving.annotationPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 2 bags damaged, rest OK"
+    },
+    "receiving.annotationHint": {
+      "status": "needs-review",
+      "en": "Your note will be shown on the photo and sent to AI as extra context."
+    },
+    "receiving.assessWithAI": {
+      "status": "needs-review",
+      "en": "Assess with AI"
+    },
+    "receiving.skipAIManual": {
+      "status": "needs-review",
+      "en": "Skip AI — Enter Manually"
+    },
+    "receiving.retakePhoto": {
+      "status": "needs-review",
+      "en": "Retake Photo"
+    },
+    "receiving.aiRunning": {
+      "status": "needs-review",
+      "en": "AI Assessment Running"
+    },
+    "receiving.aiAdvisory": {
+      "status": "needs-review",
+      "en": "Advisory only — you can override all values"
+    },
+    "receiving.aiAssessmentTitle": {
+      "status": "needs-review",
+      "en": "AI Quality Assessment (Advisory)"
+    },
+    "receiving.aiEstimatedQty": {
+      "status": "needs-review",
+      "en": "AI estimated quantity:"
+    },
+    "receiving.aiNotVisible": {
+      "status": "needs-review",
+      "en": "Not visible in image — enter manually"
+    },
+    "receiving.enterValues": {
+      "status": "needs-review",
+      "en": "Enter Values"
+    },
+    "receiving.orderedLabel": {
+      "status": "needs-review",
+      "en": "Ordered"
+    },
+    "receiving.acceptedQtyLabel": {
+      "status": "needs-review",
+      "en": "Accepted Quantity (actual)"
+    },
+    "receiving.shortDeliveryWarning": {
+      "status": "needs-review",
+      "en": "Short delivery: accepted is more than 5% below ordered."
+    },
+    "receiving.discrepancyLabel": {
+      "status": "needs-review",
+      "en": "Discrepancy Reason (optional)"
+    },
+    "receiving.discrepancyPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Two bags had visible mold"
+    },
+    "receiving.decisionLabel": {
+      "status": "needs-review",
+      "en": "Decision"
+    },
+    "receiving.accept": {
+      "status": "needs-review",
+      "en": "Accept"
+    },
+    "receiving.partiallyAccept": {
+      "status": "needs-review",
+      "en": "Partially Accept"
+    },
+    "receiving.reject": {
+      "status": "needs-review",
+      "en": "Reject"
+    },
+    "receiving.imageTooLarge": {
+      "status": "needs-review",
+      "en": "Image too large"
+    },
+    "receiving.imageTooLargeDesc": {
+      "status": "needs-review",
+      "en": "Could not compress image below 1 MB. Please try again."
+    },
+    "receiving.cameraError": {
+      "status": "needs-review",
+      "en": "Camera error"
+    },
+    "receiving.cameraErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not capture photo. Please try again."
+    },
+    "receiving.permissionRequired": {
+      "status": "needs-review",
+      "en": "Permission required"
+    },
+    "receiving.galleryPermissionDesc": {
+      "status": "needs-review",
+      "en": "Gallery access is needed to upload a photo."
+    },
+    "receiving.uploadError": {
+      "status": "needs-review",
+      "en": "Upload error"
+    },
+    "receiving.uploadErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not load the selected photo. Please try again."
+    },
+    "receiving.imageTooLargeGallery": {
+      "status": "needs-review",
+      "en": "Could not compress image below 1 MB. Please choose a smaller photo."
+    },
+    "receiving.aiUnavailable": {
+      "status": "needs-review",
+      "en": "AI assessment is unavailable. Please enter values manually."
+    },
+    "receiving.assessmentFailed": {
+      "status": "needs-review",
+      "en": "Assessment failed. Please enter values manually."
+    },
+    "receiving.mapTitle": {
+      "status": "needs-review",
+      "en": "Delivery Map"
+    },
+    "receiving.locationRequired": {
+      "status": "needs-review",
+      "en": "Location Access Required"
+    },
+    "receiving.locationRequiredDesc": {
+      "status": "needs-review",
+      "en": "Enable location in your device settings to use the delivery map."
+    },
+    "receiving.goBack": {
+      "status": "needs-review",
+      "en": "Go Back"
+    },
+    "receiving.gettingLocation": {
+      "status": "needs-review",
+      "en": "Getting location…"
+    },
+    "receiving.timeLabel": {
+      "status": "needs-review",
+      "en": "Time"
+    },
+    "receiving.distanceLabel": {
+      "status": "needs-review",
+      "en": "Distance"
+    },
+    "receiving.pointsLabel": {
+      "status": "needs-review",
+      "en": "Points"
+    },
+    "receiving.tapMapHint": {
+      "status": "needs-review",
+      "en": "Tap the map to drop a supplier pin, or start tracking your route"
+    },
+    "receiving.routeRecorded": {
+      "status": "needs-review",
+      "en": "Route recorded — tap Start to track again"
+    },
+    "receiving.startTrackingRoute": {
+      "status": "needs-review",
+      "en": "Start Tracking Route"
+    },
+    "receiving.trackingActive": {
+      "status": "needs-review",
+      "en": "Tracking active — your route is being recorded"
+    },
+    "receiving.stopTracking": {
+      "status": "needs-review",
+      "en": "Stop Tracking"
+    },
+    "receiving.doneBack": {
+      "status": "needs-review",
+      "en": "Done — Back to Delivery"
+    },
+    "receiving.chooseFromGallery": {
+      "status": "needs-review",
+      "en": "Choose from gallery"
+    },
+    "receiving.takePhoto": {
+      "status": "needs-review",
+      "en": "Take photo"
+    },
+    "receiving.centerOnMe": {
+      "status": "needs-review",
+      "en": "Center on my location"
+    },
+    "receiving.shareLocation": {
+      "status": "needs-review",
+      "en": "Share location"
+    },
+    "receiving.rowOrderPrefix": {
+      "status": "needs-review",
+      "en": "Order"
+    },
+    "receiving.rowOrdered": {
+      "status": "needs-review",
+      "en": "Ordered:"
+    },
+    "receiving.rowDelivered": {
+      "status": "needs-review",
+      "en": "Delivered"
+    },
+    "receiving.rowExpected": {
+      "status": "needs-review",
+      "en": "Expected"
+    },
+    "receiving.rowReceivedOn": {
+      "status": "needs-review",
+      "en": "Received"
+    },
+    "receiving.supplierNote": {
+      "status": "needs-review",
+      "en": "Supplier: {{supplier}}"
+    },
+    "receiving.walkInNote": {
+      "status": "needs-review",
+      "en": "Walk-in delivery"
+    },
+    "receiving.ai.readPhoto": {
+      "status": "needs-review",
+      "en": "Read items from this photo"
+    },
+    "receiving.ai.readPhotoSub": {
+      "status": "needs-review",
+      "en": "AI fills in the lines — you check them before saving."
+    },
+    "receiving.ai.noLines": {
+      "status": "needs-review",
+      "en": "No items could be read — add them below."
+    },
+    "receiving.ai.notADocument": {
+      "status": "needs-review",
+      "en": "This doesn't look like a delivery note or receipt — add the items below."
+    },
+    "receiving.ai.added_one": {
+      "status": "needs-review",
+      "en": "{{count}} line read from the photo — check it before saving."
+    },
+    "receiving.ai.added_other": {
+      "status": "needs-review",
+      "en": "{{count}} lines read from the photo — check each one before saving."
+    },
+    "receiving.ai.checkLine": {
+      "status": "needs-review",
+      "en": "Check this line"
+    },
+    "receiving.ai.readByAi": {
+      "status": "needs-review",
+      "en": "Read by AI"
+    },
+    "receiving.itemNameRequired": {
+      "status": "needs-review",
+      "en": "Item name is required"
+    },
+    "receiving.quantityRequired": {
+      "status": "needs-review",
+      "en": "Enter a quantity above 0"
+    },
+    "receiving.loggedTitle": {
+      "status": "needs-review",
+      "en": "Delivery logged"
+    },
+    "receiving.loggedBodyFrom_one": {
+      "status": "needs-review",
+      "en": "{{count}} item from {{supplier}} was added to stock."
+    },
+    "receiving.loggedBodyFrom_other": {
+      "status": "needs-review",
+      "en": "{{count}} items from {{supplier}} were added to stock."
+    },
+    "receiving.loggedBody_one": {
+      "status": "needs-review",
+      "en": "{{count}} item was added to stock."
+    },
+    "receiving.loggedBody_other": {
+      "status": "needs-review",
+      "en": "{{count}} items were added to stock."
+    },
+    "receiving.logError": {
+      "status": "needs-review",
+      "en": "Couldn't log the delivery. Check your connection and try again — it won't be saved twice."
+    },
+    "receiving.receiveTitle": {
+      "status": "needs-review",
+      "en": "Receive delivery"
+    },
+    "receiving.cameraAccessBody": {
+      "status": "needs-review",
+      "en": "Take a photo of the delivery note or the goods, or skip and enter the items by hand."
+    },
+    "receiving.skipPhoto": {
+      "status": "needs-review",
+      "en": "Skip photo"
+    },
+    "receiving.startedAt": {
+      "status": "needs-review",
+      "en": "Started at {{time}}"
+    },
+    "receiving.takePhotoLabel": {
+      "status": "needs-review",
+      "en": "Take photo"
+    },
+    "receiving.photoHint": {
+      "status": "needs-review",
+      "en": "Photograph the delivery note or the goods."
+    },
+    "receiving.skipPhotoLogItems": {
+      "status": "needs-review",
+      "en": "Skip photo — log items"
+    },
+    "receiving.logDeliveryTitle": {
+      "status": "needs-review",
+      "en": "Log delivery"
+    },
+    "receiving.addItemToLog": {
+      "status": "needs-review",
+      "en": "Add at least one item to log the delivery."
+    },
+    "receiving.fixItems_one": {
+      "status": "needs-review",
+      "en": "Fix {{count}} item before logging."
+    },
+    "receiving.fixItems_other": {
+      "status": "needs-review",
+      "en": "Fix {{count}} items before logging."
+    },
+    "receiving.deliveryStartedAt": {
+      "status": "needs-review",
+      "en": "Delivery started at {{time}}"
+    },
+    "receiving.deliveryPhoto": {
+      "status": "needs-review",
+      "en": "Delivery photo"
+    },
+    "receiving.deliveryDefaultName": {
+      "status": "needs-review",
+      "en": "Delivery"
+    },
+    "receiving.searchCatalog": {
+      "status": "needs-review",
+      "en": "Search the catalog…"
+    },
+    "receiving.addCustomNamed": {
+      "status": "needs-review",
+      "en": "+ Add “{{query}}” as a custom item"
+    },
+    "receiving.itemNamePlaceholder": {
+      "status": "needs-review",
+      "en": "Item name"
+    },
+    "receiving.itemNameLabel": {
+      "status": "needs-review",
+      "en": "Item name"
+    },
+    "receiving.removeItemLabel": {
+      "status": "needs-review",
+      "en": "Remove {{name}}"
+    },
+    "receiving.map.start": {
+      "status": "needs-review",
+      "en": "Start"
+    },
+    "receiving.map.tapToRemove": {
+      "status": "needs-review",
+      "en": "Tap to remove"
+    },
+    "receiving.map.shareMessage": {
+      "status": "needs-review",
+      "en": "{{supplier}} delivery location: {{url}}"
+    },
+    "receiving.capturedPhoto": {
+      "status": "needs-review",
+      "en": "Captured delivery photo"
+    },
+    "receiving.annotationNote": {
+      "status": "needs-review",
+      "en": "Note on the photo"
+    },
+    "receiving.acceptedQuantity": {
+      "status": "needs-review",
+      "en": "Accepted quantity"
+    },
+    "receiving.discrepancyReason": {
+      "status": "needs-review",
+      "en": "Reason for the difference"
+    },
+    "receiving.acceptLabel": {
+      "status": "needs-review",
+      "en": "Accept delivery"
+    },
+    "receiving.partialLabel": {
+      "status": "needs-review",
+      "en": "Partially accept delivery"
+    },
+    "receiving.rejectLabel": {
+      "status": "needs-review",
+      "en": "Reject delivery"
+    },
+    "receiving.aiQuantityEstimate": {
+      "status": "needs-review",
+      "en": "About {{qty}} {{unit}} (AI estimate — enter the actual quantity below)"
+    },
+    "receiving.refPriceLine": {
+      "status": "needs-review",
+      "en": "Reference price: {{price}}/{{unit}}"
+    },
+    "receiving.openDeliveryLabel": {
+      "status": "needs-review",
+      "en": "Open delivery for order {{id}}"
+    },
+    "errors.boundary.title": {
+      "status": "needs-review",
+      "en": "Something went wrong"
+    },
+    "errors.boundary.body": {
+      "status": "needs-review",
+      "en": "The app hit an unexpected problem. Your saved data is safe."
+    },
+    "errors.boundary.retry": {
+      "status": "needs-review",
+      "en": "Try again"
+    },
+    "kitchens.title": {
+      "status": "needs-review",
+      "en": "Kitchens"
+    },
+    "kitchens.yourKitchens": {
+      "status": "needs-review",
+      "en": "Your Kitchens"
+    },
+    "kitchens.selectKitchen": {
+      "status": "needs-review",
+      "en": "Select kitchen"
+    },
+    "kitchens.noKitchens": {
+      "status": "needs-review",
+      "en": "No kitchens yet. Add your first kitchen."
+    },
+    "kitchens.noKitchensTitle": {
+      "status": "needs-review",
+      "en": "No kitchens yet"
+    },
+    "kitchens.noKitchensDesc": {
+      "status": "needs-review",
+      "en": "Create your first kitchen to start managing stock, menus, and deliveries."
+    },
+    "kitchens.createKitchen": {
+      "status": "needs-review",
+      "en": "Create Kitchen"
+    },
+    "kitchens.addLocation": {
+      "status": "needs-review",
+      "en": "Add location"
+    },
+    "kitchens.address": {
+      "status": "needs-review",
+      "en": "Address"
+    },
+    "kitchens.cuisine": {
+      "status": "needs-review",
+      "en": "Cuisine"
+    },
+    "kitchens.seating": {
+      "status": "needs-review",
+      "en": "Seating"
+    },
+    "kitchens.status": {
+      "status": "needs-review",
+      "en": "Status"
+    },
+    "kitchens.active": {
+      "status": "needs-review",
+      "en": "Active"
+    },
+    "kitchens.archived": {
+      "status": "needs-review",
+      "en": "Archived"
+    },
+    "kitchens.createYourKitchen": {
+      "status": "needs-review",
+      "en": "Create Your Kitchen"
+    },
+    "kitchens.createHeroSub": {
+      "status": "needs-review",
+      "en": "Your kitchen workspace for managing stock, menus, and deliveries."
+    },
+    "kitchens.kitchenNameLabel": {
+      "status": "needs-review",
+      "en": "Kitchen Name *"
+    },
+    "kitchens.kitchenNamePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Kigali Bistro"
+    },
+    "kitchens.cityLabel": {
+      "status": "needs-review",
+      "en": "City / Location *"
+    },
+    "kitchens.cityPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Kigali, Musanze, Butare"
+    },
+    "kitchens.addressLabel": {
+      "status": "needs-review",
+      "en": "Address (optional)"
+    },
+    "kitchens.addressPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. KG 7 Ave, Kigali"
+    },
+    "kitchens.seatingLabel": {
+      "status": "needs-review",
+      "en": "Seating Capacity (optional)"
+    },
+    "kitchens.seatingPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 40"
+    },
+    "kitchens.createError": {
+      "status": "needs-review",
+      "en": "Failed to create kitchen. Please try again."
+    },
+    "kitchens.createButton": {
+      "status": "needs-review",
+      "en": "Create Kitchen"
+    },
+    "kitchens.archiveKitchen": {
+      "status": "needs-review",
+      "en": "Archive Kitchen"
+    },
+    "kitchens.isArchived": {
+      "status": "needs-review",
+      "en": "This kitchen is archived."
+    },
+    "kitchens.saveError": {
+      "status": "needs-review",
+      "en": "Failed to save changes. Please try again."
+    },
+    "kitchens.saving": {
+      "status": "needs-review",
+      "en": "Saving…"
+    },
+    "kitchens.saveButton": {
+      "status": "needs-review",
+      "en": "Save Changes"
+    },
+    "kitchens.archiveDialogTitle": {
+      "status": "needs-review",
+      "en": "Archive Kitchen?"
+    },
+    "kitchens.archiveDialogMessage": {
+      "status": "needs-review",
+      "en": "This kitchen will be hidden from your workspace. You can restore it later."
+    },
+    "kitchens.archiveConfirm": {
+      "status": "needs-review",
+      "en": "Archive"
+    },
+    "kitchens.photoPermissionTitle": {
+      "status": "needs-review",
+      "en": "Photo access needed"
+    },
+    "kitchens.photoPermissionBody": {
+      "status": "needs-review",
+      "en": "Allow access to your camera or photos to add a kitchen photo."
+    },
+    "kitchens.photoTitle": {
+      "status": "needs-review",
+      "en": "Kitchen photo"
+    },
+    "kitchens.photoSource": {
+      "status": "needs-review",
+      "en": "Take a photo or choose one from your gallery."
+    },
+    "kitchens.addPhotoLabel": {
+      "status": "needs-review",
+      "en": "Add a kitchen photo"
+    },
+    "kitchens.notFound": {
+      "status": "needs-review",
+      "en": "Kitchen not found."
+    },
+    "kitchens.noChanges": {
+      "status": "needs-review",
+      "en": "No changes to save."
+    },
+    "kitchens.detailsEyebrow": {
+      "status": "needs-review",
+      "en": "Kitchen details"
+    },
+    "kitchens.changePhotoLabel": {
+      "status": "needs-review",
+      "en": "Change kitchen photo"
+    },
+    "kitchens.archiveError": {
+      "status": "needs-review",
+      "en": "Couldn't archive the kitchen. Try again."
+    },
+    "kitchens.selectorLabel": {
+      "status": "needs-review",
+      "en": "Choose the active kitchen"
+    },
+    "kitchens.addKitchenLabel": {
+      "status": "needs-review",
+      "en": "Add a kitchen"
+    },
+    "kitchens.addLocationFor": {
+      "status": "needs-review",
+      "en": "Add a location for {{name}}"
+    },
+    "kitchens.editKitchenLabel": {
+      "status": "needs-review",
+      "en": "Edit {{name}}"
+    },
+    "kitchens.editArchivedLabel": {
+      "status": "needs-review",
+      "en": "Edit archived kitchen {{name}}"
+    },
+    "menu.title": {
+      "status": "needs-review",
+      "en": "Menu"
+    },
+    "menu.emptyTitle": {
+      "status": "needs-review",
+      "en": "Your menu is empty"
+    },
+    "menu.addFirstItem": {
+      "status": "needs-review",
+      "en": "Add First Item"
+    },
+    "menu.whyAddItems": {
+      "status": "needs-review",
+      "en": "Why add menu items?"
+    },
+    "menu.edit": {
+      "status": "needs-review",
+      "en": "Edit"
+    },
+    "menu.recipe": {
+      "status": "needs-review",
+      "en": "Recipe"
+    },
+    "menu.deleteItem": {
+      "status": "needs-review",
+      "en": "Delete Item"
+    },
+    "menu.scanMenu": {
+      "status": "needs-review",
+      "en": "Scan Menu"
+    },
+    "menu.scanMenuPrompt": {
+      "status": "needs-review",
+      "en": "Photograph your menu and AI will extract the items"
+    },
+    "menu.howToScan": {
+      "status": "needs-review",
+      "en": "How to scan"
+    },
+    "menu.readingMenu": {
+      "status": "needs-review",
+      "en": "Reading menu…"
+    },
+    "menu.scanError": {
+      "status": "needs-review",
+      "en": "Could not read this photo"
+    },
+    "menu.retakePhoto": {
+      "status": "needs-review",
+      "en": "Retake photo"
+    },
+    "menu.addManually": {
+      "status": "needs-review",
+      "en": "Add manually"
+    },
+    "menu.noItemsDetected": {
+      "status": "needs-review",
+      "en": "No items detected"
+    },
+    "menu.noPrice": {
+      "status": "needs-review",
+      "en": "No price"
+    },
+    "menu.importDone": {
+      "status": "needs-review",
+      "en": "Done"
+    },
+    "menu.cancelImport": {
+      "status": "needs-review",
+      "en": "Cancel"
+    },
+    "menu.noKitchenSelected": {
+      "status": "needs-review",
+      "en": "No kitchen selected"
+    },
+    "menu.selectKitchenFirst": {
+      "status": "needs-review",
+      "en": "Select a kitchen from the Profile tab to manage your menu."
+    },
+    "menu.categories.all": {
+      "status": "needs-review",
+      "en": "All"
+    },
+    "menu.categories.main": {
+      "status": "needs-review",
+      "en": "Main"
+    },
+    "menu.categories.side": {
+      "status": "needs-review",
+      "en": "Side"
+    },
+    "menu.categories.drink": {
+      "status": "needs-review",
+      "en": "Drink"
+    },
+    "menu.categories.dessert": {
+      "status": "needs-review",
+      "en": "Dessert"
+    },
+    "menu.recordSales": {
+      "status": "needs-review",
+      "en": "Record sales"
+    },
+    "menu.addItem": {
+      "status": "needs-review",
+      "en": "Add menu item"
+    },
+    "menu.searchPlaceholder": {
+      "status": "needs-review",
+      "en": "Search menu…"
+    },
+    "menu.loadError": {
+      "status": "needs-review",
+      "en": "Couldn't load the menu."
+    },
+    "menu.noResults": {
+      "status": "needs-review",
+      "en": "No matching dishes"
+    },
+    "menu.noResultsBody": {
+      "status": "needs-review",
+      "en": "Try another name or category."
+    },
+    "menu.emptyBody": {
+      "status": "needs-review",
+      "en": "Add your dishes and drinks so you can record sales and see which ingredients you need."
+    },
+    "menu.off": {
+      "status": "needs-review",
+      "en": "Off"
+    },
+    "menu.openItem": {
+      "status": "needs-review",
+      "en": "Open {{name}}"
+    },
+    "menu.recipeOf": {
+      "status": "needs-review",
+      "en": "Recipe for {{name}}"
+    },
+    "menu.moreOptions": {
+      "status": "needs-review",
+      "en": "More options for {{name}}"
+    },
+    "menu.deleteItemLabel": {
+      "status": "needs-review",
+      "en": "Delete {{name}}"
+    },
+    "menu.removed": {
+      "status": "needs-review",
+      "en": "{{name}} removed"
+    },
+    "menu.scan.howTitle": {
+      "status": "needs-review",
+      "en": "How to scan"
+    },
+    "menu.scan.howBody": {
+      "status": "needs-review",
+      "en": "Point the camera at a printed or handwritten menu, flat and well lit."
+    },
+    "menu.scan.multiPage": {
+      "status": "needs-review",
+      "en": "Long menu? Scan one page at a time — you can add pages before importing."
+    },
+    "menu.scan.takePhoto": {
+      "status": "needs-review",
+      "en": "Take a photo"
+    },
+    "menu.scan.fromGallery": {
+      "status": "needs-review",
+      "en": "Choose from gallery"
+    },
+    "menu.scan.cameraDenied": {
+      "status": "needs-review",
+      "en": "Camera access is off. Allow it in Settings, or choose a photo from your gallery."
+    },
+    "menu.scan.addPage": {
+      "status": "needs-review",
+      "en": "Add another page"
+    },
+    "menu.scan.addPageSub": {
+      "status": "needs-review",
+      "en": "Scan the next page of the same menu"
+    },
+    "menu.scan.tryAnother": {
+      "status": "needs-review",
+      "en": "Try another photo"
+    },
+    "menu.scan.found_one": {
+      "status": "needs-review",
+      "en": "{{count}} item found"
+    },
+    "menu.scan.found_other": {
+      "status": "needs-review",
+      "en": "{{count}} items found"
+    },
+    "menu.scan.selected_one": {
+      "status": "needs-review",
+      "en": "{{count}} selected"
+    },
+    "menu.scan.selected_other": {
+      "status": "needs-review",
+      "en": "{{count}} selected"
+    },
+    "menu.scan.reviewHint": {
+      "status": "needs-review",
+      "en": "AI estimate — check names and prices. Nothing is saved until you import."
+    },
+    "menu.scan.noNewItems": {
+      "status": "needs-review",
+      "en": "No new items on that page."
+    },
+    "menu.scan.importN_one": {
+      "status": "needs-review",
+      "en": "Import {{count}} item"
+    },
+    "menu.scan.importN_other": {
+      "status": "needs-review",
+      "en": "Import {{count}} items"
+    },
+    "menu.scan.importing": {
+      "status": "needs-review",
+      "en": "Importing…"
+    },
+    "menu.scan.importError": {
+      "status": "needs-review",
+      "en": "Some items couldn't be saved. Try again — nothing will be added twice."
+    },
+    "menu.scan.fixRows_one": {
+      "status": "needs-review",
+      "en": "Fix {{count}} item before importing."
+    },
+    "menu.scan.fixRows_other": {
+      "status": "needs-review",
+      "en": "Fix {{count}} items before importing."
+    },
+    "menu.scan.nameRequired": {
+      "status": "needs-review",
+      "en": "Enter a name (at least 2 letters)."
+    },
+    "menu.scan.priceRequired": {
+      "status": "needs-review",
+      "en": "Enter a price in RWF."
+    },
+    "menu.scan.nameLabel": {
+      "status": "needs-review",
+      "en": "Item name"
+    },
+    "menu.scan.priceLabel": {
+      "status": "needs-review",
+      "en": "Price of {{name}} in RWF"
+    },
+    "menu.scan.importItem": {
+      "status": "needs-review",
+      "en": "Import {{name}}"
+    },
+    "menu.scan.updatePriceOf": {
+      "status": "needs-review",
+      "en": "Update the price of {{name}}"
+    },
+    "menu.scan.unnamed": {
+      "status": "needs-review",
+      "en": "item"
+    },
+    "menu.scan.readAs": {
+      "status": "needs-review",
+      "en": "Read as: “{{text}}”"
+    },
+    "menu.scan.imported_one": {
+      "status": "needs-review",
+      "en": "{{count}} item imported"
+    },
+    "menu.scan.imported_other": {
+      "status": "needs-review",
+      "en": "{{count}} items imported"
+    },
+    "menu.scan.undone": {
+      "status": "needs-review",
+      "en": "Import undone"
+    },
+    "menu.scan.undoFailed": {
+      "status": "needs-review",
+      "en": "Couldn't undo — remove the items by hand."
+    },
+    "menu.scan.discardTitle": {
+      "status": "needs-review",
+      "en": "Discard scanned items?"
+    },
+    "menu.scan.discardBody": {
+      "status": "needs-review",
+      "en": "The items you reviewed will not be imported."
+    },
+    "menu.scan.keepReviewing": {
+      "status": "needs-review",
+      "en": "Keep reviewing"
+    },
+    "menu.scan.discard": {
+      "status": "needs-review",
+      "en": "Discard"
+    },
+    "menu.scan.flags.checkName": {
+      "status": "needs-review",
+      "en": "Check the name — it was hard to read."
+    },
+    "menu.scan.flags.checkPrice": {
+      "status": "needs-review",
+      "en": "Check the price — it was hard to read."
+    },
+    "menu.scan.flags.noPrice": {
+      "status": "needs-review",
+      "en": "No price found — add one."
+    },
+    "menu.scan.flags.priceHigh": {
+      "status": "needs-review",
+      "en": "Much higher than your other prices — is it right?"
+    },
+    "menu.scan.flags.priceLow": {
+      "status": "needs-review",
+      "en": "Much lower than your other prices — is it right?"
+    },
+    "menu.scan.flags.duplicateNewPrice": {
+      "status": "needs-review",
+      "en": "Already on the menu at {{price}} — select it to update the price."
+    },
+    "menu.scan.flags.duplicateSamePrice": {
+      "status": "needs-review",
+      "en": "Already on the menu at the same price."
+    },
+    "menu.scan.route.dishTitle": {
+      "status": "needs-review",
+      "en": "This looks like a single dish, not a menu."
+    },
+    "menu.scan.route.dishBody": {
+      "status": "needs-review",
+      "en": "Add it as one item with AI suggestions for ingredients and price?"
+    },
+    "menu.scan.route.dishAction": {
+      "status": "needs-review",
+      "en": "Add as one dish"
+    },
+    "menu.scan.route.receiptTitle": {
+      "status": "needs-review",
+      "en": "This looks like a receipt."
+    },
+    "menu.scan.route.deliveryTitle": {
+      "status": "needs-review",
+      "en": "This looks like a delivery note."
+    },
+    "menu.scan.route.deliveryBody": {
+      "status": "needs-review",
+      "en": "Open Log Delivery with this photo instead?"
+    },
+    "menu.scan.route.deliveryAction": {
+      "status": "needs-review",
+      "en": "Open Log Delivery"
+    },
+    "menu.scan.route.otherTitle": {
+      "status": "needs-review",
+      "en": "This doesn't look like a menu."
+    },
+    "menuItem.notFound": {
+      "status": "needs-review",
+      "en": "Item not found."
+    },
+    "menuItem.foodCost": {
+      "status": "needs-review",
+      "en": "Food cost"
+    },
+    "menuItem.margin": {
+      "status": "needs-review",
+      "en": "Margin"
+    },
+    "menuItem.addIngredient": {
+      "status": "needs-review",
+      "en": "Add Ingredient"
+    },
+    "menuItem.addFirstIngredient": {
+      "status": "needs-review",
+      "en": "Add First Ingredient"
+    },
+    "menuItem.tryAgain": {
+      "status": "needs-review",
+      "en": "Try again"
+    },
+    "menuItem.outOfStock": {
+      "status": "needs-review",
+      "en": "Out"
+    },
+    "menuItem.editItem": {
+      "status": "needs-review",
+      "en": "Edit"
+    },
+    "menuItem.recipeIngredients": {
+      "status": "needs-review",
+      "en": "Recipe Ingredients"
+    },
+    "menuItem.recordSale": {
+      "status": "needs-review",
+      "en": "Record a Sale"
+    },
+    "menuItem.recordSaleSub": {
+      "status": "needs-review",
+      "en": "Log portions sold today"
+    },
+    "menuItem.availableOnMenu": {
+      "status": "needs-review",
+      "en": "Available on menu"
+    },
+    "menuItem.visibleToStaff": {
+      "status": "needs-review",
+      "en": "Visible to staff and in sales"
+    },
+    "menuItem.hiddenFromSales": {
+      "status": "needs-review",
+      "en": "Hidden from sales entry"
+    },
+    "menuItem.noIngredientsYet": {
+      "status": "needs-review",
+      "en": "No ingredients linked yet.\nAdd ingredients to track food cost and stock usage."
+    },
+    "menuItem.foodCostHigh": {
+      "status": "needs-review",
+      "en": "Food cost is high — {{margin}}% margin"
+    },
+    "menuItem.highestCostIngredient": {
+      "status": "needs-review",
+      "en": "Highest cost ingredient: {{name}} · {{cost}} RWF/portion"
+    },
+    "menuItem.title": {
+      "status": "needs-review",
+      "en": "Menu item"
+    },
+    "menuItem.active": {
+      "status": "needs-review",
+      "en": "Active"
+    },
+    "menuItem.inactive": {
+      "status": "needs-review",
+      "en": "Inactive"
+    },
+    "menuItem.editItemLabel": {
+      "status": "needs-review",
+      "en": "Edit {{name}}"
+    },
+    "menuItem.availableLabel": {
+      "status": "needs-review",
+      "en": "{{name}} available on menu"
+    },
+    "menuItem.raisePriceTo": {
+      "status": "needs-review",
+      "en": "To reach a {{margin}}% gross margin, raise the price to {{price}}."
+    },
+    "menuItem.raisePrice": {
+      "status": "needs-review",
+      "en": "Consider raising the selling price to improve your margin."
+    },
+    "menuItem.orReducePortion": {
+      "status": "needs-review",
+      "en": "Or reduce the {{name}} portion."
+    },
+    "menuItem.addIngredientLabel": {
+      "status": "needs-review",
+      "en": "Add ingredient to recipe"
+    },
+    "menuItem.unknownIngredient": {
+      "status": "needs-review",
+      "en": "Unknown ingredient"
+    },
+    "menuItem.perPortion": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}} per portion"
+    },
+    "menuItem.removeLineLabel": {
+      "status": "needs-review",
+      "en": "Remove {{name}} from recipe"
+    },
+    "menuItem.removeLineTitle": {
+      "status": "needs-review",
+      "en": "Remove ingredient?"
+    },
+    "menuItem.removeLineMessage": {
+      "status": "needs-review",
+      "en": "{{name}} will be removed from this recipe."
+    },
+    "menuItem.removeLineConfirm": {
+      "status": "needs-review",
+      "en": "Remove"
+    },
+    "menuItem.lineRemoved": {
+      "status": "needs-review",
+      "en": "{{name}} removed"
+    },
+    "menuItem.removeLineError": {
+      "status": "needs-review",
+      "en": "Could not remove the ingredient. Try again."
+    },
+    "menuItem.lineAdded": {
+      "status": "needs-review",
+      "en": "{{name}} added to recipe"
+    },
+    "menuItem.qtyInvalid": {
+      "status": "needs-review",
+      "en": "Enter a quantity greater than 0."
+    },
+    "menuItem.addLineError": {
+      "status": "needs-review",
+      "en": "Could not add the ingredient. Check your connection and try again."
+    },
+    "menuItem.changeIngredient": {
+      "status": "needs-review",
+      "en": "Choose a different ingredient"
+    },
+    "menuItem.addIngredientSubtitle": {
+      "status": "needs-review",
+      "en": "{{name}} · {{unit}}"
+    },
+    "menuItem.addToRecipe": {
+      "status": "needs-review",
+      "en": "Add to recipe"
+    },
+    "menuItem.qtyPerPortion": {
+      "status": "needs-review",
+      "en": "Quantity per portion"
+    },
+    "menuItem.usagePreview_one": {
+      "status": "needs-review",
+      "en": "{{count}} portion uses {{qty}} {{unit}}."
+    },
+    "menuItem.usagePreview_other": {
+      "status": "needs-review",
+      "en": "{{count}} portions use {{qty}} {{unit}}."
+    },
+    "menuItem.inStockQty": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}} in stock"
+    },
+    "menuItem.noStockRecorded": {
+      "status": "needs-review",
+      "en": "No stock recorded yet"
+    },
+    "menuItem.searchIngredients": {
+      "status": "needs-review",
+      "en": "Search ingredients…"
+    },
+    "menuItem.loadIngredientsError": {
+      "status": "needs-review",
+      "en": "Could not load ingredients."
+    },
+    "menuItem.pickIngredient": {
+      "status": "needs-review",
+      "en": "Choose {{name}}"
+    },
+    "menuItem.noIngredientsInStock": {
+      "status": "needs-review",
+      "en": "No ingredients in stock yet."
+    },
+    "menuItem.noIngredientMatch": {
+      "status": "needs-review",
+      "en": "No ingredient matches “{{query}}”."
+    },
+    "menuItem.allIngredientsInRecipe": {
+      "status": "needs-review",
+      "en": "All ingredients are already in this recipe."
+    },
+    "menuItem.createNamed": {
+      "status": "needs-review",
+      "en": "Add “{{name}}” as a new ingredient"
+    },
+    "menuItem.createNew": {
+      "status": "needs-review",
+      "en": "Add a new ingredient"
+    },
+    "createItem.analysingDish": {
+      "status": "needs-review",
+      "en": "Analyzing dish…"
+    },
+    "createItem.addDishPhoto": {
+      "status": "needs-review",
+      "en": "Add Dish Photo"
+    },
+    "createItem.aiLabel": {
+      "status": "needs-review",
+      "en": "AI"
+    },
+    "createItem.aiSuggestions": {
+      "status": "needs-review",
+      "en": "AI Suggestions"
+    },
+    "createItem.suggestedPrice": {
+      "status": "needs-review",
+      "en": "Suggested price:"
+    },
+    "createItem.title": {
+      "status": "needs-review",
+      "en": "New Menu Item"
+    },
+    "createItem.helpText": {
+      "status": "needs-review",
+      "en": "Add a dish or drink to your menu. Activate or deactivate items from the Menu tab."
+    },
+    "createItem.aiWillSuggest": {
+      "status": "needs-review",
+      "en": "AI will suggest ingredients and a price"
+    },
+    "createItem.analyzeWithAI": {
+      "status": "needs-review",
+      "en": "Analyze with AI"
+    },
+    "createItem.analyzingDish": {
+      "status": "needs-review",
+      "en": "Analyzing dish…"
+    },
+    "createItem.tapToUse": {
+      "status": "needs-review",
+      "en": "(tap to use)"
+    },
+    "createItem.detectedIngredients": {
+      "status": "needs-review",
+      "en": "Detected Ingredients"
+    },
+    "createItem.linkedAfterSaving": {
+      "status": "needs-review",
+      "en": "These will be linked to the item after saving from the detail screen."
+    },
+    "createItem.aiIngredientsNote": {
+      "status": "needs-review",
+      "en": "After saving, open the item detail to link the AI-suggested ingredients to the recipe."
+    },
+    "createItem.itemNameLabel": {
+      "status": "needs-review",
+      "en": "Item Name"
+    },
+    "createItem.itemNamePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Brochettes, Ugali, Orange Juice"
+    },
+    "createItem.categoryLabel": {
+      "status": "needs-review",
+      "en": "Category"
+    },
+    "createItem.priceLabel": {
+      "status": "needs-review",
+      "en": "Selling Price (RWF)"
+    },
+    "createItem.pricePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 3500"
+    },
+    "createItem.descriptionLabel": {
+      "status": "needs-review",
+      "en": "Description (optional)"
+    },
+    "createItem.descriptionPlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Grilled beef skewers with peppers"
+    },
+    "createItem.priceAnomalyHigh": {
+      "status": "needs-review",
+      "en": "This price is unusually high compared to your other items — please confirm it's correct."
+    },
+    "createItem.priceAnomalyLow": {
+      "status": "needs-review",
+      "en": "This price is unusually low compared to your other items — please confirm it's correct."
+    },
+    "createItem.saveButton": {
+      "status": "needs-review",
+      "en": "Save Menu Item"
+    },
+    "createItem.nameError": {
+      "status": "needs-review",
+      "en": "Name must be at least 2 characters."
+    },
+    "createItem.priceRequired": {
+      "status": "needs-review",
+      "en": "Enter a selling price."
+    },
+    "createItem.priceInvalid": {
+      "status": "needs-review",
+      "en": "Enter a valid price."
+    },
+    "createItem.permissionTitle": {
+      "status": "needs-review",
+      "en": "Permission needed"
+    },
+    "createItem.permissionBody": {
+      "status": "needs-review",
+      "en": "Allow access to your camera or photos to add a dish photo."
+    },
+    "createItem.addPhotoTitle": {
+      "status": "needs-review",
+      "en": "Add dish photo"
+    },
+    "createItem.addPhotoBody": {
+      "status": "needs-review",
+      "en": "Take a photo of the dish or choose one from your gallery."
+    },
+    "createItem.createIngredientError": {
+      "status": "needs-review",
+      "en": "Could not add {{name}} to stock. Try again."
+    },
+    "createItem.defaultMenuName": {
+      "status": "needs-review",
+      "en": "Main Menu"
+    },
+    "createItem.saveError": {
+      "status": "needs-review",
+      "en": "Could not save the item. Check your connection and try again."
+    },
+    "createItem.formIncomplete": {
+      "status": "needs-review",
+      "en": "Enter a name and a price to save."
+    },
+    "createItem.removePhoto": {
+      "status": "needs-review",
+      "en": "Remove photo"
+    },
+    "createItem.photoOnly": {
+      "status": "needs-review",
+      "en": "Add a photo of the dish"
+    },
+    "createItem.priceRange": {
+      "status": "needs-review",
+      "en": "Suggested price: {{low}} – {{high}}"
+    },
+    "createItem.priceReasoning": {
+      "status": "needs-review",
+      "en": "Based on ingredient cost of {{cost}} per portion at {{low}}–{{high}}% food cost ({{costed}} of {{total}} ingredients have a cost)."
+    },
+    "createItem.usePrice": {
+      "status": "needs-review",
+      "en": "Use {{price}}"
+    },
+    "createItem.priceUnavailable.no_matched_costs": {
+      "status": "needs-review",
+      "en": "No price suggestion — add costs to the matching stock ingredients first."
+    },
+    "createItem.priceUnavailable.no_ingredients": {
+      "status": "needs-review",
+      "en": "No price suggestion — no ingredients were recognised."
+    },
+    "createItem.acceptIngredient": {
+      "status": "needs-review",
+      "en": "Use {{name}}"
+    },
+    "createItem.inStock": {
+      "status": "needs-review",
+      "en": "In stock"
+    },
+    "createItem.newIngredient": {
+      "status": "needs-review",
+      "en": "New"
+    },
+    "createItem.removeIngredient": {
+      "status": "needs-review",
+      "en": "Remove {{name}}"
+    },
+    "createItem.qtyPerPortionLabel": {
+      "status": "needs-review",
+      "en": "Quantity of {{name}} per portion"
+    },
+    "createItem.unitPerPortion": {
+      "status": "needs-review",
+      "en": "{{unit}} per portion"
+    },
+    "createItem.createInStock": {
+      "status": "needs-review",
+      "en": "Create in stock"
+    },
+    "createItem.createInStockLabel": {
+      "status": "needs-review",
+      "en": "Create {{name}} in stock"
+    },
+    "createItem.unmatchedNote_one": {
+      "status": "needs-review",
+      "en": "{{count}} ingredient is not in stock yet — create it to link it to the recipe."
+    },
+    "createItem.unmatchedNote_other": {
+      "status": "needs-review",
+      "en": "{{count}} ingredients are not in stock yet — create them to link them to the recipe."
+    },
+    "createItem.useSuggestion": {
+      "status": "needs-review",
+      "en": "Use name {{name}}"
+    },
+    "editItem.title": {
+      "status": "needs-review",
+      "en": "Edit Menu Item"
+    },
+    "editItem.helpText": {
+      "status": "needs-review",
+      "en": "Update the name, price or description of this menu item."
+    },
+    "editItem.saveButton": {
+      "status": "needs-review",
+      "en": "Save Changes"
+    },
+    "editItem.saveError": {
+      "status": "needs-review",
+      "en": "Could not update the item. Try again."
+    },
+    "editItem.removeError": {
+      "status": "needs-review",
+      "en": "Could not remove the item. Try again."
+    },
+    "editItem.removeButton": {
+      "status": "needs-review",
+      "en": "Remove"
+    },
+    "editItem.removeConfirmTitle": {
+      "status": "needs-review",
+      "en": "Remove menu item?"
+    },
+    "editItem.removeConfirmMessage": {
+      "status": "needs-review",
+      "en": "{{name}} will be removed from your menu. Past sales stay in your records."
+    },
+    "purchasing.title": {
+      "status": "needs-review",
+      "en": "Requisition"
+    },
+    "purchasing.catalog": {
+      "status": "needs-review",
+      "en": "Catalog"
+    },
+    "purchasing.orders": {
+      "status": "needs-review",
+      "en": "Orders"
+    },
+    "purchasing.share": {
+      "status": "needs-review",
+      "en": "Share"
+    },
+    "purchasing.deliveryReceiving": {
+      "status": "needs-review",
+      "en": "Delivery Receiving"
+    },
+    "purchasing.shareRequisition": {
+      "status": "needs-review",
+      "en": "Share Requisition"
+    },
+    "purchasing.noOrdersTitle": {
+      "status": "needs-review",
+      "en": "No orders yet"
+    },
+    "purchasing.noOrdersDesc": {
+      "status": "needs-review",
+      "en": "Go to the Catalog tab, add products to your cart, and place an order."
+    },
+    "purchasing.noCatalogDesc": {
+      "status": "needs-review",
+      "en": "No catalog products are available yet. You can log a delivery manually while you wait."
+    },
+    "purchasing.browseCatalog": {
+      "status": "needs-review",
+      "en": "Browse Catalog"
+    },
+    "purchasing.logDelivery": {
+      "status": "needs-review",
+      "en": "Log a delivery manually"
+    },
+    "purchasing.logDeliveryManually": {
+      "status": "needs-review",
+      "en": "Log a delivery manually"
+    },
+    "purchasing.placingOrder": {
+      "status": "needs-review",
+      "en": "Placing Order…"
+    },
+    "purchasing.orderFromFoodBundles": {
+      "status": "needs-review",
+      "en": "Order from Food Bundles"
+    },
+    "purchasing.priceTbc": {
+      "status": "needs-review",
+      "en": "Price TBC"
+    },
+    "purchasing.shareLine": {
+      "status": "needs-review",
+      "en": "• {{name}} — {{qty}} {{unit}} × {{price}} = {{total}}"
+    },
+    "purchasing.shareTitle": {
+      "status": "needs-review",
+      "en": "Requisition — Food Bundles"
+    },
+    "purchasing.shareKitchen": {
+      "status": "needs-review",
+      "en": "Kitchen: {{name}}"
+    },
+    "purchasing.shareDate": {
+      "status": "needs-review",
+      "en": "Date: {{date}}"
+    },
+    "purchasing.shareItems": {
+      "status": "needs-review",
+      "en": "Items:"
+    },
+    "purchasing.shareTotal": {
+      "status": "needs-review",
+      "en": "Estimated total: {{total}}"
+    },
+    "purchasing.shareFooter": {
+      "status": "needs-review",
+      "en": "Sent from Food Bundles Chef"
+    },
+    "purchasing.orderError": {
+      "status": "needs-review",
+      "en": "Couldn't place the order. Check your connection and try again."
+    },
+    "purchasing.orderShareTitle": {
+      "status": "needs-review",
+      "en": "Order — Food Bundles"
+    },
+    "purchasing.orderNumber": {
+      "status": "needs-review",
+      "en": "Order {{id}}"
+    },
+    "purchasing.orderShareStatus": {
+      "status": "needs-review",
+      "en": "Status: {{status}}"
+    },
+    "purchasing.orderShareDelivery": {
+      "status": "needs-review",
+      "en": "Delivery: {{date}}"
+    },
+    "purchasing.orderShareFooter": {
+      "status": "needs-review",
+      "en": "Sent from Food Bundles Chef"
+    },
+    "purchasing.cartLabel_one": {
+      "status": "needs-review",
+      "en": "Cart, {{count}} item"
+    },
+    "purchasing.cartLabel_other": {
+      "status": "needs-review",
+      "en": "Cart, {{count}} items"
+    },
+    "purchasing.searchProducts": {
+      "status": "needs-review",
+      "en": "Search products…"
+    },
+    "purchasing.noProductsFound": {
+      "status": "needs-review",
+      "en": "No products found"
+    },
+    "purchasing.noCatalogTitle": {
+      "status": "needs-review",
+      "en": "No products in the catalog yet"
+    },
+    "purchasing.tryDifferentSearch": {
+      "status": "needs-review",
+      "en": "Try a different search."
+    },
+    "purchasing.noCatalogBody": {
+      "status": "needs-review",
+      "en": "You can log a delivery by hand while the catalog is empty."
+    },
+    "purchasing.cartSummary_one": {
+      "status": "needs-review",
+      "en": "{{count}} item · {{total}}"
+    },
+    "purchasing.cartSummary_other": {
+      "status": "needs-review",
+      "en": "{{count}} items · {{total}}"
+    },
+    "purchasing.deliveryOn": {
+      "status": "needs-review",
+      "en": "Delivery {{date}}"
+    },
+    "purchasing.createdOn": {
+      "status": "needs-review",
+      "en": "Created {{date}}"
+    },
+    "purchasing.shareOrderLabel": {
+      "status": "needs-review",
+      "en": "Share order {{id}}"
+    },
+    "purchasing.qtyLabel": {
+      "status": "needs-review",
+      "en": "Quantity of {{name}}"
+    },
+    "orders.detailTitle": {
+      "status": "needs-review",
+      "en": "Order"
+    },
+    "orders.loadError": {
+      "status": "needs-review",
+      "en": "Could not load order details."
+    },
+    "orders.goBack": {
+      "status": "needs-review",
+      "en": "Go back"
+    },
+    "orders.totalValue": {
+      "status": "needs-review",
+      "en": "Total Value"
+    },
+    "orders.delivery": {
+      "status": "needs-review",
+      "en": "Delivery"
+    },
+    "orders.shareRequisitionPdf": {
+      "status": "needs-review",
+      "en": "Share Requisition PDF"
+    },
+    "orders.generatingPdf": {
+      "status": "needs-review",
+      "en": "Generating PDF…"
+    },
+    "orders.items": {
+      "status": "needs-review",
+      "en": "Items ({{count}})"
+    },
+    "orders.noLineItems": {
+      "status": "needs-review",
+      "en": "No line items found."
+    },
+    "orders.submitOrder": {
+      "status": "needs-review",
+      "en": "Submit Order → Ready for Delivery"
+    },
+    "orders.submitting": {
+      "status": "needs-review",
+      "en": "Submitting…"
+    },
+    "orders.cancelOrder": {
+      "status": "needs-review",
+      "en": "Cancel Order"
+    },
+    "orders.cancelling": {
+      "status": "needs-review",
+      "en": "Cancelling…"
+    },
+    "orders.sharingUnavailable": {
+      "status": "needs-review",
+      "en": "Sharing unavailable"
+    },
+    "orders.pdfSavedTo": {
+      "status": "needs-review",
+      "en": "PDF saved to:\n{{uri}}"
+    },
+    "orders.pdfError": {
+      "status": "needs-review",
+      "en": "Error"
+    },
+    "orders.pdfErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not generate PDF. Please try again."
+    },
+    "orders.status.draft": {
+      "status": "needs-review",
+      "en": "Draft"
+    },
+    "orders.status.submitted": {
+      "status": "needs-review",
+      "en": "Submitted"
+    },
+    "orders.status.confirmed": {
+      "status": "needs-review",
+      "en": "Confirmed"
+    },
+    "orders.status.out_for_delivery": {
+      "status": "needs-review",
+      "en": "Out for delivery"
+    },
+    "orders.status.delivered": {
+      "status": "needs-review",
+      "en": "Delivered"
+    },
+    "orders.status.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled"
+    },
+    "orders.shareAsPdf": {
+      "status": "needs-review",
+      "en": "Share as PDF"
+    },
+    "orders.sharePdfLabel": {
+      "status": "needs-review",
+      "en": "Download or share the requisition PDF"
+    },
+    "orders.submitOrderLabel": {
+      "status": "needs-review",
+      "en": "Submit order"
+    },
+    "profile.title": {
+      "status": "needs-review",
+      "en": "Profile"
+    },
+    "profile.phone": {
+      "status": "needs-review",
+      "en": "Phone"
+    },
+    "profile.activeKitchen": {
+      "status": "needs-review",
+      "en": "Active Kitchen"
+    },
+    "profile.noKitchen": {
+      "status": "needs-review",
+      "en": "None selected"
+    },
+    "profile.manageKitchens": {
+      "status": "needs-review",
+      "en": "Manage Kitchens"
+    },
+    "profile.signOut": {
+      "status": "needs-review",
+      "en": "Sign Out"
+    },
+    "profile.saveProfile": {
+      "status": "needs-review",
+      "en": "Save Profile"
+    },
+    "profile.openSettings": {
+      "status": "needs-review",
+      "en": "Open settings"
+    },
+    "profile.permissionNeeded": {
+      "status": "needs-review",
+      "en": "Permission needed"
+    },
+    "profile.permissionNeededDesc": {
+      "status": "needs-review",
+      "en": "Allow access to continue."
+    },
+    "profile.nameRequired": {
+      "status": "needs-review",
+      "en": "Name required"
+    },
+    "profile.nameRequiredDesc": {
+      "status": "needs-review",
+      "en": "Please enter your name."
+    },
+    "profile.saveError": {
+      "status": "needs-review",
+      "en": "Error"
+    },
+    "profile.saveErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not save profile. Please try again."
+    },
+    "profile.signOutConfirmTitle": {
+      "status": "needs-review",
+      "en": "Sign Out"
+    },
+    "profile.signOutConfirmMsg": {
+      "status": "needs-review",
+      "en": "Are you sure you want to sign out?"
+    },
+    "profile.signOutConfirmCancel": {
+      "status": "needs-review",
+      "en": "Cancel"
+    },
+    "profile.signOutConfirmAction": {
+      "status": "needs-review",
+      "en": "Sign Out"
+    },
+    "profile.setYourName": {
+      "status": "needs-review",
+      "en": "Set your name"
+    },
+    "profile.cancelEditing": {
+      "status": "needs-review",
+      "en": "Cancel editing"
+    },
+    "profile.editProfile": {
+      "status": "needs-review",
+      "en": "Edit profile"
+    },
+    "profile.displayNameLabel": {
+      "status": "needs-review",
+      "en": "Display Name"
+    },
+    "profile.displayNamePlaceholder": {
+      "status": "needs-review",
+      "en": "Your full name"
+    },
+    "profile.bioLabel": {
+      "status": "needs-review",
+      "en": "Bio (optional)"
+    },
+    "profile.bioPlaceholder": {
+      "status": "needs-review",
+      "en": "Brief professional bio…"
+    },
+    "profile.experienceLabel": {
+      "status": "needs-review",
+      "en": "Experience"
+    },
+    "profile.experiencePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 8 years · French & Rwandan cuisine"
+    },
+    "profile.memberSince": {
+      "status": "needs-review",
+      "en": "Member since {{date}}"
+    },
+    "profile.statsKitchens": {
+      "status": "needs-review",
+      "en": "Kitchens"
+    },
+    "profile.statsActive": {
+      "status": "needs-review",
+      "en": "Active"
+    },
+    "profile.sectionKitchen": {
+      "status": "needs-review",
+      "en": "Kitchen"
+    },
+    "profile.sectionLinks": {
+      "status": "needs-review",
+      "en": "Links"
+    },
+    "profile.sectionAccount": {
+      "status": "needs-review",
+      "en": "Account"
+    },
+    "profile.kitchenTapHint": {
+      "status": "needs-review",
+      "en": "Tap to view details"
+    },
+    "profile.kitchenSetupHint": {
+      "status": "needs-review",
+      "en": "Set up your kitchen workspace"
+    },
+    "profile.kitchenAccessLabel": {
+      "status": "needs-review",
+      "en": "View active kitchen details"
+    },
+    "profile.manageKitchensLabel": {
+      "status": "needs-review",
+      "en": "Manage kitchens, {{count}} active"
+    },
+    "profile.linkReceiving": {
+      "status": "needs-review",
+      "en": "Delivery Receiving"
+    },
+    "profile.linkReceivingDesc": {
+      "status": "needs-review",
+      "en": "Log and track deliveries"
+    },
+    "profile.linkSales": {
+      "status": "needs-review",
+      "en": "Sales & Reports"
+    },
+    "profile.linkSalesDesc": {
+      "status": "needs-review",
+      "en": "Record daily sales"
+    },
+    "profile.footerTagline": {
+      "status": "needs-review",
+      "en": "Built for professional kitchen teams"
+    },
+    "profile.footerCopyright": {
+      "status": "needs-review",
+      "en": "© Food Bundles"
+    },
+    "profile.photoLabel": {
+      "status": "needs-review",
+      "en": "Profile photo"
+    },
+    "profile.photoLabelNamed": {
+      "status": "needs-review",
+      "en": "Profile photo of {{name}}"
+    },
+    "sales.title": {
+      "status": "needs-review",
+      "en": "Sales Entry"
+    },
+    "sales.recordToday": {
+      "status": "needs-review",
+      "en": "Record portions sold today ({{date}})."
+    },
+    "sales.noActiveItems": {
+      "status": "needs-review",
+      "en": "No active menu items. Add items to the menu first."
+    },
+    "sales.saveSales": {
+      "status": "needs-review",
+      "en": "Save Sales"
+    },
+    "sales.saving": {
+      "status": "needs-review",
+      "en": "Saving…"
+    },
+    "sales.savedSnack": {
+      "status": "needs-review",
+      "en": "Sales saved · Stock updated"
+    },
+    "sales.anomalyWarning": {
+      "status": "needs-review",
+      "en": "looks much higher than usual — please confirm before saving."
+    },
+    "sales.anomalyWarningPlural": {
+      "status": "needs-review",
+      "en": "look much higher than usual — please confirm before saving."
+    },
+    "sales.saveError_one": {
+      "status": "needs-review",
+      "en": "{{count}} item could not be saved. Check your connection and save again."
+    },
+    "sales.saveError_other": {
+      "status": "needs-review",
+      "en": "{{count}} items could not be saved. Check your connection and save again."
+    },
+    "sales.enterPortionsHint": {
+      "status": "needs-review",
+      "en": "Add portions sold to save."
+    },
+    "sales.portions": {
+      "status": "needs-review",
+      "en": "portions"
+    },
+    "sales.portionsLabel": {
+      "status": "needs-review",
+      "en": "{{name}}, portions sold"
+    },
+    "settings.title": {
+      "status": "needs-review",
+      "en": "Settings"
+    },
+    "settings.pushNotifications": {
+      "status": "needs-review",
+      "en": "Push Notifications"
+    },
+    "settings.dailyStockReminder": {
+      "status": "needs-review",
+      "en": "Daily Stock Reminder"
+    },
+    "settings.notificationsBlocked": {
+      "status": "needs-review",
+      "en": "Notifications blocked"
+    },
+    "settings.openSettings": {
+      "status": "needs-review",
+      "en": "Open Settings"
+    },
+    "settings.enableNotifications": {
+      "status": "needs-review",
+      "en": "Enable"
+    },
+    "settings.manageKitchens": {
+      "status": "needs-review",
+      "en": "Manage Kitchens"
+    },
+    "settings.manageKitchensSub": {
+      "status": "needs-review",
+      "en": "Add, switch or archive kitchens"
+    },
+    "settings.syncData": {
+      "status": "needs-review",
+      "en": "Refresh data"
+    },
+    "settings.syncDataSub": {
+      "status": "needs-review",
+      "en": "Reload menus, stock, sales and orders"
+    },
+    "settings.theme": {
+      "status": "needs-review",
+      "en": "Theme"
+    },
+    "settings.language": {
+      "status": "needs-review",
+      "en": "Language"
+    },
+    "settings.contactSupport": {
+      "status": "needs-review",
+      "en": "Contact Support"
+    },
+    "settings.contactSupportSub": {
+      "status": "needs-review",
+      "en": "support@foodbundles.rw"
+    },
+    "settings.privacyPolicy": {
+      "status": "needs-review",
+      "en": "Privacy Policy"
+    },
+    "settings.privacyPolicySub": {
+      "status": "needs-review",
+      "en": "How we handle your data"
+    },
+    "settings.signOut": {
+      "status": "needs-review",
+      "en": "Sign Out"
+    },
+    "settings.deleteAccount": {
+      "status": "needs-review",
+      "en": "Delete Account"
+    },
+    "settings.deleteAccountSub": {
+      "status": "needs-review",
+      "en": "Permanently remove all data"
+    },
+    "settings.sectionNotifications": {
+      "status": "needs-review",
+      "en": "Notifications"
+    },
+    "settings.notificationsOn": {
+      "status": "needs-review",
+      "en": "On"
+    },
+    "settings.notificationsDenied": {
+      "status": "needs-review",
+      "en": "Blocked — change it in your device settings"
+    },
+    "settings.notificationsOff": {
+      "status": "needs-review",
+      "en": "Not turned on yet"
+    },
+    "settings.dailyStockReminderSub": {
+      "status": "needs-review",
+      "en": "A reminder at 07:00 to check low-stock ingredients"
+    },
+    "settings.notificationsBlockedBody": {
+      "status": "needs-review",
+      "en": "Notifications are blocked for this app. Open your device settings to turn them on."
+    },
+    "settings.sectionKitchen": {
+      "status": "needs-review",
+      "en": "Kitchen"
+    },
+    "settings.refreshing": {
+      "status": "needs-review",
+      "en": "Refreshing…"
+    },
+    "settings.refreshDone": {
+      "status": "needs-review",
+      "en": "Data refreshed"
+    },
+    "settings.refreshFailed": {
+      "status": "needs-review",
+      "en": "Couldn't refresh — check your connection."
+    },
+    "settings.sectionAppearance": {
+      "status": "needs-review",
+      "en": "Appearance"
+    },
+    "settings.themeLight": {
+      "status": "needs-review",
+      "en": "Light"
+    },
+    "settings.themeDark": {
+      "status": "needs-review",
+      "en": "Dark"
+    },
+    "settings.themeSystem": {
+      "status": "needs-review",
+      "en": "System"
+    },
+    "settings.selected": {
+      "status": "needs-review",
+      "en": "selected"
+    },
+    "settings.sectionAi": {
+      "status": "needs-review",
+      "en": "Assistant and AI"
+    },
+    "settings.ai.spokenReplies": {
+      "status": "needs-review",
+      "en": "Read replies aloud"
+    },
+    "settings.ai.spokenRepliesSub": {
+      "status": "needs-review",
+      "en": "Short assistant replies are spoken in English or French. Off by default."
+    },
+    "settings.ai.spokenRepliesNoRw": {
+      "status": "needs-review",
+      "en": "Not available in Kinyarwanda yet — replies stay as text."
+    },
+    "settings.ai.photosVoice": {
+      "status": "needs-review",
+      "en": "AI help with photos and voice"
+    },
+    "settings.ai.photosVoiceSub": {
+      "status": "needs-review",
+      "en": "Photos and voice are sent to an AI service only to read them, and are not kept by Food Bundles."
+    },
+    "settings.ai.consentNextUse": {
+      "status": "needs-review",
+      "en": "You'll be asked to agree the next time you use AI."
+    },
+    "settings.sectionSupport": {
+      "status": "needs-review",
+      "en": "Support"
+    },
+    "settings.sectionAccount": {
+      "status": "needs-review",
+      "en": "Account"
+    },
+    "settings.deleteAccountBody": {
+      "status": "needs-review",
+      "en": "To permanently delete your account and all kitchen data, contact {{email}}. This cannot be undone."
+    },
+    "settings.version": {
+      "status": "needs-review",
+      "en": "Version {{version}}"
+    },
+    "settings.galleryHint": {
+      "status": "needs-review",
+      "en": "Long-press to open the UI gallery (development builds only)"
+    },
+    "stock.title": {
+      "status": "needs-review",
+      "en": "Stock"
+    },
+    "stock.orderNow": {
+      "status": "needs-review",
+      "en": "Order now →"
+    },
+    "stock.emptyTitle": {
+      "status": "needs-review",
+      "en": "No ingredients yet"
+    },
+    "stock.addIngredient": {
+      "status": "needs-review",
+      "en": "Add Ingredient"
+    },
+    "stock.outOfStock": {
+      "status": "needs-review",
+      "en": "Out of Stock"
+    },
+    "stock.lowStock": {
+      "status": "needs-review",
+      "en": "Low Stock"
+    },
+    "stock.inRecipe": {
+      "status": "needs-review",
+      "en": "In Recipe"
+    },
+    "stock.searchPlaceholder": {
+      "status": "needs-review",
+      "en": "Search ingredients…"
+    },
+    "stock.syncNow": {
+      "status": "needs-review",
+      "en": "Sync now"
+    },
+    "stock.addIngredientLabel": {
+      "status": "needs-review",
+      "en": "Add ingredient"
+    },
+    "stock.filterAll": {
+      "status": "needs-review",
+      "en": "All"
+    },
+    "stock.filterInStock": {
+      "status": "needs-review",
+      "en": "In Stock"
+    },
+    "stock.filterOutOfStock": {
+      "status": "needs-review",
+      "en": "Out of Stock"
+    },
+    "stock.filterInRecipes": {
+      "status": "needs-review",
+      "en": "In Recipes"
+    },
+    "stock.reorderNeed_one": {
+      "status": "needs-review",
+      "en": "{{count}} item needs reordering"
+    },
+    "stock.reorderNeed_other": {
+      "status": "needs-review",
+      "en": "{{count}} items need reordering"
+    },
+    "stock.reorderTapHint": {
+      "status": "needs-review",
+      "en": "{{count}} items need reordering — tap to open Requisitions"
+    },
+    "stock.emptyOutOfStockTitle": {
+      "status": "needs-review",
+      "en": "No out-of-stock items"
+    },
+    "stock.emptyOutOfStockDesc": {
+      "status": "needs-review",
+      "en": "Great — all ingredients have stock."
+    },
+    "stock.emptyInStockTitle": {
+      "status": "needs-review",
+      "en": "No items in stock"
+    },
+    "stock.emptyInStockDesc": {
+      "status": "needs-review",
+      "en": "All ingredients are currently out of stock."
+    },
+    "stock.emptyInRecipesTitle": {
+      "status": "needs-review",
+      "en": "No recipe ingredients yet"
+    },
+    "stock.emptyInRecipesDesc": {
+      "status": "needs-review",
+      "en": "Link ingredients to your menu items to see them here. Open a menu item and add ingredients to its recipe."
+    },
+    "stock.emptySearchTitle": {
+      "status": "needs-review",
+      "en": "No results"
+    },
+    "stock.emptySearchDesc": {
+      "status": "needs-review",
+      "en": "Try a different search term."
+    },
+    "stock.emptyDesc": {
+      "status": "needs-review",
+      "en": "Add your ingredients to start tracking stock levels and purchase needs."
+    },
+    "stock.addFirstIngredientLabel": {
+      "status": "needs-review",
+      "en": "Add first ingredient"
+    },
+    "stock.aiHint": {
+      "status": "needs-review",
+      "en": "You can also ask the AI Assistant to add ingredients for you."
+    },
+    "stock.noStockReorder": {
+      "status": "needs-review",
+      "en": "No stock — reorder needed"
+    },
+    "stock.onHand": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}} on hand"
+    },
+    "stock.dailyUseRate": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}}/day"
+    },
+    "stock.daysCoverLabel": {
+      "status": "needs-review",
+      "en": "{{days}} days cover"
+    },
+    "stock.unlimitedCover": {
+      "status": "needs-review",
+      "en": "unlimited cover"
+    },
+    "stock.accessibilityRow": {
+      "status": "needs-review",
+      "en": "{{name}}: {{stock}} {{unit}} on hand, {{cover}}"
+    },
+    "stock.reorderSuggest": {
+      "status": "needs-review",
+      "en": "· {{name}} — suggest {{qty}} {{unit}}"
+    },
+    "stock.noUsage": {
+      "status": "needs-review",
+      "en": "No usage yet"
+    },
+    "stock.noUsageA11y": {
+      "status": "needs-review",
+      "en": "No usage recorded yet"
+    },
+    "stock.daysUnit_one": {
+      "status": "needs-review",
+      "en": "day"
+    },
+    "stock.daysUnit_other": {
+      "status": "needs-review",
+      "en": "days"
+    },
+    "stock.coverA11y_one": {
+      "status": "needs-review",
+      "en": "Stock {{level}}: {{days}} day of cover"
+    },
+    "stock.coverA11y_other": {
+      "status": "needs-review",
+      "en": "Stock {{level}}: {{days}} days of cover"
+    },
+    "stock.level.critical": {
+      "status": "needs-review",
+      "en": "critical"
+    },
+    "stock.level.low": {
+      "status": "needs-review",
+      "en": "low"
+    },
+    "stock.level.ok": {
+      "status": "needs-review",
+      "en": "OK"
+    },
+    "ingredients.addTitle": {
+      "status": "needs-review",
+      "en": "Add Ingredient"
+    },
+    "ingredients.helpText": {
+      "status": "needs-review",
+      "en": "Add ingredients you stock and use in recipes. You can set quantities and costs later."
+    },
+    "ingredients.nameSectionLabel": {
+      "status": "needs-review",
+      "en": "Ingredient Name *"
+    },
+    "ingredients.namePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. Banana, Ginger, Tomato"
+    },
+    "ingredients.nameError": {
+      "status": "needs-review",
+      "en": "Enter a name (at least 2 characters)"
+    },
+    "ingredients.unitSectionLabel": {
+      "status": "needs-review",
+      "en": "Unit of Measurement *"
+    },
+    "ingredients.unitError": {
+      "status": "needs-review",
+      "en": "Select or type a unit"
+    },
+    "ingredients.otherUnit": {
+      "status": "needs-review",
+      "en": "Other…"
+    },
+    "ingredients.customUnitPlaceholder": {
+      "status": "needs-review",
+      "en": "Type your unit (e.g. 'portion', 'tray')"
+    },
+    "ingredients.addButton": {
+      "status": "needs-review",
+      "en": "Add Ingredient"
+    },
+    "ingredients.detailTitle": {
+      "status": "needs-review",
+      "en": "Ingredient"
+    },
+    "ingredients.notFound": {
+      "status": "needs-review",
+      "en": "Ingredient not found."
+    },
+    "ingredients.invalidQty": {
+      "status": "needs-review",
+      "en": "Invalid quantity"
+    },
+    "ingredients.invalidQtyDesc": {
+      "status": "needs-review",
+      "en": "Enter a positive number."
+    },
+    "ingredients.adjustError": {
+      "status": "needs-review",
+      "en": "Error"
+    },
+    "ingredients.adjustErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not update stock. Please try again."
+    },
+    "ingredients.currentStock": {
+      "status": "needs-review",
+      "en": "Current Stock"
+    },
+    "ingredients.outOfStock": {
+      "status": "needs-review",
+      "en": "Out of Stock"
+    },
+    "ingredients.dailyUse": {
+      "status": "needs-review",
+      "en": "Daily use: {{use}} {{unit}}/day"
+    },
+    "ingredients.daysCover": {
+      "status": "needs-review",
+      "en": " · {{days}} days cover"
+    },
+    "ingredients.lastUpdated": {
+      "status": "needs-review",
+      "en": "Last updated {{date}}"
+    },
+    "ingredients.adjustStock": {
+      "status": "needs-review",
+      "en": "Adjust Stock"
+    },
+    "ingredients.qtyPlaceholder": {
+      "status": "needs-review",
+      "en": "Qty ({{unit}})"
+    },
+    "ingredients.addStockLabel": {
+      "status": "needs-review",
+      "en": "Add stock"
+    },
+    "ingredients.removeStockLabel": {
+      "status": "needs-review",
+      "en": "Remove stock"
+    },
+    "ingredients.add": {
+      "status": "needs-review",
+      "en": "Add"
+    },
+    "ingredients.remove": {
+      "status": "needs-review",
+      "en": "Remove"
+    },
+    "ingredients.notePlaceholder": {
+      "status": "needs-review",
+      "en": "Note (optional)"
+    },
+    "ingredients.detailsSection": {
+      "status": "needs-review",
+      "en": "Details"
+    },
+    "ingredients.detailUnit": {
+      "status": "needs-review",
+      "en": "Unit"
+    },
+    "ingredients.detailQtyPerPortion": {
+      "status": "needs-review",
+      "en": "Qty per portion"
+    },
+    "ingredients.detailYield": {
+      "status": "needs-review",
+      "en": "Yield fraction"
+    },
+    "ingredients.detailCostPerUnit": {
+      "status": "needs-review",
+      "en": "Cost per unit"
+    },
+    "ingredients.detailDaysOpen": {
+      "status": "needs-review",
+      "en": "Days open/week"
+    },
+    "ingredients.detailNotes": {
+      "status": "needs-review",
+      "en": "Notes"
+    },
+    "ingredients.usedInMenu": {
+      "status": "needs-review",
+      "en": "Used in Menu Items"
+    },
+    "ingredients.noMenuItems": {
+      "status": "needs-review",
+      "en": "No menu items yet. Add items to your menu and link this ingredient to track food cost and stock usage."
+    },
+    "ingredients.stockHistory": {
+      "status": "needs-review",
+      "en": "Stock History"
+    },
+    "ingredients.noHistory": {
+      "status": "needs-review",
+      "en": "No stock entries recorded yet."
+    },
+    "ingredients.entryOpening": {
+      "status": "needs-review",
+      "en": "Opening"
+    },
+    "ingredients.entryAdjustment": {
+      "status": "needs-review",
+      "en": "Adjustment"
+    },
+    "ingredients.entryClosing": {
+      "status": "needs-review",
+      "en": "Closing"
+    },
+    "ingredients.entryDelivery": {
+      "status": "needs-review",
+      "en": "Delivery"
+    },
+    "ingredients.offMenu": {
+      "status": "needs-review",
+      "en": "Off Menu"
+    },
+    "ingredients.nameLabel": {
+      "status": "needs-review",
+      "en": "Ingredient name"
+    },
+    "ingredients.unitGroupLabel": {
+      "status": "needs-review",
+      "en": "Unit of measurement"
+    },
+    "ingredients.customUnitLabel": {
+      "status": "needs-review",
+      "en": "Enter a custom unit"
+    },
+    "ingredients.customUnitInputLabel": {
+      "status": "needs-review",
+      "en": "Custom unit of measurement"
+    },
+    "ingredients.addError": {
+      "status": "needs-review",
+      "en": "Error"
+    },
+    "ingredients.addErrorDesc": {
+      "status": "needs-review",
+      "en": "Could not add ingredient. Please try again."
+    },
+    "ingredients.kbDone": {
+      "status": "needs-review",
+      "en": "Done"
+    },
+    "ingredients.formIncomplete": {
+      "status": "needs-review",
+      "en": "Enter a name and choose a unit to continue."
+    },
+    "ingredients.addedToStock": {
+      "status": "needs-review",
+      "en": "Added to stock"
+    },
+    "ingredients.removedFromStock": {
+      "status": "needs-review",
+      "en": "Removed from stock"
+    },
+    "ingredients.yieldError": {
+      "status": "needs-review",
+      "en": "Enter a yield between 1 and 100%."
+    },
+    "ingredients.updated": {
+      "status": "needs-review",
+      "en": "Ingredient updated"
+    },
+    "ingredients.updateError": {
+      "status": "needs-review",
+      "en": "Couldn't save the changes. Try again."
+    },
+    "ingredients.deleteError": {
+      "status": "needs-review",
+      "en": "Couldn't delete the ingredient. Try again."
+    },
+    "ingredients.addQty": {
+      "status": "needs-review",
+      "en": "Add {{qty}} {{unit}}"
+    },
+    "ingredients.removeConfirmTitle": {
+      "status": "needs-review",
+      "en": "Remove from stock?"
+    },
+    "ingredients.removeConfirmMessage": {
+      "status": "needs-review",
+      "en": "Remove {{qty}} {{unit}} of {{name}} from stock?"
+    },
+    "ingredients.saveChanges": {
+      "status": "needs-review",
+      "en": "Save changes"
+    },
+    "ingredients.deleteIngredient": {
+      "status": "needs-review",
+      "en": "Delete ingredient"
+    },
+    "ingredients.deleteConfirmTitle": {
+      "status": "needs-review",
+      "en": "Delete ingredient?"
+    },
+    "ingredients.deleteConfirmMessage": {
+      "status": "needs-review",
+      "en": "{{name}} will be removed from your ingredients."
+    },
+    "ingredients.editDetails": {
+      "status": "needs-review",
+      "en": "Edit details"
+    },
+    "ingredients.costPerUnitLabel": {
+      "status": "needs-review",
+      "en": "Cost per {{unit}} (RWF)"
+    },
+    "ingredients.costHint": {
+      "status": "needs-review",
+      "en": "Used to work out food cost and suggested prices."
+    },
+    "ingredients.yieldLabel": {
+      "status": "needs-review",
+      "en": "Usable yield (%)"
+    },
+    "ingredients.yieldHint": {
+      "status": "needs-review",
+      "en": "Share left after peeling or trimming, e.g. 80 = 80%. Use 100 when nothing is wasted."
+    },
+    "ingredients.adjustQtyLabel": {
+      "status": "needs-review",
+      "en": "Quantity to add or remove"
+    },
+    "ingredients.noteLabel": {
+      "status": "needs-review",
+      "en": "Note"
+    },
+    "ingredients.noCost": {
+      "status": "needs-review",
+      "en": "No cost set"
+    },
+    "ingredients.levelAfter": {
+      "status": "needs-review",
+      "en": "Level after: {{qty}} {{unit}}"
+    }
+  }
+}

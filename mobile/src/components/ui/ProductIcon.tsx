@@ -9,7 +9,7 @@ import {
   Wheat, Bean, Flame, Wind, Droplets, Archive,
   Coffee, Droplet, Package, Carrot, Sprout,
 } from 'lucide-react-native';
-import { colors } from '@/lib/theme';
+import { categoryPalette } from '@/lib/theme';
 
 type Size = 'sm' | 'md' | 'lg';
 
@@ -29,33 +29,39 @@ const SIZE: Record<Size, { box: number; radius: number; icon: number }> = {
 // Map category keywords → { icon component, tint color }
 type IconEntry = { Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>; tint: string; iconColor: string };
 
-const CATEGORY_ICONS: Array<{ keys: string[]; entry: IconEntry }> = [
-  { keys: ['vegetable', 'veg', 'greens', 'leaf'], entry: { Icon: Leaf, tint: '#D1FAE5', iconColor: '#059669' } },
-  { keys: ['fruit', 'fruits'], entry: { Icon: Apple, tint: '#FEE2E2', iconColor: '#DC2626' } },
-  { keys: ['meat', 'beef', 'pork', 'inka'], entry: { Icon: Beef, tint: '#FEE2E2', iconColor: '#B91C1C' } },
-  { keys: ['poultry', 'chicken', 'bird', 'inkoko'], entry: { Icon: Bird, tint: '#FEF3C7', iconColor: '#D97706' } },
-  { keys: ['seafood', 'fish', 'inzoga'], entry: { Icon: Fish, tint: '#DBEAFE', iconColor: '#2563EB' } },
-  { keys: ['dairy', 'milk', 'amata', 'cheese'], entry: { Icon: Milk, tint: '#F5F3FF', iconColor: '#7C3AED' } },
-  { keys: ['egg', 'amagi'], entry: { Icon: Egg, tint: '#FEF9C3', iconColor: '#CA8A04' } },
-  { keys: ['grain', 'rice', 'flour', 'wheat', 'iresi', 'ubunga'], entry: { Icon: Wheat, tint: '#FEF3C7', iconColor: '#B45309' } },
-  { keys: ['bean', 'legume', 'ibishyimbo'], entry: { Icon: Bean, tint: '#D1FAE5', iconColor: '#065F46' } },
-  { keys: ['spice', 'pepper', 'chili'], entry: { Icon: Flame, tint: '#FEE2E2', iconColor: '#EF4444' } },
-  { keys: ['herb', 'basil', 'parsley'], entry: { Icon: Sprout, tint: '#D1FAE5', iconColor: '#16A34A' } },
-  { keys: ['oil', 'amavuta'], entry: { Icon: Droplets, tint: '#FEF3C7', iconColor: '#D97706' } },
-  { keys: ['sauce', 'condiment'], entry: { Icon: Archive, tint: '#E0E7FF', iconColor: '#4338CA' } },
-  { keys: ['beverage', 'drink', 'juice'], entry: { Icon: Droplet, tint: '#DBEAFE', iconColor: '#3B82F6' } },
-  { keys: ['coffee', 'ikawa'], entry: { Icon: Coffee, tint: '#FEF3C7', iconColor: '#92400E' } },
-  { keys: ['bakery', 'bread'], entry: { Icon: Wheat, tint: '#FEF3C7', iconColor: '#B45309' } },
-  { keys: ['frozen'], entry: { Icon: Wind, tint: '#E0F2FE', iconColor: '#0284C7' } },
-  { keys: ['carrot', 'root'], entry: { Icon: Carrot, tint: '#FEF3C7', iconColor: '#EA580C' } },
+type PaletteKey = keyof typeof categoryPalette;
+
+function entry(Icon: IconEntry['Icon'], key: PaletteKey): IconEntry {
+  return { Icon, tint: categoryPalette[key].tint, iconColor: categoryPalette[key].icon };
+}
+
+const CATEGORY_ICONS: { keys: string[]; entry: IconEntry }[] = [
+  { keys: ['vegetable', 'veg', 'greens', 'leaf'], entry: entry(Leaf, 'leaf') },
+  { keys: ['fruit', 'fruits'], entry: entry(Apple, 'fruit') },
+  { keys: ['meat', 'beef', 'pork', 'inka'], entry: entry(Beef, 'meat') },
+  { keys: ['poultry', 'chicken', 'bird', 'inkoko'], entry: entry(Bird, 'poultry') },
+  { keys: ['seafood', 'fish', 'inzoga'], entry: entry(Fish, 'seafood') },
+  { keys: ['dairy', 'milk', 'amata', 'cheese'], entry: entry(Milk, 'dairy') },
+  { keys: ['egg', 'amagi'], entry: entry(Egg, 'egg') },
+  { keys: ['grain', 'rice', 'flour', 'wheat', 'iresi', 'ubunga'], entry: entry(Wheat, 'grain') },
+  { keys: ['bean', 'legume', 'ibishyimbo'], entry: entry(Bean, 'bean') },
+  { keys: ['spice', 'pepper', 'chili'], entry: entry(Flame, 'spice') },
+  { keys: ['herb', 'basil', 'parsley'], entry: entry(Sprout, 'herb') },
+  { keys: ['oil', 'amavuta'], entry: entry(Droplets, 'oil') },
+  { keys: ['sauce', 'condiment'], entry: entry(Archive, 'sauce') },
+  { keys: ['beverage', 'drink', 'juice'], entry: entry(Droplet, 'beverage') },
+  { keys: ['coffee', 'ikawa'], entry: entry(Coffee, 'coffee') },
+  { keys: ['bakery', 'bread'], entry: entry(Wheat, 'grain') },
+  { keys: ['frozen'], entry: entry(Wind, 'frozen') },
+  { keys: ['carrot', 'root'], entry: entry(Carrot, 'root') },
 ];
 
 function getIconEntry(category?: string | null, productName?: string | null): IconEntry {
   const haystack = `${category ?? ''} ${productName ?? ''}`.toLowerCase();
-  for (const { keys, entry } of CATEGORY_ICONS) {
-    if (keys.some((k) => haystack.includes(k))) return entry;
+  for (const { keys, entry: e } of CATEGORY_ICONS) {
+    if (keys.some((k) => haystack.includes(k))) return e;
   }
-  return { Icon: Package, tint: '#F3F4F6', iconColor: '#6B7280' };
+  return entry(Package, 'other');
 }
 
 export function ProductIcon({

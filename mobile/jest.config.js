@@ -6,6 +6,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^expo-sqlite/kv-store$': '<rootDir>/jest/kv-store-mock.ts',
   },
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
   collectCoverageFrom: [

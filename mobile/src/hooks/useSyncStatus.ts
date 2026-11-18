@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { mutationQueueRepo } from '@/data/service-container';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -17,6 +17,13 @@ export interface SyncStatus {
   refresh: () => Promise<void>;
 }
 
+interface QueueCounts {
+  /** Kitchen the counts belong to (counts of another kitchen are never shown). */
+  kitchenId: string;
+  pending: number;
+  failed: number;
+}
+
 /** Attempt a fetch to the backend base URL to check connectivity. */
 async function isReachable(): Promise<boolean> {
   try {
@@ -25,6 +32,14 @@ async function isReachable(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function readCounts(kitchenId: string): Promise<QueueCounts> {
+  const [pending, failed] = await Promise.all([
+    mutationQueueRepo.listPending(kitchenId),
+    mutationQueueRepo.listFailed(kitchenId),
+  ]);
+  return { kitchenId, pending: pending.length, failed: failed.length };
 }
 
 /**
@@ -38,55 +53,45 @@ export function useSyncStatus(): SyncStatus {
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const kitchenId = activeKitchen?.id ?? '';
 
-  const [pendingCount, setPendingCount] = useState(0);
-  const [failedCount, setFailedCount] = useState(0);
-  const [phase, setPhase] = useState<SyncPhase>('idle');
+  const [counts, setCounts] = useState<QueueCounts | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const isSyncing = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (!kitchenId) {
-      setPendingCount(0);
-      setFailedCount(0);
-      setPhase('idle');
-      return;
-    }
+    if (!kitchenId) return;
     try {
-      const [pending, failed] = await Promise.all([
-        mutationQueueRepo.listPending(kitchenId),
-        mutationQueueRepo.listFailed(kitchenId),
-      ]);
-      setPendingCount(pending.length);
-      setFailedCount(failed.length);
-      setPhase(
-        failed.length > 0 ? 'failed' : pending.length > 0 ? 'pending' : 'idle'
-      );
+      setCounts(await readCounts(kitchenId));
     } catch {
-      // DB not yet initialized — ignore
+      // DB not yet initialized — counts stay as they are.
     }
   }, [kitchenId]);
 
   const sync = useCallback(async () => {
     if (isSyncing.current || !kitchenId) return;
     isSyncing.current = true;
-    setPhase('syncing');
-
+    setSyncing(true);
     try {
-      const reachable = await isReachable();
-      if (!reachable) {
-        await refresh();
-        return;
-      }
-      await flushPendingMutations(kitchenId);
+      if (await isReachable()) await flushPendingMutations(kitchenId);
     } finally {
       isSyncing.current = false;
+      setSyncing(false);
       await refresh();
     }
   }, [kitchenId, refresh]);
 
-  // Refresh counts on mount and kitchen change
+  // Load counts on mount and whenever the kitchen changes.
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!kitchenId) return;
+    let active = true;
+    readCounts(kitchenId)
+      .then((next) => {
+        if (active) setCounts(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [kitchenId]);
 
   // Auto-flush when app comes to foreground
   useEffect(() => {
@@ -97,6 +102,10 @@ export function useSyncStatus(): SyncStatus {
     return () => sub.remove();
   }, [sync]);
 
+  const current = counts !== null && counts.kitchenId === kitchenId;
+  const pendingCount = current ? counts.pending : 0;
+  const failedCount = current ? counts.failed : 0;
+
   // Periodic flush every 60 seconds while pending mutations exist
   useEffect(() => {
     if (pendingCount === 0) return;
@@ -104,5 +113,6 @@ export function useSyncStatus(): SyncStatus {
     return () => clearInterval(id);
   }, [pendingCount, sync]);
 
+  const phase: SyncPhase = syncing ? 'syncing' : failedCount > 0 ? 'failed' : pendingCount > 0 ? 'pending' : 'idle';
   return { phase, pendingCount, failedCount, sync, refresh };
 }

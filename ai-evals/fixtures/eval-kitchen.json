@@ -1,0 +1,47 @@
+{
+  "description": "Deterministic kitchen the chat tasks are written against. The runner creates it fresh for each run with --seed.",
+  "ingredients": [
+    { "name": "Potato", "unit": "kg", "cost_per_unit": "600", "stock": "500" },
+    { "name": "Cooking oil", "unit": "l", "cost_per_unit": "2500", "stock": "12" },
+    { "name": "Rice", "unit": "kg", "cost_per_unit": "1200", "stock": "40" },
+    { "name": "Beans", "unit": "kg", "cost_per_unit": "1500", "stock": "15" },
+    { "name": "Beef", "unit": "kg", "cost_per_unit": "6000", "stock": "8" },
+    { "name": "Tomato", "unit": "kg", "cost_per_unit": "800", "stock": "6" },
+    { "name": "Onion", "unit": "kg", "cost_per_unit": "700", "stock": "10" }
+  ],
+  "menu": [
+    {
+      "name": "Chips",
+      "selling_price": "1500",
+      "category": "side",
+      "recipe": [
+        { "ingredient": "Potato", "qty_per_portion": "0.25", "unit": "kg" },
+        { "ingredient": "Cooking oil", "qty_per_portion": "0.02", "unit": "l" }
+      ]
+    },
+    {
+      "name": "Rice and beans",
+      "selling_price": "2000",
+      "category": "main",
+      "recipe": [
+        { "ingredient": "Rice", "qty_per_portion": "0.15", "unit": "kg" },
+        { "ingredient": "Beans", "qty_per_portion": "0.1", "unit": "kg" }
+      ]
+    },
+    {
+      "name": "Beef brochette",
+      "selling_price": "2500",
+      "category": "main",
+      "recipe": [
+        { "ingredient": "Beef", "qty_per_portion": "0.15", "unit": "kg" },
+        { "ingredient": "Onion", "qty_per_portion": "0.02", "unit": "kg" }
+      ]
+    },
+    { "name": "Passion juice", "selling_price": "1000", "category": "drink", "recipe": [] }
+  ],
+  "derived_facts_for_task_authors": {
+    "Chips food cost per portion (RWF)": "0.25 × 600 + 0.02 × 2500 = 150 + 50 = 200",
+    "Rice and beans food cost per portion (RWF)": "0.15 × 1200 + 0.1 × 1500 = 180 + 150 = 330",
+    "Potato stock": "500 kg"
+  }
+}

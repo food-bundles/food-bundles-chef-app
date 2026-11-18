@@ -3,8 +3,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+MenuItemCategory = Literal["main", "side", "drink", "dessert"]
 
 
 class MenuCreateRequest(BaseModel):
@@ -22,6 +25,7 @@ class MenuItemCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
     selling_price: Decimal = Field(..., ge=0)
+    category: MenuItemCategory | None = None
 
 
 class MenuItemUpdateRequest(BaseModel):
@@ -29,6 +33,7 @@ class MenuItemUpdateRequest(BaseModel):
     description: str | None = None
     selling_price: Decimal | None = Field(None, ge=0)
     is_active: bool | None = None
+    category: MenuItemCategory | None = None
 
 
 class MenuItemResponse(BaseModel):
@@ -39,6 +44,7 @@ class MenuItemResponse(BaseModel):
     kitchen_id: uuid.UUID
     name: str
     description: str | None
+    category: MenuItemCategory | None = None
     selling_price: Decimal
     is_active: bool
     created_at: datetime
