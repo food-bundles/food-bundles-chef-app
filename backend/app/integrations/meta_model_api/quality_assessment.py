@@ -11,9 +11,9 @@ Constraints:
 - If crate not fully visible, quantity_estimate.estimated_quantity = None
 - No raw image content is logged (AI_LOG_CONTENT must be False)
 """
+
 from __future__ import annotations
 
-import base64
 import json
 import time
 from decimal import Decimal, InvalidOperation
@@ -21,7 +21,6 @@ from decimal import Decimal, InvalidOperation
 import structlog
 
 from app.core.config import settings
-from app.integrations.meta_model_api.client import MetaModelAPIClient, MetaModelAPIError
 from app.modules.ai.schemas.quality_assessment import (
     QualityAssessmentRequest,
     QualityAssessmentResponse,
@@ -57,10 +56,20 @@ Rules:
 class MetaQualityAssessmentAdapter:
     """Muse Spark multimodal quality assessment via /chat/completions with base64 image."""
 
-    def __init__(self) -> None:
-        self._client = MetaModelAPIClient()
+    async def assess(
+        self,
+        request: QualityAssessmentRequest,
+        *,
+        kitchen_id: str = "",
+        request_id: str = "",
+    ) -> QualityAssessmentResponse:
+        """Routed through the provider router with a meta-only policy (Phase 8):
+        same prompt, model, image format and parsing as before, plus the router's
+        time budget, kill switch, cost tracking and `ai_call` logging.
+        """
+        from app.modules.ai.providers.base import ImagePart, LLMRequest, Message
+        from app.modules.ai.providers.router import provider_router
 
-    async def assess(self, request: QualityAssessmentRequest) -> QualityAssessmentResponse:
         t0 = time.monotonic()
 
         if len(request.image_bytes) > settings.AI_MAX_IMAGE_SIZE_BYTES:
@@ -69,53 +78,45 @@ class MetaQualityAssessmentAdapter:
                 "Resize to ≤ 1 MB before sending."
             )
 
-        b64 = base64.b64encode(request.image_bytes).decode("utf-8")
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
-                    },
-                    {
-                        "type": "text",
-                        "text": f"Assess this delivery item: {request.product_name} (expected unit: {request.expected_unit})",
-                    },
+        text = (
+            f"Assess this delivery item: {request.product_name} "
+            f"(expected unit: {request.expected_unit})"
+        )
+        routed = await provider_router.run(
+            LLMRequest(
+                feature="quality_assessment",
+                prompt_version="quality_assessment.inline",
+                systems={"meta": _QUALITY_SYSTEM_PROMPT},
+                messages=[
+                    Message(role="user", parts=(ImagePart(request.image_bytes, "image/jpeg"), text))
                 ],
-            }
-        ]
-
-        payload = {
-            "model": settings.META_MUSE_SPARK_MODEL,
-            "messages": [{"role": "system", "content": _QUALITY_SYSTEM_PROMPT}] + messages,
-            "max_tokens": 1024,
-        }
-
-        response = await self._client.post_json("/chat/completions", payload)
-        latency_ms = int((time.monotonic() - t0) * 1000)
-
-        raw_content = response.get("choices", [{}])[0].get("message", {}).get("content") or ""
-        dimensions, quantity = _parse_response(raw_content, request.expected_unit)
-
-        usage = response.get("usage", {})
+                request_id=request_id,
+                kitchen_id=kitchen_id,
+                max_tokens=1024,
+                meta_model=settings.META_MUSE_SPARK_MODEL,
+            ),
+            # Tolerant parsing, as before: an unreadable answer yields no dimensions.
+            parse=lambda raw: _parse_response(raw, request.expected_unit),
+            budget_seconds=settings.AI_DEFAULT_TIMEOUT_SECONDS,
+            policy="meta_only",
+        )
+        dimensions, quantity = routed.value
         return QualityAssessmentResponse(
             dimensions=dimensions,
             quantity_estimate=quantity,
-            provider="meta",
-            model_id=settings.META_MUSE_SPARK_MODEL,
-            input_tokens=usage.get("prompt_tokens"),
-            output_tokens=usage.get("completion_tokens"),
-            latency_ms=latency_ms,
+            provider=routed.provider,
+            model_id=routed.model,
+            input_tokens=routed.usage.input_tokens,
+            output_tokens=routed.usage.output_tokens,
+            latency_ms=int((time.monotonic() - t0) * 1000),
             usage_metadata=None,
         )
 
 
-def _parse_response(
-    raw: str, unit: str
-) -> tuple[list[QualityDimensionResult], QuantityEstimate]:
+def _parse_response(raw: str, unit: str) -> tuple[list[QualityDimensionResult], QuantityEstimate]:
     """Extract JSON from the model response, tolerating preamble or fences."""
     import re
+
     # strip fences
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
     if fenced:

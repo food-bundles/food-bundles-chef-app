@@ -30,6 +30,7 @@ from app.modules.ai.gateway.core import (
     structured_call,
     validate_image,
 )
+from app.modules.ai.registry.feature_flags import assistant_enabled
 from app.modules.ai.schemas.agent import (
     ActionProposal,
     ActionType,
@@ -37,6 +38,7 @@ from app.modules.ai.schemas.agent import (
     AgentResponse,
     ClarifyingQuestion,
     ModelAgentTurn,
+    ModelAgentTurnWire,
 )
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.service import InventoryService
@@ -226,7 +228,7 @@ class AgentService:
         request_id: str,
         chef_id: str | None = None,
     ) -> AgentResponse:
-        if not settings.AI_AGENT_ENABLED or not settings.MODEL_API_KEY.get_secret_value():
+        if not assistant_enabled():
             raise AiDisabledError("AI assistant is not enabled.")
         check_rate_limit(str(kitchen.id), chef_id)
 
@@ -252,6 +254,10 @@ class AgentService:
             user_text=user_text,
             schema=ModelAgentTurn,
             timeout_seconds=settings.AI_CHAT_TIMEOUT_SECONDS,
+            tier="standard",
+            effort=settings.ANTHROPIC_EFFORT_CHAT,
+            wire_schema=ModelAgentTurnWire.model_json_schema(),
+            locale=request.language,
             request_id=request_id,
             kitchen_id=str(kitchen.id),
             image=image,

@@ -1,14 +1,15 @@
 """Shared gateway machinery: prompts, image validation, limits, caching and the
-structured model call (validate → one repair attempt → typed error).
+structured model call, routed Anthropic (primary) → Meta (fallback) by
+`providers.router` (validate → one repair per provider → typed error).
 
-Observability: every call logs one `ai_call` event with feature, prompt version,
-model, latency, token usage, outcome and request ID — never prompts, images or answers.
+Observability: the router logs one `ai_call` event per call with feature, prompt
+version, providers attempted/served, fallback reason, model, latency, tokens, cost,
+outcome and request ID — never prompts, images or answers.
 Images are processed in memory only and are not stored by the gateway.
 """
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import re
@@ -21,19 +22,13 @@ from pathlib import Path
 from string import Template
 from typing import TypeVar
 
-import httpx
 import structlog
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.exceptions import (
-    AiBadOutputError,
-    AiImageInvalidError,
-    AiProviderError,
-    AiRateLimitError,
-    AiTimeoutError,
-)
-from app.integrations.meta_model_api.client import MetaModelAPIError, get_client
+from app.core.exceptions import AiImageInvalidError, AiRateLimitError
+from app.modules.ai.providers.base import ImagePart, LLMRequest, Message, Tier
+from app.modules.ai.providers.router import provider_router
 
 logger = structlog.get_logger(__name__)
 
@@ -50,21 +45,35 @@ LANGUAGE_NAMES = {"en": "English", "fr": "French", "rw": "Kinyarwanda"}
 class Prompt:
     name: str
     version: str
-    template: Template
+    template: Template  # the meta.md text (default for every provider)
+    variants: tuple[tuple[str, Template], ...] = ()  # provider-specific overrides
 
     @property
     def id(self) -> str:
         return f"{self.name}.{self.version}"
 
-    def render(self, **values: str) -> str:
-        return self.template.safe_substitute(**values)
+    def render(self, provider: str = "meta", **values: str) -> str:
+        template = dict(self.variants).get(provider, self.template)
+        return template.safe_substitute(**values)
+
+    def has_variant(self, provider: str) -> bool:
+        return provider in dict(self.variants)
 
 
 @lru_cache(maxsize=32)
 def load_prompt(name: str, version: str) -> Prompt:
-    """Load a versioned prompt file `prompts/{name}.{version}.md`."""
-    text = (_PROMPT_DIR / f"{name}.{version}.md").read_text(encoding="utf-8")
-    return Prompt(name=name, version=version, template=Template(text))
+    """Load `prompts/{name}/{version}/meta.md` plus any `{provider}.md` variant beside it.
+
+    A provider without its own file uses meta.md, so variants exist only where needed.
+    """
+    folder = _PROMPT_DIR / name / version
+    text = (folder / "meta.md").read_text(encoding="utf-8")
+    variants = tuple(
+        (path.stem, Template(path.read_text(encoding="utf-8")))
+        for path in sorted(folder.glob("*.md"))
+        if path.stem != "meta"
+    )
+    return Prompt(name=name, version=version, template=Template(text), variants=variants)
 
 
 def language_name(code: str) -> str:
@@ -191,14 +200,10 @@ def _parse(raw: str, schema: type[T]) -> T:
     return schema.model_validate(json.loads(extract_json(raw)))
 
 
-def _user_content(text: str, image: bytes | None, mime: str | None) -> list[dict] | str:
-    if image is None or mime is None:
-        return text
-    data_url = f"data:{mime};base64,{base64.b64encode(image).decode('ascii')}"
-    return [
-        {"type": "image_url", "image_url": {"url": data_url}},
-        {"type": "text", "text": text},
-    ]
+def _message(role: str, content: str | list | None) -> Message:
+    """Prior-turn dict ({role, content}) → neutral message."""
+    text = content if isinstance(content, str) else json.dumps(content or "")
+    return Message.text("assistant" if role == "assistant" else "user", text)
 
 
 async def structured_call(
@@ -215,74 +220,47 @@ async def structured_call(
     image: bytes | None = None,
     image_mime: str | None = None,
     conversation: list[dict] | None = None,
+    tier: Tier = "standard",
+    effort: str | None = None,
+    wire_schema: dict | None = None,
+    anthropic_system: str | None = None,
+    max_tokens: int = 4096,
+    locale: str = "en",
 ) -> T:
-    """Call the model, validate the JSON answer against `schema`, repair once.
+    """Route the call (Anthropic primary, Meta fallback), validate against `schema`,
+    repair once per provider.
 
-    `conversation` (prior user/assistant turns) is sent before the final user turn.
-    Raises AiTimeoutError, AiProviderError or AiBadOutputError — never returns raw text.
+    `model` is the Meta model to use (fallback path, unchanged from before Phase 8);
+    Anthropic picks its model from `tier` via settings. `wire_schema` overrides the
+    JSON schema sent for structured outputs (validation always uses `schema`).
+    `timeout_seconds` is the TOTAL budget, fallback included.
+    Raises AiTimeoutError, AiProviderError, AiBadOutputError, AiRefusedError,
+    AiUnavailableError or AiBudgetExceededError — never returns raw text.
     """
-    model_id = model or settings.META_MUSE_SPARK_MODEL
-    client = get_client()
-    messages: list[dict] = [
-        {"role": "system", "content": system},
-        *(conversation or []),
-        {"role": "user", "content": _user_content(user_text, image, image_mime)},
-    ]
-    started = time.monotonic()
-    usage_total: dict[str, int] = {}
-    outcome = "provider_error"
-
-    def _add_usage(usage: dict) -> None:
-        for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
-            if isinstance(usage.get(k), int):
-                usage_total[k] = usage_total.get(k, 0) + usage[k]
-
-    try:
-        raw, usage = await client.chat_completion(messages, model_id, timeout_seconds)
-        _add_usage(usage)
-        try:
-            result = _parse(raw, schema)
-            outcome = "success"
-            return result
-        except (json.JSONDecodeError, ValidationError) as first_error:
-            # One repair attempt: show the model its answer and the validation errors.
-            remaining = max(3.0, timeout_seconds - (time.monotonic() - started))
-            repair_messages = [
-                *messages,
-                {"role": "assistant", "content": raw[:6000]},
-                {
-                    "role": "user",
-                    "content": (
-                        "Your answer was not valid for the required JSON schema. "
-                        f"Problems: {str(first_error)[:800]}. "
-                        "Reply again with ONLY the corrected JSON object."
-                    ),
-                },
-            ]
-            raw2, usage2 = await client.chat_completion(repair_messages, model_id, remaining)
-            _add_usage(usage2)
-            try:
-                result = _parse(raw2, schema)
-                outcome = "repaired"
-                return result
-            except (json.JSONDecodeError, ValidationError) as exc:
-                outcome = "schema_fail"
-                raise AiBadOutputError() from exc
-    except httpx.TimeoutException as exc:
-        outcome = "timeout"
-        raise AiTimeoutError() from exc
-    except MetaModelAPIError as exc:
-        outcome = "rate_limited" if exc.status_code == 429 else "provider_error"
-        raise AiProviderError(f"{feature} provider error") from exc
-    finally:
-        logger.info(
-            "ai_call",
-            feature=feature,
-            prompt_version=prompt.id,
-            model=model_id,
-            latency_ms=round((time.monotonic() - started) * 1000),
-            outcome=outcome,
-            request_id=request_id,
-            kitchen_id=kitchen_id,
-            **usage_total,
-        )
+    parts: tuple = (
+        (ImagePart(image, image_mime), user_text) if image and image_mime else (user_text,)
+    )
+    systems = {"meta": system}
+    if anthropic_system:
+        systems["anthropic"] = anthropic_system
+    request = LLMRequest(
+        feature=feature,
+        prompt_version=prompt.id,
+        systems=systems,
+        messages=[
+            *(_message(m.get("role", "user"), m.get("content")) for m in conversation or []),
+            Message(role="user", parts=parts),
+        ],
+        request_id=request_id,
+        kitchen_id=kitchen_id,
+        output_schema=wire_schema or schema.model_json_schema(),
+        max_tokens=max_tokens,
+        tier=tier,
+        effort=effort,
+        locale=locale,
+        meta_model=model or settings.META_MUSE_SPARK_MODEL,
+    )
+    routed = await provider_router.run(
+        request, parse=lambda raw: _parse(raw, schema), budget_seconds=timeout_seconds
+    )
+    return routed.value

@@ -201,6 +201,7 @@ async def assess_quality(
     product_name: str = Form(...),
     expected_unit: str = Form(...),
     image: UploadFile = File(..., description="JPEG or PNG, max 1 MB"),
+    x_request_id: str | None = Header(default=None),
     kitchen=Depends(_get_kitchen),
 ) -> QualityAssessmentResponse:
     """Advisory quality assessment for a delivery item photo.
@@ -229,8 +230,12 @@ async def assess_quality(
                 image_bytes=image_bytes,
                 product_name=product_name,
                 expected_unit=expected_unit,
-            )
+            ),
+            kitchen_id=str(kitchen.id),
+            request_id=new_request_id(x_request_id),
         )
+    except AppError:
+        raise  # typed AI errors (unavailable, timeout, kill switch) keep their codes
     except Exception as exc:
         logger.warning(
             "quality_assessment_failed",

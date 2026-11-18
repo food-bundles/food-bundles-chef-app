@@ -89,9 +89,9 @@ class Settings(BaseSettings):
     # Comma-separated languages whose speech-to-text passed evaluation (e.g. "en,fr").
     # Kinyarwanda stays off until a provider is evaluated for it.
     AI_TRANSCRIPTION_LANGUAGES: str = ""
-    # Per-task timeouts (seconds)
-    AI_CLASSIFY_TIMEOUT_SECONDS: int = 10
-    AI_EXTRACT_TIMEOUT_SECONDS: int = 30
+    # Assistant total budget (seconds) until chat streaming (Phase 8 step 1b) brings
+    # the time-to-first-token budget AI_TIMEOUT_CHAT_TTFT_MS into use.
+    # Classification/extraction budgets: AI_TIMEOUT_CLASSIFY_MS / AI_TIMEOUT_EXTRACT_MS.
     AI_CHAT_TIMEOUT_SECONDS: int = 30
     # Cheaper model for image classification; falls back to META_MUSE_SPARK_MODEL when empty
     META_MUSE_SPARK_FAST_MODEL: str = ""

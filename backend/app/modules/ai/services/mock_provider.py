@@ -29,7 +29,11 @@ class MockQualityAssessmentAdapter:
     """Returns deterministic pass results for all quality dimensions."""
 
     async def assess(
-        self, request: QualityAssessmentRequest
+        self,
+        request: QualityAssessmentRequest,
+        *,
+        kitchen_id: str = "",
+        request_id: str = "",
     ) -> QualityAssessmentResponse:
         await asyncio.sleep(0.05)  # simulate minimal latency in tests
         return QualityAssessmentResponse(

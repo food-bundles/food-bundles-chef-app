@@ -10,13 +10,25 @@ Never enable any capability in production without:
 - Legal review for Rwanda data protection obligations
 - Human-reviewed eval dataset with quality/cost/latency thresholds (see /ai-evals)
 """
+
 from __future__ import annotations
 
 from app.core.config import settings
 
 
-def _has_provider() -> bool:
+def _meta_configured() -> bool:
     return bool(settings.MODEL_API_KEY.get_secret_value() and settings.META_MUSE_SPARK_MODEL)
+
+
+def _anthropic_configured() -> bool:
+    return settings.ANTHROPIC_ENABLED and bool(
+        settings.ANTHROPIC_API_KEY.get_secret_value().strip()
+    )
+
+
+def _has_provider() -> bool:
+    """At least one routed provider (Anthropic primary or Meta fallback) can answer."""
+    return _anthropic_configured() or _meta_configured()
 
 
 def quality_assessment_enabled() -> bool:
@@ -52,4 +64,4 @@ def document_scan_enabled() -> bool:
 
 
 def assistant_enabled() -> bool:
-    return settings.AI_AGENT_ENABLED and bool(settings.MODEL_API_KEY.get_secret_value())
+    return settings.AI_AGENT_ENABLED and _has_provider()
