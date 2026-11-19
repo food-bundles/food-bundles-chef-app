@@ -11,13 +11,14 @@ Key formulas (from INTEGRATION_DESIGN.md § Business Formulas):
   expected_daily_use = weekly_sales / days_open * qty_per_portion / yield_fraction
 
   purchase_qty (raw) = expected_portions * qty_per_portion / yield_fraction
-                       * (1 + safety_buffer) − current_stock
+                       * (1 + safety_buffer) - current_stock
   purchase_qty (rounded) = ceil(raw / selling_unit_size) * selling_unit_size
 
   days_cover = current_stock / expected_daily_use
 
-  opening_stock = prev_closing + accepted_deliveries − expected_use
+  opening_stock = prev_closing + accepted_deliveries - expected_use
 """
+
 from __future__ import annotations
 
 import math
@@ -31,12 +32,14 @@ from app.core.constants import (
     SAFETY_BUFFER_FRACTION,
     TARGET_DAYS_COVER,
 )
+from app.shared.units import convert
 
 _ZERO = Decimal("0")
 _ONE = Decimal("1")
 
 
 # ── Weighted demand ────────────────────────────────────────────────────────────
+
 
 def weighted_demand(
     weekly_portions: Sequence[Decimal],
@@ -48,7 +51,7 @@ def weighted_demand(
     Fewer than 4 weeks: weights are re-normalised to sum to 1.
 
     Args:
-        weekly_portions: 1–4 weekly portion counts, most recent first.
+        weekly_portions: 1-4 weekly portion counts, most recent first.
         weights: explicit weights (default: DEMAND_WEIGHTS). Must be ≥ len(weekly_portions).
 
     Returns:
@@ -62,13 +65,15 @@ def weighted_demand(
     if total_weight == _ZERO:
         return _ZERO
 
-    result = sum(
-        Decimal(str(p)) * w for p, w in zip(weekly_portions, w_seq, strict=False)
-    ) / total_weight
+    weighted = sum(
+        (Decimal(str(p)) * w for p, w in zip(weekly_portions, w_seq, strict=False)), _ZERO
+    )
+    result = weighted / total_weight
     return result.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 
 # ── Daily use ──────────────────────────────────────────────────────────────────
+
 
 def expected_daily_use(
     weekly_sales: Decimal,
@@ -82,7 +87,7 @@ def expected_daily_use(
 
     Args:
         weekly_sales: expected portions sold per week.
-        days_open: days/week the kitchen operates (1–7).
+        days_open: days/week the kitchen operates (1-7).
         qty_per_portion: ingredient quantity needed per menu portion (raw, before yield).
         yield_fraction: usable fraction after prep (0 < x ≤ 1).
 
@@ -103,6 +108,7 @@ def expected_daily_use(
 
 # ── Purchase quantity ──────────────────────────────────────────────────────────
 
+
 def purchase_quantity(
     expected_portions: Decimal,
     qty_per_portion: Decimal,
@@ -114,7 +120,7 @@ def purchase_quantity(
     """How much to order (in supplier selling units).
 
     raw = expected_portions * qty_per_portion / yield_fraction
-          * (1 + safety_buffer) − current_stock
+          * (1 + safety_buffer) - current_stock
     order = ceil(max(raw, 0) / selling_unit_size) * selling_unit_size
 
     Args:
@@ -133,7 +139,11 @@ def purchase_quantity(
     if selling_unit_size <= _ZERO:
         raise ValueError(f"selling_unit_size must be > 0, got {selling_unit_size}")
 
-    buffer = Decimal(str(safety_buffer_fraction if safety_buffer_fraction is not None else SAFETY_BUFFER_FRACTION))
+    buffer = Decimal(
+        str(
+            safety_buffer_fraction if safety_buffer_fraction is not None else SAFETY_BUFFER_FRACTION
+        )
+    )
     gross_need = expected_portions * qty_per_portion / yield_fraction * (_ONE + buffer)
     raw = gross_need - current_stock
 
@@ -146,6 +156,7 @@ def purchase_quantity(
 
 
 # ── Days cover ─────────────────────────────────────────────────────────────────
+
 
 def days_cover(
     current_stock: Decimal,
@@ -171,6 +182,7 @@ def is_low_stock(cover: Decimal | None) -> bool:
 
 # ── Opening stock ──────────────────────────────────────────────────────────────
 
+
 def opening_stock(
     prev_closing_stock: Decimal,
     accepted_deliveries: Decimal,
@@ -178,7 +190,7 @@ def opening_stock(
 ) -> Decimal:
     """Opening stock for a period.
 
-    = prev_closing + accepted_deliveries − expected_use
+    = prev_closing + accepted_deliveries - expected_use
     Clamped to 0 (stock cannot go negative).
     """
     result = prev_closing_stock + accepted_deliveries - expected_use
@@ -187,34 +199,17 @@ def opening_stock(
 
 # ── Units ──────────────────────────────────────────────────────────────────────
 
-# Factor to the family base unit (g for mass, ml for volume, 1 for discrete counts).
-_UNIT_FACTORS: dict[str, tuple[str, Decimal]] = {
-    "kg": ("mass", Decimal("1000")),
-    "g": ("mass", Decimal("1")),
-    "mg": ("mass", Decimal("0.001")),
-    "l": ("volume", Decimal("1000")),
-    "litre": ("volume", Decimal("1000")),
-    "litres": ("volume", Decimal("1000")),
-    "liter": ("volume", Decimal("1000")),
-    "liters": ("volume", Decimal("1000")),
-    "ml": ("volume", Decimal("1")),
-}
-
 
 def convert_quantity(qty: Decimal, from_unit: str, to_unit: str) -> Decimal | None:
-    """Convert `qty` between units of the same family (kg↔g↔mg, l↔ml).
-
-    Identical units (case-insensitive) convert 1:1, including discrete units such as
-    "pieces". Returns None when the units are incompatible (e.g. kg → pieces), so the
-    caller can skip the line instead of guessing.
+    """Convert `qty` between units, through the unit registry (app/shared/units.py):
+    mass (mg, g, kg, lb, oz), volume (ml, cl, dl, l), counts (piece, dozen) and printed
+    pack sizes ("50 kg bag"). Identical units convert 1:1, including unknown ones such as
+    "pieces". Returns None when the units are incompatible (kg → pieces) or the registry
+    would have to ask (US/UK gallon, a bag of unknown size), so the caller skips the line
+    instead of guessing.
     """
-    f, t = from_unit.strip().lower(), to_unit.strip().lower()
-    if f == t:
-        return qty
-    src, dst = _UNIT_FACTORS.get(f), _UNIT_FACTORS.get(t)
-    if src is None or dst is None or src[0] != dst[0]:
-        return None
-    return qty * src[1] / dst[1]
+    result = convert(qty, from_unit, to_unit)
+    return result.qty if result.status == "ok" else None
 
 
 def portion_usage(
@@ -319,6 +314,7 @@ def unit_price_from_total(line_total: int | None, quantity: Decimal | None) -> i
 
 # ── Recipe cost ────────────────────────────────────────────────────────────────
 
+
 def recipe_cost(
     lines: Sequence[tuple[Decimal, Decimal, Decimal]],
 ) -> Decimal:
@@ -331,15 +327,12 @@ def recipe_cost(
     Returns:
         Total cost rounded to 2 dp.
     """
-    total = sum(
-        qty / yld * cost
-        for qty, yld, cost in lines
-        if yld > _ZERO
-    )
+    total = sum(qty / yld * cost for qty, yld, cost in lines if yld > _ZERO)
     return Decimal(str(total)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 # ── Suggested purchase period ──────────────────────────────────────────────────
+
 
 def target_order_qty(
     expected_portions: Decimal,
