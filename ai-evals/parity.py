@@ -337,6 +337,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "arms": args.arms,
         "features": args.features,
         "dry_run": args.dry_run,
+        "label": args.label,
         "started": datetime.now(UTC).isoformat(),
     }
     (run_dir / "run.json").write_text(json.dumps(meta, indent=2))
@@ -1028,8 +1029,18 @@ def cmd_report(args: argparse.Namespace) -> int:
             rows_by[(r["arm"], r["feature"])].append(r)
     arms = [a for a in ARMS if any(k[0] == a for k in rows_by)]
     lines = [
-        f"# Phase 8 parity report: {meta['run_id']}",
+        f"# Phase 8 parity report: {meta['run_id']}"
+        + (f" ({meta['label'].upper()})" if meta.get("label") else ""),
         "",
+        *(
+            [
+                f"> **{meta['label'].upper()}**: run on the current case set; the full-set "
+                "run is a tracked follow-up.",
+                "",
+            ]
+            if meta.get("label")
+            else []
+        ),
         f"Runs per case: {meta['runs']} · arms: {', '.join(arms)} · "
         f"spent ${ledger['spent_usd']:.4f} of ${meta['budget_usd']:.2f}"
         + (f" · **stopped: {ledger['stopped']}**" if ledger.get("stopped") else "")
@@ -1212,6 +1223,7 @@ def main() -> int:
         help="use ANTHROPIC_API_KEY from the environment",
     )
     r.add_argument("--out", type=Path, default=ROOT / "results")
+    r.add_argument("--label", help='marks the report, e.g. "preliminary"')
     w = sub.add_parser("worker")
     w.add_argument("--arm", required=True, choices=list(ARMS))
     w.add_argument("--run-dir", required=True)
