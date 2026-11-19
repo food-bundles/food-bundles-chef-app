@@ -42,7 +42,22 @@ are left out of scoring; prices in any currency are scored. An expected item or 
 named `"unreadable"` is left out of recall, and up to that many unmatched returned items are
 not held against precision (added 2026-11-19 for the real photo set).
 
-All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/test_grading.py`.
+All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/test_grading.py`
+and `tests/test_grading_v2.py`.
+
+**Answer-key format 2 (Step 2a, 2026-11-19).** Every price is `{"text", "amount", "currency"}`:
+`text` exactly as printed, `amount` a decimal string, `currency` ISO 4217.
+- `amount: null` means the right behaviour is to ask, for example "1.500" when nothing on the
+  page shows which separator is the decimal.
+- `currency: null` means none is printed, or it is ambiguous ("$"): the app must ask.
+
+Cases and items may list `should_clarify`, the kinds of clarifying question the app should
+ask. Documents add `total` (money) and `arithmetic_flags` (issue kinds the arithmetic check
+must raise; `[]` = it adds up). The retired `non_rwf` marker is rejected by `plan`.
+
+**Two eval kitchens.** `fixtures/eval-kitchen.json` is in RWF (Kigali);
+`fixtures/eval-kitchen-eur.json` is in EUR (Paris). A case runs in the RWF kitchen unless it
+sets `"kitchen": "eur"`. Both are snapshotted for unconfirmed writes.
 
 **Common to every feature**
 
@@ -65,7 +80,8 @@ All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/te
 | Metric | Rule |
 |---|---|
 | Item recall / precision | Names normalised (case, accents, punctuation removed), then fuzzy similarity ≥ 0.9 (`difflib` ratio), one-to-one, best pairs first. |
-| Price accuracy | Exact integer RWF; an expected `null` must come back `null`. Denominator: all expected items (a missed item counts as a wrong price). |
+| Price accuracy | Format 2: **amount and currency must both match** what the server read (`price_read`): "20$" read as 20 RWF is wrong. An expected `amount: null` (the app must ask) scores as a miss if the server settled any amount (guessing). An expected `currency: null` scores as a miss if the server picked a currency. An expected `null` price (none printed) must come back without a reading. Format-1 keys: exact whole RWF in `price`. Denominator: all expected items (a missed item counts as a wrong price). |
+| Clarify recall / false alarms | `should_clarify` (case and items) against the kinds in the response's `clarifications`. Recall = expected kinds asked. False-alarm rate = cases where a kind was asked that the key does not expect. Both are reported per kind. |
 | Category accuracy | Exact; only over expected items that have a category. |
 
 **Dish** (against the eval kitchen's ingredient list)
@@ -80,8 +96,11 @@ All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/te
 | Metric | Rule |
 |---|---|
 | Line recall | Names matched with the menu fuzzy rule. |
-| Quantity accuracy | Exact number (`"25"` = `25`). Denominator: all expected lines. |
-| Price accuracy | `unit_price` and `line_total` each exact where the expectation gives them; both must match when both are given. |
+| Quantity accuracy | Exact number as printed (`"25"` = `25`). When the server converted the unit (3 lb → 1.361 kg), its `original_quantity` is compared. Denominator: all expected lines. |
+| Price accuracy | `unit_price` and `line_total` each right where the key gives them, with the menu's amount-and-currency rule (against `unit_price_read` / `line_total_read`); both must match when both are given. |
+| Total accuracy | The key's `total` against the printed total the server read (`total_read`), amount and currency. |
+| Arithmetic flags | `arithmetic_flags` against the kinds in `arithmetic.issues`: recall (expected flags raised) and false flags (raised but not expected). Flags are never corrections. |
+| Clarify recall / false alarms | As for menus. |
 
 **Assistant** (a case passes when every applicable check passes)
 
@@ -95,15 +114,17 @@ All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/te
 | Language | The reply is in the request language (heuristic function-word detector for EN/FR/RW). Replies it cannot decide are reported as `language_unknown` and listed for manual review, not counted. |
 | Grounded (no invented numbers) | Every number in the reply must appear in the chef's messages or be justified by the kitchen data (stock, unit costs, prices, recipe quantities, each dish's food cost and food-cost %). 0 and 1, today's date, ISO dates and times like 14:05 are ignored. |
 | Mentions | For answers that must quote a figure: one of the accepted spellings appears. |
+| Clarify kind | For cases with `expect.clarify_kind` (agent/v3): the server's question has that kind. Examples: "5 US dollars" in an RWF kitchen → `currency_mismatch`; "1.500" in the EUR kitchen → `ambiguous_separator`; "2.5k" → `k_suffix`; "1 gallon", "2 bags" → `ambiguous_unit`. "3 lb of beef" must be a proposal of 1.361 kg, with no question. |
 | Unconfirmed writes | Stock and today's sales are snapshotted before and after the Assistant cases of each run. Any difference is an unconfirmed write. Release bar: 0. |
 | Params decode failure rate (Claude) | Claude sends `params` as a JSON-encoded string. The runner inspects every raw Assistant answer before the repair step and counts strings that are not valid JSON objects or fail the typed model. |
 
 ## Release bar (per feature, per Claude arm vs Meta)
 
 - Equal or better than Meta on the feature's main metrics: classify accuracy; menu item recall,
-  price and category accuracy; dish ingredient precision and recall; document line recall,
-  quantity and price accuracy; Assistant pass rate, action, params valid, one question,
-  language and grounded.
+  price, category and clarify recall; dish ingredient precision and recall; document line
+  recall, quantity, price and clarify recall; Assistant pass rate, action, params valid, one
+  question, language, grounded and clarify kind. Clarify false-alarm rates, document total
+  accuracy and arithmetic flags are reported beside them.
 - Schema-valid ≥ 99 %.
 - 0 unconfirmed writes.
 - p95 within the feature's time budget (classify 15 s, extraction 30 s, Assistant 30 s total
@@ -130,20 +151,22 @@ runs), with a line for the fix applied.
   names exactly as printed.
 - Dish cases are graded against the eval kitchen's 7 ingredients; add the ingredients your dish
   photos need to `fixtures/eval-kitchen.json`.
+- Questions are decided by the server, not the model, so clarify recall measures mostly the
+  model's reading: it fails when the model drops the symbol from `text`, or adds one.
 
 ## Case list and cost estimate
 
-Generated by `python ai-evals/parity.py plan --runs 3`. Image cases are empty until the photos
-arrive (`cases/README.md` explains the folder format).
+Generated by `python ai-evals/parity.py plan --runs 3`. Only verified answer keys are graded:
+the 20 format-2 drafts wait for review (`cases/README.md` explains the folder format).
 
-### Image cases (cases/<feature>/<id>/)
+### Image cases (cases/<feature>/<id>/): found draft 20; using verified only
 
 - menu: 0 case(s)
 - dish: 0 case(s)
 - document: 0 case(s)
 - junk: 0 case(s)
 
-### Assistant cases (cases/assistant/cases.jsonl): 45
+### Assistant cases (cases/assistant/cases.jsonl): 63
 
 | id | lang | turns | expected |
 |---|---|---|---|
@@ -192,6 +215,24 @@ arrive (`cases/README.md` explains the folder format).
 | p8-en-05 | en | What's the food cost of a pizza? | answer (no_data) |
 | p8-fr-05 | fr | Quel est le coût matière d'une pizza ? | answer (no_data) |
 | p8-rw-05 | rw * | Ikiguzi cy'ibikoresho bya pizza ni angahe? | answer (no_data) |
+| chat-en-g01 | en | Add Chapati to the menu for 5 US dollars | clarification |
+| chat-en-g02 | en | Add Chapati for 5 dollars | clarification |
+| chat-en-g03 | en | Add Steak tartare to the menu at 1.500 | clarification |
+| chat-en-g04 | en | Add Samosa to the menu for 2.5k | clarification |
+| chat-en-g05 | en | We received 3 lb of beef | proposal record_inventory {"ingredient_name": "Beef", "change": "add", "quantity": 1.361, "unit": "kg"} |
+| chat-en-g06 | en | We received 1 gallon of cooking oil | clarification |
+| chat-en-g07 | en | 2 bags of rice arrived | clarification |
+| chat-en-g08 | en | Add Croque monsieur to the menu for 7,99 € | proposal add_menu_item {"name_contains": "Croque", "selling_price": 7.99} |
+| chat-fr-g01 | fr | Ajoute le chapati au menu à 5 USD | clarification |
+| chat-fr-g02 | fr | Ajoute une entrecôte au menu à 1.500 | clarification |
+| chat-fr-g03 | fr | Nous avons reçu 3 lb de bœuf | proposal record_inventory {"ingredient_name": "Beef", "change": "add", "quantity": 1.361, "unit": "kg"} |
+| chat-fr-g04 | fr | On a reçu 2 sacs de riz | clarification |
+| chat-fr-g05 | fr | Ajoute le croque-monsieur au menu à 7,99 € | proposal add_menu_item {"name_contains": "croque", "selling_price": 7.99} |
+| chat-fr-g06 | fr | Ajoute des samoussas au menu à 2,5k | clarification |
+| chat-rw-g01 | rw * | Ongeraho chapati kuri menu ku giciro cya USD 5 | clarification |
+| chat-rw-g02 | rw * | Twakiriye gallon 1 y'amavuta yo guteka | clarification |
+| chat-rw-g03 | rw * | Twakiriye lb 3 z'inyama y'inka | proposal record_inventory {"ingredient_name": "Beef", "change": "add", "quantity": 1.361, "unit": "kg"} |
+| chat-rw-g04 | rw * | Ongeraho sambusa kuri menu ku 2.5k | clarification |
 
 `*` Kinyarwanda drafts, flagged for native review.
 
@@ -203,18 +244,18 @@ arrive (`cases/README.md` explains the folder format).
 | meta | menu | 0 | 0.00 |
 | meta | dish | 0 | 0.00 |
 | meta | document | 0 | 0.00 |
-| meta | assistant | 144 | 1.52 |
+| meta | assistant | 198 | 2.08 |
 | claude-low | classify | 0 | 0.00 |
 | claude-low | menu | 0 | 0.00 |
 | claude-low | dish | 0 | 0.00 |
 | claude-low | document | 0 | 0.00 |
-| claude-low | assistant | 144 | 3.02 |
+| claude-low | assistant | 198 | 4.16 |
 | claude-medium | menu | 0 | 0.00 |
 | claude-medium | dish | 0 | 0.00 |
 | claude-medium | document | 0 | 0.00 |
-| claude-medium | assistant | 144 | 3.96 |
+| claude-medium | assistant | 198 | 5.45 |
 
-**Estimated total: $8.50** (pessimistic token counts; hard stop at $25.00).
+**Estimated total: $11.69** (pessimistic token counts; hard stop at $25.00).
 
 ### Estimate with the expected image set (30 menus, 20 dishes, 10 documents, 10 junk)
 
@@ -224,17 +265,17 @@ arrive (`cases/README.md` explains the folder format).
 | meta | menu | 90 | 1.01 |
 | meta | dish | 60 | 0.73 |
 | meta | document | 30 | 0.34 |
-| meta | assistant | 144 | 1.52 |
+| meta | assistant | 198 | 2.08 |
 | claude-low | classify | 210 | 0.16 |
 | claude-low | menu | 90 | 2.14 |
 | claude-low | dish | 60 | 1.58 |
 | claude-low | document | 30 | 0.71 |
-| claude-low | assistant | 144 | 3.02 |
+| claude-low | assistant | 198 | 4.16 |
 | claude-medium | menu | 90 | 2.95 |
 | claude-medium | dish | 60 | 2.24 |
 | claude-medium | document | 30 | 0.98 |
-| claude-medium | assistant | 144 | 3.96 |
+| claude-medium | assistant | 198 | 5.45 |
 
-**Estimated total: $22.88** (pessimistic token counts; hard stop at $25.00).
+**Estimated total: $26.07** (pessimistic token counts; hard stop at $25.00). With the 18 Step 2a Assistant cases (63 in all) the pessimistic estimate for the full target image set is above the $25 cap: run 2 repetitions instead of 3, or raise the cap (product-owner decision).
 
 Scaling the 2026-11-18 smoke-test costs instead gives about $8.50 for the same set, but real menus with 20–40 items produce several times the output tokens of the 5-item test menu, so expect roughly $12–15, within the $25 cap.

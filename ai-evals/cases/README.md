@@ -39,9 +39,19 @@ prices drafts.
 
 - `"unreadable"`: the value (or a whole item / line name) cannot be read in the photo. It is
   left out of scoring instead of counting as wrong.
-- Prices in any currency are scored. The answer-key format with amount + ISO 4217 currency
-  and `should_clarify` is being designed in Step 2a (global readiness); until then drafts keep
-  the printed text in `price_text`.
+- Prices in any currency are scored, as **format 2** (Step 2a, `"format": 2`). Each price is
+  `{"text": "7,99 €", "amount": "7.99", "currency": "EUR"}`:
+  - `text`: exactly as printed;
+  - `amount`: a decimal string, or `null` when the right behaviour is to ask (for example
+    "1.500" with nothing on the page to decide);
+  - `currency`: ISO 4217, or `null` when no currency is printed or it is ambiguous ("$").
+  - The whole price is `null` when none is printed. The retired `non_rwf` marker is rejected.
+- `should_clarify`: the clarifying questions the app should ask (case or item level). Kinds:
+  `currency_mismatch`, `currency_missing`, `ambiguous_separator`, `k_suffix`,
+  `ambiguous_unit`, `arithmetic_mismatch`, `unreadable_value`. Asking when the list doesn't
+  expect it counts as a false alarm; guessing where it does counts as a miss.
+- `kitchen`: `rwf` (default, `fixtures/eval-kitchen.json`) or `eur`
+  (`fixtures/eval-kitchen-eur.json`).
 
 ## Images
 
@@ -55,14 +65,15 @@ prices drafts.
 Common fields: `kind` (required), `status` (`draft`, `verified` or `excluded`; missing = draft), `language` (`en` / `fr` / `rw`, the language the app would
 send; default `en`), `tags` (free labels such as `handwritten`, `blurry`, `angled`, `clear`), `consent`.
 
-**Menu** (`kind: "menu"`): every item exactly as written (do not translate dish names), price as
-whole RWF (`"2.5k"` → `2500`, no price → `null`), category `main` / `side` / `drink` / `dessert` or
-`null` when it is not obvious.
+**Menu** (`kind: "menu"`): every item exactly as written (do not translate dish names), the price
+in format 2 (no price → `null`), category `main` / `side` / `drink` / `dessert` or `null` when it
+is not obvious.
 
 ```json
-{"kind": "menu", "language": "fr", "tags": ["handwritten"], "consent": "Chef A, 2026-11-20",
- "items": [{"name": "Brochette de chèvre", "price": 2500, "category": "main"},
-           {"name": "Fanta", "price": 1000, "category": "drink"}]}
+{"kind": "menu", "format": 2, "language": "fr", "tags": ["handwritten"], "consent": "Chef A, 2026-11-20",
+ "should_clarify": ["k_suffix"],
+ "items": [{"name": "Brochette de chèvre", "price": {"text": "2.5k Frw", "amount": "2500", "currency": "RWF"}, "category": "main"},
+           {"name": "Fanta", "price": {"text": "Frw 1,000", "amount": "1000", "currency": "RWF"}, "category": "drink"}]}
 ```
 
 Names are matched with a normalised fuzzy score of at least 0.9 (see PARITY.md). Write the name the
@@ -77,12 +88,22 @@ Beef, Tomato, Onion). Add ingredients to the fixture when your dishes need them.
  "dish_name": "Chips", "category": "side", "ingredients": ["Potato", "Cooking oil", "Salt"]}
 ```
 
-**Delivery note / receipt** (`kind: "delivery_note"` or `"receipt"`): every line; `quantity` as a
-number, `unit_price` and `line_total` in whole RWF or `null` when not printed.
+**Delivery note / receipt** (`kind: "delivery_note"` or `"receipt"`):
+- every product line: `quantity` as a number, exactly as printed (not converted); `unit` as
+  printed; `unit_price` and `line_total` in format 2, or `null` when not printed. Subtotal,
+  tax, fees, total, cash and change are not lines.
+- `total`: the printed total, in format 2.
+- `arithmetic_flags`: the issues the check must raise (`line_arithmetic`,
+  `subtotal_mismatch`, `total_mismatch`, `words_mismatch`). Use `[]` when the document adds
+  up. Never correct the numbers in the key.
 
 ```json
-{"kind": "delivery_note", "tags": ["printed"], "consent": "…",
- "lines": [{"name": "Tomatoes", "quantity": 25, "unit": "kg", "unit_price": 1000, "line_total": 25000}]}
+{"kind": "delivery_note", "format": 2, "tags": ["printed"], "consent": "…",
+ "should_clarify": [], "arithmetic_flags": [],
+ "total": {"text": "Frw 25,000", "amount": "25000", "currency": "RWF"},
+ "lines": [{"name": "Tomatoes", "quantity": 25, "unit": "kg",
+            "unit_price": {"text": "1,000", "amount": "1000", "currency": null},
+            "line_total": {"text": "25,000", "amount": "25000", "currency": null}}]}
 ```
 
 **Junk** (`kind`: `other`, `stock_shelf`, `dish`, … whatever the photo really is):
@@ -97,7 +118,8 @@ One JSON object per line: `id`, `language`, `turns` (the chef's messages; with s
 runner sends each one with the assistant's previous reply as history), `expect`, `source`,
 `needs_native_review` (Kinyarwanda drafts).
 
-`expect.type` is `proposal`, `clarification` or `answer`. Proposals give `action_type` and the
+`kitchen` (optional): `rwf` (default) or `eur`. `expect.type` is `proposal`, `clarification` or `answer`;
+`expect.clarify_kind` names the kind of the question the server must ask (agent/v3). Proposals give `action_type` and the
 `params` that must match. Answers may give `mentions_any` (accepted spellings of a figure),
 `no_data: true` (the kitchen has no such data: no number may be invented) or
 `out_of_domain: true` (a polite refusal also passes).

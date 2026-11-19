@@ -32,6 +32,9 @@ ROOT = Path(__file__).resolve().parent
 BACKEND = ROOT.parent / "backend"
 CASES = ROOT / "cases"
 FIXTURE = ROOT / "fixtures" / "eval-kitchen.json"
+# Step 2a: a second kitchen in EUR (Paris) for currency, separator and unit cases.
+FIXTURE_EUR = ROOT / "fixtures" / "eval-kitchen-eur.json"
+FIXTURES = {"rwf": FIXTURE, "eur": FIXTURE_EUR}
 IMAGE_FEATURES = ("menu", "dish", "document", "junk")
 FEATURES = ("classify", "menu", "dish", "document", "assistant")
 
@@ -139,6 +142,10 @@ def validate_expected(feature: str, e: dict[str, Any]) -> str | None:
         return "missing 'kind'"
     if e.get("status", "draft") not in ("draft", "verified", "excluded"):
         return "status must be draft, verified or excluded"
+    if "non_rwf" in json.dumps(e):
+        return "'non_rwf' is retired: write the price as {text, amount, currency} (format 2)"
+    if e.get("kitchen", "rwf") not in FIXTURES:
+        return f"kitchen must be one of {sorted(FIXTURES)}"
     if feature == "menu" and not isinstance(e.get("items"), list):
         return "menu cases need 'items': [{name, price, category}]"
     if feature == "dish" and not isinstance(e.get("ingredients"), list):
@@ -157,10 +164,10 @@ def load_assistant_cases() -> list[dict[str, Any]]:
     ]
 
 
-def kitchen_numbers() -> set[Decimal]:
+def kitchen_numbers(fixture: Path = FIXTURE) -> set[Decimal]:
     """Every number the eval kitchen's data can justify: stock, costs, prices, recipe
     quantities and each dish's food cost (sum of qty x unit cost)."""
-    data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    data = json.loads(fixture.read_text(encoding="utf-8"))
     nums: set[Decimal] = set()
     cost = {}
     for ing in data["ingredients"]:
@@ -472,10 +479,11 @@ def cmd_worker(args: argparse.Namespace) -> int:
     chef_id = asyncio.run(init_db())
     client = TestClient(app.main.app, base_url="http://eval/api/v1")
     client.headers["Authorization"] = f"Bearer {create_access_token(chef_id)}"
-    seeded = seed_kitchen(client, f"{arm}", FIXTURE)
-    kid = seeded["kitchen_id"]
+    seeded_all = {name: seed_kitchen(client, f"{arm}-{name}", path) for name, path in FIXTURES.items()}
+    kitchen_ids = {name: k["kitchen_id"] for name, k in seeded_all.items()}
+    seeded = seeded_all["rwf"]
     kitchen_by_id = {v: k for k, v in seeded["ingredients"].items()}
-    allowed_kitchen = kitchen_numbers()
+    allowed_by_kitchen = {name: kitchen_numbers(path) for name, path in FIXTURES.items()}
     params_validator = _params_validator(ACTION_PARAMS)
 
     ledger_path = run_dir / "ledger.json"
@@ -506,11 +514,11 @@ def cmd_worker(args: argparse.Namespace) -> int:
         return cost
 
     def post(
-        path: str, feature: str, **kw: Any
+        path: str, feature: str, kitchen: str = "rwf", **kw: Any
     ) -> tuple[int, dict | None, str | None, list[dict], float]:
         before = len(recorder.calls)
         started = time.monotonic()
-        resp = client.post(f"/kitchens/{kid}/ai/{path}", **kw)
+        resp = client.post(f"/kitchens/{kitchen_ids[kitchen]}/ai/{path}", **kw)
         wall_ms = (time.monotonic() - started) * 1000
         calls = recorder.calls[before:]
         body, code = None, None
@@ -557,7 +565,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
             if stopped:
                 break
             if feature == "assistant":
-                before = snapshot(client, kid)
+                before = {k: snapshot(client, i) for k, i in kitchen_ids.items()}
                 for case in assistant:
                     history: list[dict[str, str]] = []
                     status, body, code, calls_all, wall_total = 0, None, None, [], 0.0
@@ -569,6 +577,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
                         status, body, code, calls, wall = post(
                             "agent",
                             "assistant",
+                            case.get("kitchen", "rwf"),
                             json={"messages": history, "language": case["language"]},
                             headers={
                                 "X-Request-ID": f"parity-{arm}-{case['id']}-{run}"
@@ -590,7 +599,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
                         history.append({"role": "agent", "content": reply})
                     if stopped:
                         break
-                    allowed = allowed_kitchen | {
+                    allowed = allowed_by_kitchen[case.get("kitchen", "rwf")] | {
                         n for t in case["turns"] for n in grading.extract_numbers(t)
                     }
                     allowed |= {
@@ -620,7 +629,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
                             "response": body,
                         }
                     )
-                after = snapshot(client, kid)
+                after = {k: snapshot(client, i) for k, i in kitchen_ids.items()}
                 write(
                     {
                         "arm": arm,
@@ -654,6 +663,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
                 status, body, code, calls, wall = post(
                     path,
                     feature,
+                    case["expected"].get("kitchen", "rwf"),
                     files=files,
                     data={"language": lang},
                     headers={"X-Request-ID": f"parity-{arm}-{case['id']}-{run}"},
@@ -662,11 +672,13 @@ def cmd_worker(args: argparse.Namespace) -> int:
                 if feature == "classify":
                     grade = grading.grade_classify(exp["kind"], body)
                 elif feature == "menu":
-                    grade = grading.grade_menu(exp["items"], body)
+                    grade = grading.grade_menu(
+                        exp["items"], body, grading.expected_clarify(exp, exp["items"])
+                    )
                 elif feature == "dish":
                     grade = grading.grade_dish(exp["ingredients"], body, kitchen_by_id)
                 else:
-                    grade = grading.grade_document(exp["lines"], body)
+                    grade = grading.grade_document(exp["lines"], body, exp)
                 write(
                     {
                         "arm": arm,
@@ -727,10 +739,16 @@ def _install_fake_providers(router: Any, arm: str) -> None:
                 {
                     "name": "Chips",
                     "category": "side",
-                    "price_text": "1,500",
+                    "price": {
+                        "text": "Frw 1,500",
+                        "amount": "1500",
+                        "currency": "RWF",
+                        "currency_evidence": "code",
+                        "evidence_text": "Frw",
+                        "confidence": 0.9,
+                    },
                     "description": None,
                     "name_confidence": 0.9,
-                    "price_confidence": 0.9,
                     "source_text": None,
                 }
             ],
@@ -762,8 +780,8 @@ def _install_fake_providers(router: Any, arm: str) -> None:
                     "name": "Tomatoes",
                     "quantity_text": "25",
                     "unit": "kg",
-                    "unit_price_text": None,
-                    "line_total_text": None,
+                    "unit_price": None,
+                    "line_total": None,
                     "confidence": 0.9,
                 }
             ],
@@ -812,9 +830,9 @@ BUDGETS_S = {
 }
 MAIN_METRICS = {
     "classify": ["accuracy"],
-    "menu": ["item_recall", "price_accuracy", "category_accuracy"],
+    "menu": ["item_recall", "price_accuracy", "category_accuracy", "clarify_recall"],
     "dish": ["ingredient_precision", "ingredient_recall"],
-    "document": ["line_recall", "quantity_accuracy", "price_accuracy"],
+    "document": ["line_recall", "quantity_accuracy", "price_accuracy", "clarify_recall"],
     "assistant": [
         "pass_rate",
         "action_correct",
@@ -822,6 +840,7 @@ MAIN_METRICS = {
         "one_question",
         "language",
         "grounded",
+        "clarify_kind",
     ],
 }
 
@@ -873,6 +892,7 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         out["item_precision"] = _mean([x.get("precision") for x in g])
         out["price_accuracy"] = _mean([x.get("price_accuracy") for x in g])
         out["category_accuracy"] = _mean([x.get("category_accuracy") for x in g])
+        out.update(clarify_metrics(g))
     elif feature == "dish":
         out["ingredient_precision"] = _mean([x.get("precision") for x in g])
         out["ingredient_recall"] = _mean([x.get("recall") for x in g])
@@ -881,6 +901,16 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         out["line_recall"] = _mean([x.get("line_recall") for x in g])
         out["quantity_accuracy"] = _mean([x.get("quantity_accuracy") for x in g])
         out["price_accuracy"] = _mean([x.get("price_accuracy") for x in g])
+        out["total_accuracy"] = _mean(
+            [1.0 if x["total_ok"] else 0.0 for x in g if x.get("total_ok") is not None]
+        )
+        flags = [x["arithmetic"] for x in g if x.get("arithmetic")]
+        want = sum(len(f["expected"]) for f in flags)
+        out["arithmetic_flag_recall"] = (
+            None if not want else sum(len(f["expected"]) - len(f["missed"]) for f in flags) / want
+        )
+        out["arithmetic_false_flags"] = sum(len(f["false_flags"]) for f in flags)
+        out.update(clarify_metrics(g))
     else:
 
         def check(name: str) -> float | None:
@@ -894,6 +924,7 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         out["language"] = check("language")
         out["language_unknown"] = sum(1 for x in g if x.get("language") == "unknown")
         out["grounded"] = check("grounded")
+        out["clarify_kind"] = check("clarify_kind")
         writes = [r for r in rows if r["case"] == "_writes"]
         out["unconfirmed_writes"] = sum(
             1 for r in writes if r.get("unconfirmed_writes")
@@ -906,6 +937,34 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
             ) / decode["params_string"]
         out["decode_stats"] = decode
     return out
+
+
+def clarify_metrics(grades: list[dict[str, Any]]) -> dict[str, Any]:
+    """Clarifying questions over a feature's cases: recall (asked when the key says to ask)
+    and false-alarm rate (cases where a question of that kind was asked but not expected),
+    overall and per kind."""
+    rows = [x["clarify"] for x in grades if x.get("clarify")]
+    if not rows:
+        return {}
+    want = sum(len(r["expected"]) for r in rows)
+    kinds = sorted({k for r in rows for k in r["expected"] + r["asked"]})
+    per_kind = {}
+    for kind in kinds:
+        expected = [r for r in rows if kind in r["expected"]]
+        not_expected = [r for r in rows if kind not in r["expected"]]
+        per_kind[kind] = {
+            "recall": _mean([1.0 if kind in r["hits"] else 0.0 for r in expected]),
+            "false_alarm_rate": _mean(
+                [1.0 if kind in r["false_alarms"] else 0.0 for r in not_expected]
+            ),
+        }
+    return {
+        "clarify_recall": None if not want else sum(len(r["hits"]) for r in rows) / want,
+        "clarify_false_alarm_rate": _mean(
+            [1.0 if r["false_alarms"] else 0.0 for r in rows]
+        ),
+        "clarify_by_kind": per_kind,
+    }
 
 
 def case_scores(rows: list[dict[str, Any]]) -> dict[str, float]:
@@ -999,7 +1058,11 @@ def cmd_report(args: argparse.Namespace) -> int:
         sums = {a: s for a, s in sums.items() if s}
         if not sums:
             continue
-        keys = [k for k in next(iter(sums.values())) if k != "decode_stats"]
+        keys = [
+            k
+            for k in next(iter(sums.values()))
+            if k not in ("decode_stats", "clarify_by_kind")
+        ]
         lines += [
             f"## {feature}",
             "",
@@ -1012,6 +1075,23 @@ def cmd_report(args: argparse.Namespace) -> int:
                 + " | ".join(_fmt(k, s.get(k)) for s in sums.values())
                 + " |"
             )
+        kinds = sorted({k for s in sums.values() for k in s.get("clarify_by_kind", {})})
+        if kinds:
+            lines += [
+                "",
+                "Clarifying questions by kind (recall / false-alarm rate):",
+                "",
+                "| kind | " + " | ".join(sums) + " |",
+                "|---|" + "---|" * len(sums),
+            ]
+            for kind in kinds:
+                cells = []
+                for s in sums.values():
+                    k = s.get("clarify_by_kind", {}).get(kind, {})
+                    cells.append(
+                        f"{_fmt('r', k.get('recall'))} / {_fmt('f', k.get('false_alarm_rate'))}"
+                    )
+                lines.append(f"| {kind} | " + " | ".join(cells) + " |")
         budget_setting = BUDGETS_S[feature]
         budget_s = getattr(settings, budget_setting) / (
             1 if budget_setting.endswith("SECONDS") else 1000

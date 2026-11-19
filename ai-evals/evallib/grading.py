@@ -285,6 +285,70 @@ def gradable(value: Any) -> bool:
     return not (isinstance(value, str) and value in UNGRADED)
 
 
+def money_ok(expected: dict[str, Any], read: dict[str, Any] | None) -> bool:
+    """Answer-key format 2 (Step 2a): a price is right only when AMOUNT and CURRENCY both match
+    what the server read ("20$" read as 20 RWF is wrong).
+
+    - `amount: null` in the key: the right behaviour is to ask (e.g. "1.500" with nothing to
+      decide); any amount the server settled on is a guess, so it scores as a miss.
+    - `currency: null`: no currency may be picked (e.g. "$" alone, or no symbol); the reading
+      must leave it open for the clarifying question.
+    """
+    read = read or {}
+    exp_amount = to_decimal(expected.get("amount"))
+    got_amount = to_decimal(read.get("amount"))
+    exp_currency = (expected.get("currency") or "").upper() or None
+    got_currency = (read.get("currency") or "").upper() or None
+    if exp_amount is None:
+        return got_amount is None
+    return got_amount == exp_amount and got_currency == exp_currency
+
+
+def price_correct(
+    expected: Any, actual: dict[str, Any], *, legacy_key: str, read_key: str
+) -> bool:
+    """One price: format-2 keys ({text, amount, currency}) against the server's reading
+    (`read_key`); `null` (no price printed) must come back without a reading; a bare number is
+    a format-1 key (whole RWF) compared with the legacy field."""
+    if isinstance(expected, dict):
+        return money_ok(expected, actual.get(read_key))
+    if expected is None:
+        read = actual.get(read_key) or {}
+        return actual.get(legacy_key) is None and to_decimal(read.get("amount")) is None
+    return to_decimal(actual.get(legacy_key)) == to_decimal(expected)
+
+
+def expected_clarify(case: dict[str, Any], entries: Sequence[dict] = ()) -> list[str]:
+    """Question kinds the right behaviour asks: the case's `should_clarify` plus its items'."""
+    kinds = list(case.get("should_clarify") or [])
+    for entry in entries:
+        for kind in entry.get("should_clarify") or []:
+            if kind not in kinds:
+                kinds.append(kind)
+    return kinds
+
+
+def grade_clarifications(expected: Sequence[str], body: dict[str, Any] | None) -> dict[str, Any]:
+    """Recall (asked when expected) and false alarms (asked when nothing was ambiguous), per
+    kind. The server returns its open questions in `clarifications` (scans) or
+    `clarification.kind` (Assistant)."""
+    asked: list[str] = []
+    for c in (body or {}).get("clarifications") or []:
+        if c.get("kind") and c["kind"] not in asked:
+            asked.append(c["kind"])
+    kind = ((body or {}).get("clarification") or {}).get("kind")
+    if kind and kind not in asked:
+        asked.append(kind)
+    want = list(dict.fromkeys(expected))
+    return {
+        "expected": want,
+        "asked": asked,
+        "hits": [k for k in want if k in asked],
+        "missed": [k for k in want if k not in asked],
+        "false_alarms": [k for k in asked if k not in want],
+    }
+
+
 def _readable(entries: Sequence[dict]) -> tuple[list[int], int]:
     """Indexes of entries with a readable name, and how many entries are unreadable."""
     readable = [i for i, e in enumerate(entries) if gradable(e.get("name"))]
@@ -298,12 +362,15 @@ def _precision(matched: int, returned: int, unreadable: int) -> float | None:
 
 
 def grade_menu(
-    expected_items: Sequence[dict], body: dict[str, Any] | None
+    expected_items: Sequence[dict],
+    body: dict[str, Any] | None,
+    should_clarify: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Item names: normalised fuzzy match >= 0.9, one-to-one. Price: exact integer RWF
-    (expected null must come back null). Category: exact, only where the expectation sets one.
-    Unmatched expected items count as wrong price and wrong category. Entries named
-    'unreadable' and prices marked 'unreadable' are left out of scoring."""
+    """Item names: normalised fuzzy match >= 0.9, one-to-one. Price: amount AND currency against
+    the server's reading (`price_read`; format-1 keys: exact whole RWF in `price`), see
+    money_ok. Category: exact, only where the expectation sets one. Unmatched expected items
+    count as wrong price and wrong category. Entries named 'unreadable' and prices marked
+    'unreadable' are left out of scoring. `clarify`: see grade_clarifications."""
     if body is None:
         return {"valid": False}
     actual = body.get("items") or []
@@ -312,12 +379,12 @@ def grade_menu(
     found = match_names(names, [a.get("name", "") for a in actual])
     pairs = {readable[k]: j for k, j in found.items()}
     priced = [i for i in readable if gradable(expected_items[i].get("price"))]
-    price_ok = sum(
-        1
-        for i in priced
-        if i in pairs
-        and actual[pairs[i]].get("price") == expected_items[i].get("price")
-    )
+    def menu_price_ok(i: int, j: int) -> bool:
+        return price_correct(
+            expected_items[i].get("price"), actual[j], legacy_key="price", read_key="price_read"
+        )
+
+    price_ok = sum(1 for i in priced if i in pairs and menu_price_ok(i, pairs[i]))
     with_cat = [i for i in readable if expected_items[i].get("category")]
     cat_ok = sum(
         1
@@ -329,10 +396,10 @@ def grade_menu(
         {
             "name": expected_items[i]["name"],
             "expected": expected_items[i].get("price"),
-            "got": actual[j].get("price"),
+            "got": actual[j].get("price_read") or actual[j].get("price"),
         }
         for i, j in pairs.items()
-        if i in priced and actual[j].get("price") != expected_items[i].get("price")
+        if i in priced and not menu_price_ok(i, j)
     ]
     return {
         "valid": True,
@@ -346,6 +413,7 @@ def grade_menu(
         "category_accuracy": _rate(cat_ok, len(with_cat)),
         "missed": [expected_items[i]["name"] for i in readable if i not in pairs],
         "wrong_price": wrong_price,
+        "clarify": grade_clarifications(should_clarify, body),
     }
 
 
@@ -393,11 +461,20 @@ def grade_dish(
 
 
 def grade_document(
-    expected_lines: Sequence[dict], body: dict[str, Any] | None
+    expected_lines: Sequence[dict],
+    body: dict[str, Any] | None,
+    case: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Line items matched by name (fuzzy >= 0.9). Quantity: exact number. Prices: unit price and
-    line total each exact where the expectation gives them (both must match when both are given).
-    Lines named 'unreadable' and values marked 'unreadable' are left out of scoring."""
+    """Line items matched by name (fuzzy >= 0.9). Quantity: exact number as printed (the
+    server's `original_quantity` when it converted the unit). Prices: unit price and line
+    total each right where the key gives them (amount AND currency against `*_read`; both
+    must match when both are given). Lines named 'unreadable' and values marked 'unreadable'
+    are left out of scoring.
+
+    Format-2 cases (`case`) add: `total` ({amount, currency}) against the document total the
+    server read; `arithmetic_flags` (issue kinds the arithmetic check must raise, e.g.
+    ["line_arithmetic"]; [] = must add up) scored as recall and false flags; and
+    `should_clarify`. A case without prices expects arithmetic status "not_applicable"."""
     if body is None:
         return {"valid": False}
     actual = body.get("lines") or []
@@ -408,11 +485,14 @@ def grade_document(
     )
     pairs = {readable[k]: j for k, j in found.items()}
     counted_qty = [i for i in readable if gradable(expected_lines[i].get("quantity"))]
+    def printed_quantity(a: dict[str, Any]) -> Any:
+        return a.get("original_quantity") or a.get("quantity")
+
     qty_ok = sum(
         1
         for i in counted_qty
         if i in pairs
-        and to_decimal(actual[pairs[i]].get("quantity"))
+        and to_decimal(printed_quantity(actual[pairs[i]]))
         == to_decimal(expected_lines[i].get("quantity"))
     )
     price_keys = ("unit_price", "line_total")
@@ -428,11 +508,29 @@ def grade_document(
             return False
         a = actual[pairs[i]]
         return all(
-            to_decimal(a.get(k)) == to_decimal(expected_lines[i].get(k))
+            price_correct(expected_lines[i].get(k), a, legacy_key=k, read_key=f"{k}_read")
             for k in keys_for(i)
         )
 
+    extra: dict[str, Any] = {}
+    if case is not None:
+        if isinstance(case.get("total"), dict):
+            extra["total_ok"] = money_ok(case["total"], body.get("total_read") or body.get("total"))
+        if "arithmetic_flags" in case:
+            want = list(case["arithmetic_flags"] or [])
+            arithmetic = body.get("arithmetic") or {}
+            flagged = [x.get("kind") for x in arithmetic.get("issues") or []]
+            extra["arithmetic"] = {
+                "expected": want,
+                "flagged": flagged,
+                "missed": [k for k in want if k not in flagged],
+                "false_flags": [k for k in flagged if k not in want],
+                "status": arithmetic.get("status"),
+            }
+        extra["clarify"] = grade_clarifications(expected_clarify(case, expected_lines), body)
+
     return {
+        **extra,
         "valid": True,
         "unreadable_expected": unreadable,
         "line_recall": _rate(len(pairs), len(readable)),
@@ -497,6 +595,9 @@ def grade_assistant(
         checks["one_question"] = (
             got == "clarification" and question.count("?") <= 1 and not proposal
         )
+        if expect.get("clarify_kind"):
+            # A price or unit question the SERVER must ask (agent/v3), by kind.
+            checks["clarify_kind"] = clar.get("kind") == expect["clarify_kind"]
     else:
         checks["one_question"] = got != "clarification"
     text = " ".join(

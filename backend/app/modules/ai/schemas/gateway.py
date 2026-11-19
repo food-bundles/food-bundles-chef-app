@@ -23,6 +23,15 @@ CurrencyEvidence = Literal["symbol", "code", "word", "context", "none"]
 PriceStatus = Literal["ok", "needs_answer", "none", "unreadable", "skipped"]
 
 
+class MoneyRead(BaseModel):
+    """A price as the server READ it from the printed text, before any question or
+    conversion: `amount` is null while two readings are open ("1.500"), `currency` is null
+    while no currency is settled ("$", no symbol). For review screens and evals."""
+
+    amount: str | None
+    currency: str | None
+
+
 class _ModelOutput(BaseModel):
     """v2 model outputs reject unknown keys (e.g. an "exchange_rate" the model made up):
     the call is repaired once, then fails, rather than silently dropping the key."""
@@ -142,6 +151,7 @@ class MenuExtractItem(BaseModel):
     price_original: MoneyOut | None = None
     price_rate: RateOut | None = None
     price_status: PriceStatus = "ok"
+    price_read: MoneyRead | None = None
 
 
 class MenuExtractionResponse(BaseModel):
@@ -229,6 +239,8 @@ class DocumentLine(BaseModel):
     original_unit: str | None = None
     unit_status: Literal["ok", "ask", "unknown"] = "ok"
     price_status: PriceStatus = "ok"
+    unit_price_read: MoneyRead | None = None
+    line_total_read: MoneyRead | None = None
 
 
 class DocumentSummaryLine(BaseModel):
@@ -267,6 +279,8 @@ class DocumentExtractionResponse(BaseModel):
     subtotal: MoneyOut | None = None
     tax: MoneyOut | None = None
     total: MoneyOut | None = None
+    # The printed total as read (its currency may still be open).
+    total_read: MoneyRead | None = None
     arithmetic: ArithmeticCheckOut | None = None
     clarifications: list[Clarification] = Field(default_factory=list)
     answers: ScanAnswers = Field(default_factory=ScanAnswers)

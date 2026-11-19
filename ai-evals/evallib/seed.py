@@ -11,7 +11,9 @@ import httpx
 def seed_kitchen(client: httpx.Client, run_id: str, fixture: Path) -> dict:
     """Create a fresh kitchen with ingredients, stock, menu and recipes. Returns ids by name."""
     data = json.loads(fixture.read_text(encoding="utf-8"))
-    kitchen = _ok(client.post("/kitchens", json={"name": f"AI eval kitchen {run_id}", "location": "Kigali"})).json()
+    # Currency, time zone and country are required (Step 2a): taken from the fixture.
+    region = data.get("kitchen") or {"currency": "RWF", "timezone": "Africa/Kigali", "country": "RW", "location": "Kigali"}
+    kitchen = _ok(client.post("/kitchens", json={"name": f"AI eval kitchen {run_id}", **region})).json()
     kid = kitchen["id"]
 
     ingredients: dict[str, str] = {}
@@ -51,7 +53,7 @@ def seed_kitchen(client: httpx.Client, run_id: str, fixture: Path) -> dict:
                     },
                 )
             )
-    return {"kitchen_id": kid, "ingredients": ingredients, "menu_items": items}
+    return {"kitchen_id": kid, "currency": region["currency"], "ingredients": ingredients, "menu_items": items}
 
 
 def snapshot(client: httpx.Client, kitchen_id: str) -> dict:

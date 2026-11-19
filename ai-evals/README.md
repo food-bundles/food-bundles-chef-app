@@ -46,6 +46,9 @@ price config (see below).
 
    Write names **exactly as they appear** on the menu or document (they are not translated). Prices are
    whole RWF; use `null` when no price is shown.
+   (This is the Phase 7 `run_evals.py` manifest. The Phase 8 parity cases in `cases/` use answer-key
+   **format 2**: amount + currency per price, `should_clarify`, document totals and arithmetic flags;
+   see [cases/README.md](cases/README.md).)
 3. Never add photos showing faces, phone numbers or customer data. Record who consented in `consent`.
 
 ## Running
@@ -93,7 +96,7 @@ Each run writes `results/<timestamp>.json` (every call, request ids, prompt vers
 Change the bar only with product-owner approval (`RELEASE_BAR` in `run_evals.py`).
 
 **Re-run on every prompt or model change.** Prompt versions come back in each gateway response
-(`prompt_version`, e.g. `menu_extract.v1`) and are stored per call in the results JSON.
+(`prompt_version`, e.g. `menu_extract.v2`) and are stored per call in the results JSON.
 
 ## Kinyarwanda
 

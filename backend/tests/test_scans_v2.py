@@ -457,3 +457,42 @@ async def test_resolve_endpoints_reread_with_answers_and_no_model_call(
     body = resolved.json()
     assert body["arithmetic"]["status"] == "mismatch"
     assert body["total"] == {"amount": "23600", "currency": "RWF"}
+
+
+# ── What was read (for review screens and evals, Step 2a build step 7) ────────
+
+
+async def test_price_read_shows_the_reading_before_any_question() -> None:
+    rows = [item("Burger", "$7.99"), item("Fanta", "Frw 1,000"), item("Soup", None)]
+    result = await menu(rows, FR)
+    reads = [i.price_read.model_dump() if i.price_read else None for i in result.items]
+    assert reads == [
+        {"amount": "7.99", "currency": None},  # "$": the currency stays open
+        {"amount": "1000", "currency": "RWF"},
+        None,
+    ]
+    # Alone on its page (no other price shows the separator), "1.500" has two readings.
+    alone = await menu([item("Steak", "1.500")], FR)
+    assert alone.items[0].price_read is not None
+    assert alone.items[0].price_read.model_dump() == {"amount": None, "currency": None}
+    # With "7.99" on the same page, "." is the decimal separator: 1.5.
+    shared = await menu([item("Burger", "$7.99"), item("Steak", "1.500")], FR)
+    assert shared.items[1].price_read is not None
+    assert shared.items[1].price_read.amount == "1.5"
+
+
+async def test_price_read_keeps_the_printed_amount_after_conversion() -> None:
+    table = {"USD": _usd_rwf()}
+    done = await menu([item("Burger", "USD 5")], RW, {"mismatch": "convert"}, table=table)
+    burger = done.items[0]
+    assert burger.price == 7387
+    assert burger.price_read is not None
+    assert burger.price_read.model_dump() == {"amount": "5", "currency": "USD"}
+
+
+async def test_document_total_read() -> None:
+    result = await document(doc(HANDWRITTEN), RW)
+    assert result.total_read is not None
+    assert result.total_read.model_dump() == {"amount": "23600", "currency": "RWF"}
+    assert result.lines[0].line_total_read is not None
+    assert result.lines[0].line_total_read.model_dump() == {"amount": "15000", "currency": None}

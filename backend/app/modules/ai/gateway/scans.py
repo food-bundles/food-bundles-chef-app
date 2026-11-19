@@ -10,6 +10,7 @@ by `check_document`; the model's own amounts are only a cross-check.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -39,6 +40,7 @@ from app.modules.ai.schemas.gateway import (
     MenuExtractItem,
     ModelDocumentExtractionV2,
     ModelMenuItemV2,
+    MoneyRead,
 )
 from app.modules.exchange_rates.schemas import RateOut
 from app.modules.exchange_rates.service import ExchangeRateService, Rate
@@ -92,6 +94,18 @@ def _legacy_int(price: ResolvedPrice, own: str) -> int | None:
     return int(price.amount)
 
 
+def _read(price: ResolvedPrice) -> MoneyRead | None:
+    """What was read from the printed text, before conversion and before any open
+    question is answered (null amount = two readings; null currency = not settled)."""
+    if not price.text or price.reading is None or price.status in ("none", "skipped"):
+        return None
+    amount = price.original_amount if price.original_amount is not None else price.amount
+    currency = price.original_currency or price.currency
+    if "currency_missing" in price.pending and price.reading.currency is None:
+        currency = None
+    return MoneyRead(amount=_num(amount) if amount is not None else None, currency=currency)
+
+
 def _settled(price: ResolvedPrice) -> bool:
     return price.status == "ok" and price.amount is not None
 
@@ -138,6 +152,7 @@ async def build_menu(
                 price_original=_money(price.original_amount, price.original_currency),
                 price_rate=RateOut.of(price.rate),
                 price_status=price.status,
+                price_read=_read(price),
             )
         )
     clarifications = order_clarifications(
@@ -360,6 +375,8 @@ async def build_document(
                 original_unit=orig_unit,
                 unit_status=unit_status,
                 price_status=status,
+                unit_price_read=_read(unit_price),
+                line_total_read=_read(line_total),
             )
         )
 
@@ -415,6 +432,7 @@ async def build_document(
         subtotal=_money(check.subtotal, currency),
         tax=_money(_tax(summary), currency),
         total=_money(check.total, currency),
+        total_read=_total_read(raw, kinds, prices),
         arithmetic=ArithmeticCheckOut(
             status=check.status,
             issues=issues,
@@ -425,6 +443,16 @@ async def build_document(
         answers=answers,
         model_extraction=raw,
     )
+
+
+def _total_read(
+    raw: ModelDocumentExtractionV2, kinds: Sequence[str], prices: list[ResolvedPrice]
+) -> MoneyRead | None:
+    """The printed total row as read (the last one, e.g. after a subtotal)."""
+    for i in range(len(raw.lines) - 1, -1, -1):
+        if kinds[i] == "total":
+            return _read(prices[2 * i + 1])
+    return None
 
 
 def _tax(summary: list[DocumentSummaryLine]) -> Decimal | None:
