@@ -34,6 +34,19 @@ quota is far more than we need.
    no licence of its own, so treat it as public reference data under each central bank's
    terms. It is suitable for a fallback that shows its date, not as the only source long term.
 
+## Written confirmation status
+
+Conversion for kitchens outside `CURRENCY_CONVERSION_ENABLED_COUNTRIES` (default `["RW"]`;
+every kitchen in development) stays off until one provider below confirms in writing. Prices
+in a kitchen's own currency work in every country regardless. Fill in the date when the
+question is sent, and the answer when it arrives; only then widen the flag.
+
+| Provider | Question | Asked on | Answer |
+|---|---|---|---|
+| ExchangeRate-API | Showing the rate and date next to our own customers' converted amounts, Pro plan | _not yet sent_ | pending |
+| Open Exchange Rates | Same question, plus the Acceptable Use Policy | _not yet sent_ | pending |
+| Frankfurter | Commercial display of the central-bank data it serves (and whose terms apply: BNR, CBK, CBN, ECB) | _not yet sent_ | pending |
+
 **Until a primary key is bought, Frankfurter is the only source** (recorded in
 `docs/ai-providers.md`, open items). Rates are then daily, and there are none at weekends; the
 3-day window covers a weekend.

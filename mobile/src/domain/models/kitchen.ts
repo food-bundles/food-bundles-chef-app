@@ -19,4 +19,9 @@ export interface Kitchen {
   country: string | null;
   /** Food Bundles catalogue is offered (only in countries Food Bundles serves). */
   catalogAvailable: boolean;
+  /**
+   * Currency conversion is offered (convert mode, costs in other currencies, rates shown).
+   * Off outside the enabled countries until a licensed rate source is confirmed.
+   */
+  conversionEnabled: boolean;
 }

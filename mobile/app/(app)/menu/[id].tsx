@@ -24,6 +24,7 @@ import { formatDate, formatQuantity, formatRWF } from '@/lib/format';
 import { formatUnitCost } from '@/lib/money';
 import { formatRate } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useKitchenStore } from '@/store/kitchen-store';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { RecipeLineDto } from '@/api/menus-api';
 
@@ -32,6 +33,7 @@ const TARGET_MARGIN = 0.4;
 
 export default function MenuItemDetailScreen() {
   const { t, i18n } = useTranslation();
+  const conversionEnabled = useKitchenStore((s) => s.activeKitchen?.conversionEnabled ?? false);
   const tk = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -284,7 +286,9 @@ export default function MenuItemDetailScreen() {
                     </Text>
                     {costLine?.rate_unavailable && costLine.cost_per_unit_currency ? (
                       <Text style={{ color: tk.danger, fontSize: fontSize.xs, marginTop: 2 }}>
-                        {t('menuItem.lineRateUnavailable', { currency: costLine.cost_per_unit_currency })}
+                        {conversionEnabled
+                          ? t('menuItem.lineRateUnavailable', { currency: costLine.cost_per_unit_currency })
+                          : t('menuItem.lineConversionOff', { currency: costLine.cost_per_unit_currency })}
                       </Text>
                     ) : costLine?.rate && costLine.cost_per_unit && costLine.cost_per_unit_currency ? (
                       <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>

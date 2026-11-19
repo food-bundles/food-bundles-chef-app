@@ -16,6 +16,7 @@ function dtoToKitchen(dto: KitchenDto): Kitchen {
     timezone: dto.timezone,
     country: dto.country,
     catalogAvailable: dto.catalog_available,
+    conversionEnabled: dto.conversion_enabled ?? false,
   };
 }
 

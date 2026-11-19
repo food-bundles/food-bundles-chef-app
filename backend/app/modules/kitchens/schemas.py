@@ -93,6 +93,7 @@ class KitchenResponse(BaseModel):
     timezone: str
     country: str | None
     catalog_available: bool
+    conversion_enabled: bool = False
     price_step: Decimal | None = None
     status: KitchenStatus
     created_at: datetime

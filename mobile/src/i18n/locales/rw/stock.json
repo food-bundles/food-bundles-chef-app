@@ -123,6 +123,7 @@
     "noCost": "Nta kiguzi cyashyizweho",
     "levelAfter": "Bizaba: {{qty}} {{unit}}",
     "costCurrencyLabel": "Ifaranga ry'ikiguzi",
-    "costCurrencyHint": "Gumana ifaranga umucuruzi wawe akoresha. Ikiguzi cy'ibiryo kirihindura ku gipimo cy'uwo munsi."
+    "costCurrencyHint": "Gumana ifaranga umucuruzi wawe akoresha. Ikiguzi cy'ibiryo kirihindura ku gipimo cy'uwo munsi.",
+    "costCurrencyOff": "Guhindura amafaranga ntibirashoboka kuri iki gikoni, bityo iki giciro ntikibarwa mu giciro cy'ibiryo."
   }
 }

@@ -6,6 +6,7 @@ import {
   formatRate,
   sanitiseCostInput,
   trimDecimalZeros,
+  currencyChangeModes,
 } from '@/features/kitchens/currency-change';
 import { formatUnitCost } from '@/lib/money';
 
@@ -88,5 +89,12 @@ describe('unit cost input and display', () => {
     expect(formatUnitCost('0.00125', 'USD', 'en')).toBe('$0.00125');
     expect(formatUnitCost('8', 'USD', 'en')).toBe('$8.00');
     expect(formatUnitCost(null, 'USD', 'en')).toBe('—');
+  });
+});
+
+describe('currencyChangeModes', () => {
+  it('offers convert only where conversion is enabled; relabel always', () => {
+    expect(currencyChangeModes(true)).toEqual(['convert', 'relabel']);
+    expect(currencyChangeModes(false)).toEqual(['relabel']);
   });
 });

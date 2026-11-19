@@ -60,6 +60,7 @@ export default function IngredientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
   const kitchenCurrency = useKitchenStore((s) => s.activeKitchen?.currency ?? '');
+  const conversionEnabled = useKitchenStore((s) => s.activeKitchen?.conversionEnabled ?? false);
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
 
   const { data: ingredient, isLoading: loadingIngredient } = useIngredientDetail(id ?? '');
@@ -285,6 +286,7 @@ export default function IngredientDetailScreen() {
               suffix={`${editCostCurrency || kitchenCurrency}/${unit}`}
             />
             <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('ingredients.costHint')}</Text>
+            {conversionEnabled ? (
             <ListRow
               icon={<Coins size={16} color={tk.link} />}
               title={t('ingredients.costCurrencyLabel')}
@@ -293,8 +295,11 @@ export default function IngredientDetailScreen() {
               chevron
               accessibilityHint={t('ingredients.costCurrencyHint')}
             />
+            ) : null}
             {(editCostCurrency || kitchenCurrency) !== kitchenCurrency ? (
-              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('ingredients.costCurrencyHint')}</Text>
+              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>
+                {conversionEnabled ? t('ingredients.costCurrencyHint') : t('ingredients.costCurrencyOff')}
+              </Text>
             ) : null}
             <OptionPickerSheet
               visible={costPickerOpen}

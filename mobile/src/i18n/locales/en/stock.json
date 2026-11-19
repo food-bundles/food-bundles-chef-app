@@ -123,6 +123,7 @@
     "noCost": "No cost set",
     "levelAfter": "Level after: {{qty}} {{unit}}",
     "costCurrencyLabel": "Cost currency",
-    "costCurrencyHint": "Keep the currency your supplier charges in. Food cost converts it at the day's rate."
+    "costCurrencyHint": "Keep the currency your supplier charges in. Food cost converts it at the day's rate.",
+    "costCurrencyOff": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
   }
 }

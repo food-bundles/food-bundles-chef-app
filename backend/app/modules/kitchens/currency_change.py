@@ -24,6 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
+    ConversionDisabledError,
     CurrencyConfirmationError,
     RateChangedError,
     RateUnavailableError,
@@ -192,6 +193,8 @@ class CurrencyChangeService:
             raise ValidationError(f"The kitchen already uses {to}.")
         rate: Rate | None = None
         if data.mode == "convert":
+            if not kitchen.conversion_enabled:
+                raise ConversionDisabledError()  # relabel stays available everywhere
             rate = await ExchangeRateService(self._db).find_rate(
                 from_currency, to, kitchen_today(kitchen)
             )

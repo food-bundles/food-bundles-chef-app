@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.exceptions import ConversionDisabledError
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
 from app.modules.exchange_rates.schemas import RateLookupResponse, RateOut
@@ -28,6 +29,8 @@ async def get_rate(
     """The rate the app would use today (kitchen's local date). `quote` defaults to the
     kitchen's currency. `available: false` means "rate unavailable"."""
     kitchen = await KitchenService(db).get_kitchen(current_chef, kitchen_id)
+    if not kitchen.conversion_enabled:
+        raise ConversionDisabledError()
     base_code = currency_code(base)
     quote_code = currency_code(quote) if quote else str(kitchen.currency)
     on_date = kitchen_today(kitchen)

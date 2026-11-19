@@ -37,6 +37,11 @@ export function formatRate(rate: RateDto, lang?: string): string {
 /** The modes offered on the change-currency screen, in display order. */
 export const CURRENCY_CHANGE_MODES: readonly CurrencyChangeMode[] = ['convert', 'relabel'];
 
+/** Modes this kitchen can use: "convert" needs conversion, which is off outside the enabled countries. */
+export function currencyChangeModes(conversionEnabled: boolean): readonly CurrencyChangeMode[] {
+  return conversionEnabled ? CURRENCY_CHANGE_MODES : ['relabel'];
+}
+
 /**
  * Keep only what a cost may contain: digits and one decimal separator (comma or dot),
  * with at most `maxDecimals` decimals (unit costs keep 6). Returns a dot-decimal string.

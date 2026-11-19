@@ -155,7 +155,8 @@
     "createNew": "Ajouter un nouvel ingrédient",
     "lineConverted": "{{original}} au taux {{rate}} ({{date}})",
     "lineRateUnavailable": "Coût en {{currency}} : taux indisponible",
-    "costIncomplete": "Le coût matière est incomplet : certains coûts dans une autre devise n'ont pas de taux de change récent."
+    "costIncomplete": "Le coût matière est incomplet : certains coûts dans une autre devise n'ont pas de taux de change récent.",
+    "lineConversionOff": "Coût en {{currency}} : la conversion de devises n'est pas encore disponible pour cette cuisine."
   },
   "createItem": {
     "title": "Nouveau plat",

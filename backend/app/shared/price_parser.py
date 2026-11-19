@@ -7,7 +7,8 @@ candidates, and the clarification policy asks the chef once per scan.
 
     parse_price("12,000 Rwf")      → 12000 RWF
     parse_price("$7.99")           → 7.99, currency ambiguous (USD, CAD, AUD, …)
-    parse_price("1.500")           → ambiguous: 1500 or 1.5 (unless a hint decides)
+    parse_price("1.500")           → ambiguous: 1500 or 1.5 (no currency printed)
+    parse_price("₦71,200")         → 71200 NGN in any kitchen (naira never prints 3 decimals)
     parse_price("2.5k")            → 2500, needs a once-per-scan "k = thousand?" check
     parse_price("MP")              → no price (market price)
 """
@@ -72,8 +73,10 @@ class PriceHints:
     """What we know besides the text: never overrides what is printed."""
 
     kitchen_currency: str | None = None
+    # Orders the candidates of an ambiguous reading (the preselected option); never decides.
     country: str | None = None
-    # Seen elsewhere in the same document (see infer_decimal_separator); wins over country.
+    # Seen elsewhere in the same document (see infer_decimal_separator): decides when the
+    # printed currency does not.
     decimal_separator: Separator | None = None
 
 
@@ -94,8 +97,6 @@ class PriceReading:
 
 
 def _hint_separator(hints: PriceHints) -> Separator | None:
-    if hints.decimal_separator:
-        return hints.decimal_separator
     if hints.country:
         return "," if hints.country.upper() in COMMA_DECIMAL_COUNTRIES else "."
     return None
@@ -158,14 +159,23 @@ def _amount_candidates(number: str, hints: PriceHints, currencies: list[str]) ->
     # Exactly 3 digits after one separator: 1500 (grouping) or 1.5 (decimal)?
     grouped = Decimal(whole + frac)
     decimal = Decimal(whole + "." + frac)
-    # The printed currency, else the kitchen's (a hint): with no decimals (RWF, UGX, JPY…)
-    # 1,500 and 1.500 can only be 1500.
-    deciding = currencies or ([hints.kitchen_currency] if hints.kitchen_currency else [])
-    if deciding and all(minor_units(c) == 0 for c in deciding):
+    # 1. The printed currency's own convention, in any kitchen: a currency with fewer than
+    #    3 decimals (NGN, EUR, USD, KES, RWF...) never prints 3 decimal digits, so
+    #    "₦71,200" / "€1.500" / "Ksh 1,500" group thousands. Only 3-decimal currencies
+    #    (KWD, BHD, TND...) leave both readings open.
+    if currencies and all(minor_units(c) < 3 for c in currencies):
         return [grouped]
-    hint = _hint_separator(hints)
-    if hint is not None:
-        return [decimal] if hint == sep else [grouped]
+    # 2. Separators the same document uses unambiguously elsewhere (evidence, not a guess).
+    if hints.decimal_separator is not None:
+        return [decimal] if hints.decimal_separator == sep else [grouped]
+    # 3. No printed currency: the kitchen's currency decides only when it has no minor
+    #    unit (1.5 RWF does not exist; 1.50 EUR does, so a EUR kitchen is asked).
+    own = hints.kitchen_currency
+    if not currencies and own and is_currency(own) and minor_units(own) == 0:
+        return [grouped]
+    # 4. Still two readings: ask. The kitchen's country only orders them (preselection).
+    if _hint_separator(hints) == sep:
+        return [decimal, grouped]
     return [grouped, decimal]
 
 

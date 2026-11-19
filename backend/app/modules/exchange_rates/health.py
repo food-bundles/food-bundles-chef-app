@@ -148,3 +148,20 @@ async def warn_unavailable_currencies(db: AsyncSession) -> list[str]:
             max_age_days=report.max_age_days,
         )
     return report.missing
+
+
+def last_fetch_at(report: RatesHealthResponse) -> datetime | None:
+    """The most recent successful fetch from any source."""
+    times = [s.last_success_at for s in report.sources if s.last_success_at is not None]
+    return max(times) if times else None
+
+
+def worker_is_alive(report: RatesHealthResponse, now: datetime, max_age_hours: float = 24) -> bool:
+    """Deployment check: the worker ran the rates job recently (it runs at startup and twice
+    a day, so a fetch older than 24 h means the worker or its scheduler is not running)."""
+    last = last_fetch_at(report)
+    if last is None:
+        return False
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=UTC)
+    return (now - last).total_seconds() <= max_age_hours * 3600

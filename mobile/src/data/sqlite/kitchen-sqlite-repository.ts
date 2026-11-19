@@ -28,6 +28,7 @@ function rowToKitchen(row: KitchenRow): Kitchen {
     timezone: 'Africa/Kigali',
     country: 'RW',
     catalogAvailable: true,
+    conversionEnabled: true,
     createdAt: row.created_at,
   };
 }

@@ -14,7 +14,7 @@ import { ApiError } from '@/api/errors';
 import type { CurrencyChangeMode } from '@/api/kitchens-api';
 import { useApplyCurrencyChange, usePreviewCurrencyChange } from '@/features/kitchens/useKitchens';
 import {
-  CURRENCY_CHANGE_MODES,
+  currencyChangeModes,
   canApplyCurrencyChange,
   currencyChangeBody,
   formatRate,
@@ -40,7 +40,9 @@ export default function ChangeCurrencyScreen() {
   const apply = useApplyCurrencyChange(kitchenId ?? '');
 
   const [toCurrency, setToCurrency] = useState<string | null>(null);
-  const [mode, setMode] = useState<CurrencyChangeMode>('convert');
+  const conversionEnabled = kitchen?.conversionEnabled ?? false;
+  const modes = currencyChangeModes(conversionEnabled);
+  const [mode, setMode] = useState<CurrencyChangeMode>(conversionEnabled ? 'convert' : 'relabel');
   const [typed, setTyped] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export default function ChangeCurrencyScreen() {
         <View style={card}>
           <Text style={[styles.heading, { color: tk.textMuted }]}>{t('currencyChange.modeHeading')}</Text>
           <View style={styles.chips}>
-            {CURRENCY_CHANGE_MODES.map((m) => (
+            {modes.map((m) => (
               <SelectableChip
                 key={m}
                 label={t(`currencyChange.mode.${m}`)}
@@ -149,6 +151,9 @@ export default function ChangeCurrencyScreen() {
             ))}
           </View>
           <Text style={[styles.body, { color: tk.textMuted }]}>{t(`currencyChange.modeHelp.${mode}`)}</Text>
+          {conversionEnabled ? null : (
+            <Text style={[styles.body, { color: tk.textMuted }]}>{t('currencyChange.convertOff')}</Text>
+          )}
         </View>
 
         {preview.isPending ? <ActivityIndicator color={tk.link} accessibilityLabel={t('currencyChange.loading')} /> : null}

@@ -84,6 +84,15 @@ class RateUnavailableError(ConflictError):
     message = "No recent exchange rate is available for these currencies."
 
 
+class ConversionDisabledError(AppError):
+    """Currency conversion is not offered in this kitchen's country yet (licensed rate source
+    pending). Prices in the kitchen's own currency still work."""
+
+    status_code = HTTPStatus.FORBIDDEN
+    error_code = "CONVERSION_DISABLED"
+    message = "Currency conversion is not available for this kitchen yet."
+
+
 class RateChangedError(ConflictError):
     """The rate shown in the preview is no longer the current rate; preview again."""
 

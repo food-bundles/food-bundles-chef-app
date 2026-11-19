@@ -123,6 +123,7 @@
     "noCost": "Aucun coût défini",
     "levelAfter": "Niveau après : {{qty}} {{unit}}",
     "costCurrencyLabel": "Devise du coût",
-    "costCurrencyHint": "Gardez la devise de votre fournisseur. Le coût matière la convertit au taux du jour."
+    "costCurrencyHint": "Gardez la devise de votre fournisseur. Le coût matière la convertit au taux du jour.",
+    "costCurrencyOff": "La conversion de devises n'est pas encore disponible pour cette cuisine : ce coût n'entre pas dans le coût matière."
   }
 }

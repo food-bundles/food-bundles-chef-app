@@ -41,6 +41,8 @@ export interface KitchenDto {
   country: string | null;
   /** Food Bundles catalogue and catalogue requisitions are offered to this kitchen. */
   catalog_available: boolean;
+  /** Currency conversion offered (CURRENCY_CONVERSION_ENABLED_COUNTRIES); older servers omit it. */
+  conversion_enabled?: boolean;
   /** Step for suggested selling prices (major units); null = the currency's default. */
   price_step: string | null;
   status: 'active' | 'archived';

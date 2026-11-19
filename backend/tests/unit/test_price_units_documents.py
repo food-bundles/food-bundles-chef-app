@@ -49,24 +49,80 @@ PRICE_CASES = [
         [],
         ["ambiguous_separator", "no_currency"],
     ),
-    # The kitchen's currency has no decimals (RWF): only 1500 is possible.
+    # No currency printed, kitchen currency without decimals (RWF): 1.5 RWF does not exist.
     ("1.500", RW, "ok", "1500", None, [], [], ["no_currency"]),
     ("1,500", RW, "ok", "1500", None, [], [], ["no_currency"]),
-    # A EUR kitchen in France: "." groups, "," is the decimal.
-    ("1.500", FR, "ok", "1500", None, [], [], ["no_currency"]),
-    ("1,500", FR, "ok", "1.5", None, [], [], ["no_currency"]),
-    ("1,500", US, "ok", "1500", None, [], [], ["no_currency"]),
+    # No currency printed in a EUR kitchen: 1.50 EUR exists, so ask. The country (FR, ","
+    # decimals) only orders the options: the French reading is offered first.
+    (
+        "1.500",
+        FR,
+        "ambiguous",
+        None,
+        None,
+        ["1500", "1.5"],
+        [],
+        ["ambiguous_separator", "no_currency"],
+    ),
+    (
+        "1,500",
+        FR,
+        "ambiguous",
+        None,
+        None,
+        ["1.5", "1500"],
+        [],
+        ["ambiguous_separator", "no_currency"],
+    ),
+    (
+        "1,500",
+        US,
+        "ambiguous",
+        None,
+        None,
+        ["1500", "1.5"],
+        [],
+        ["ambiguous_separator", "no_currency"],
+    ),
+    # A printed currency brings its own convention, in any kitchen.
+    ("€1.500", FR, "ok", "1500", "EUR", [], [], []),
+    (
+        "$1,500",
+        NONE,
+        "ambiguous",
+        "1500",
+        None,
+        [],
+        list(DOLLAR_CURRENCIES),
+        ["ambiguous_currency"],
+    ),
+    ("Ksh 1,500", NONE, "ok", "1500", "KES", [], [], []),
+    # "$" with comma decimals: the amount is clear, the currency is not, so ask that.
+    (
+        "12,50 $",
+        NONE,
+        "ambiguous",
+        "12.50",
+        None,
+        [],
+        list(DOLLAR_CURRENCIES),
+        ["ambiguous_currency"],
+    ),
+    # 3-decimal currencies keep both readings open.
+    ("KWD 1.500", NONE, "ambiguous", None, "KWD", ["1500", "1.5"], [], ["ambiguous_separator"]),
     ("2.5k", NONE, "ok", "2500", None, [], [], ["k_suffix", "no_currency"]),
     ("2,5k", NONE, "ok", "2500", None, [], [], ["k_suffix", "no_currency"]),
     ("$7.99", NONE, "ambiguous", "7.99", None, [], list(DOLLAR_CURRENCIES), ["ambiguous_currency"]),
     ("$7.99", US, "ok", "7.99", "USD", [], [], []),
     ("7,99 €", NONE, "ok", "7.99", "EUR", [], [], []),
     ("€7,99", NONE, "ok", "7.99", "EUR", [], [], []),
-    # NGN has kobo (2 decimals): "71,200" alone could be 71.2, so it is ambiguous...
-    ("₦71,200", NONE, "ambiguous", None, "NGN", ["71200", "71.2"], [], ["ambiguous_separator"]),
-    # ...until a hint decides: a Nigerian kitchen (country NG, "." decimals).
+    # The naira's own convention ("," groups, 2 decimals): 71,200 NGN in ANY kitchen.
+    ("₦71,200", NONE, "ok", "71200", "NGN", [], [], []),
+    ("₦71,200", RW, "ok", "71200", "NGN", [], [], []),
+    ("₦71,200", FR, "ok", "71200", "NGN", [], [], []),
     ("₦71,200", NG, "ok", "71200", "NGN", [], [], []),
     ("71,200 N", NG, "ok", "71200", "NGN", [], [], []),
+    ("7,99 €", RW, "ok", "7.99", "EUR", [], [], []),
     ("20$", NONE, "ambiguous", "20", None, [], list(DOLLAR_CURRENCIES), ["ambiguous_currency"]),
     ("USD 20", NONE, "ok", "20", "USD", [], [], []),
     ("20", NONE, "ok", "20", None, [], [], ["no_currency"]),

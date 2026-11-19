@@ -206,6 +206,12 @@ class Settings(BaseSettings):
     EXCHANGE_RATE_TIMEOUT_SECONDS: float = 20.0
     # A rate is usable up to this many days old (weekends); older or missing = unavailable.
     RATE_STALE_DAYS: int = 3
+    # Countries (ISO 3166-1 alpha-2) whose kitchens may CONVERT between currencies (currency
+    # change "convert", foreign-currency ingredient costs, rates shown). Off elsewhere until a
+    # licensed rate source is confirmed in writing (docs/design/exchange-rate-licences.md).
+    # Development (APP_ENV=development) enables it everywhere. Prices in a kitchen's own
+    # currency work in every country regardless. JSON list in env.
+    CURRENCY_CONVERSION_ENABLED_COUNTRIES: list[str] = ["RW"]
 
     # Object storage
     OBJECT_STORAGE_PROVIDER: Literal["local", "s3", "gcs", "cloudinary"] = "local"

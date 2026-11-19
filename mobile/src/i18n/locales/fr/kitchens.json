@@ -98,6 +98,7 @@
     "applyConvert": "Convertir les prix",
     "applyRelabel": "Changer la devise",
     "rateChanged": "Le taux de change a changé. Vérifiez le nouvel aperçu et confirmez à nouveau.",
-    "applyError": "Impossible de changer la devise. Rien n'a été modifié."
+    "applyError": "Impossible de changer la devise. Rien n'a été modifié.",
+    "convertOff": "La conversion des prix n'est pas encore disponible pour les cuisines de votre pays. Vous pouvez toujours changer l'étiquette, ou garder vos prix dans votre devise."
   }
 }

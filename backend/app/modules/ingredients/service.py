@@ -61,7 +61,9 @@ class IngredientService:
             setattr(ingredient, field, value)
         if "cost_per_unit" in changes or requested_currency is not None:
             # A bare amount (no currency sent) is in the kitchen's currency, as before.
-            ingredient.cost_per_unit_currency = resolve_cost_currency(kitchen, requested_currency)
+            ingredient.cost_per_unit_currency = resolve_cost_currency(
+                kitchen, requested_currency, current=ingredient.cost_per_unit_currency
+            )
         return await self._repo.update(ingredient)
 
     async def deactivate_ingredient(self, kitchen: Kitchen, ingredient_id: uuid.UUID) -> Ingredient:

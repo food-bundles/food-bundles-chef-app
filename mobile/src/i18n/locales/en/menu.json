@@ -155,7 +155,8 @@
     "createNew": "Add a new ingredient",
     "lineConverted": "{{original}} at {{rate}} ({{date}})",
     "lineRateUnavailable": "Cost in {{currency}}: rate unavailable",
-    "costIncomplete": "Food cost is incomplete: some costs in another currency have no recent exchange rate."
+    "costIncomplete": "Food cost is incomplete: some costs in another currency have no recent exchange rate.",
+    "lineConversionOff": "Cost in {{currency}}: currency conversion is not available for this kitchen yet."
   },
   "createItem": {
     "analysingDish": "Analyzing dish…",

@@ -2186,6 +2186,10 @@
       "status": "needs-review",
       "en": "Couldn't change the currency. Nothing was changed."
     },
+    "currencyChange.convertOff": {
+      "status": "needs-review",
+      "en": "Converting prices is not available for kitchens in your country yet. You can still relabel, or keep prices in your own currency."
+    },
     "menu.title": {
       "status": "needs-review",
       "en": "Menu"
@@ -2769,6 +2773,10 @@
     "menuItem.costIncomplete": {
       "status": "needs-review",
       "en": "Food cost is incomplete: some costs in another currency have no recent exchange rate."
+    },
+    "menuItem.lineConversionOff": {
+      "status": "needs-review",
+      "en": "Cost in {{currency}}: currency conversion is not available for this kitchen yet."
     },
     "createItem.analysingDish": {
       "status": "needs-review",
@@ -4185,6 +4193,10 @@
     "ingredients.costCurrencyHint": {
       "status": "needs-review",
       "en": "Keep the currency your supplier charges in. Food cost converts it at the day's rate."
+    },
+    "ingredients.costCurrencyOff": {
+      "status": "needs-review",
+      "en": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
     }
   }
 }

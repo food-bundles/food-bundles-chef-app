@@ -98,6 +98,7 @@
     "applyConvert": "Convert prices",
     "applyRelabel": "Relabel currency",
     "rateChanged": "The exchange rate changed. Check the new preview and confirm again.",
-    "applyError": "Couldn't change the currency. Nothing was changed."
+    "applyError": "Couldn't change the currency. Nothing was changed.",
+    "convertOff": "Converting prices is not available for kitchens in your country yet. You can still relabel, or keep prices in your own currency."
   }
 }

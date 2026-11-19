@@ -98,6 +98,7 @@
     "applyConvert": "Hindura ibiciro",
     "applyRelabel": "Hindura ifaranga",
     "rateChanged": "Igipimo cy'ivunjisha cyahindutse. Reba uko bizaba ubu wongere wemeze.",
-    "applyError": "Ntibyashobotse guhindura ifaranga. Nta cyahindutse."
+    "applyError": "Ntibyashobotse guhindura ifaranga. Nta cyahindutse.",
+    "convertOff": "Guhindura ibiciro mu yandi mafaranga ntibirashoboka ku bikoni byo mu gihugu cyawe. Ushobora guhindura izina ry'ifaranga gusa, cyangwa ugakomeza ibiciro mu ifaranga ryawe."
   }
 }

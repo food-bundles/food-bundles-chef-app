@@ -62,6 +62,9 @@ async def kitchen_unit_costs(
     day = on_date or kitchen_today(kitchen)
     rates = ExchangeRateService(db)
     result = KitchenUnitCosts(currency, day, {}, set())
+    # Conversion off in this country (CURRENCY_CONVERSION_ENABLED_COUNTRIES): a cost kept in
+    # another currency is never converted, so it counts as "rate unavailable".
+    enabled = bool(getattr(kitchen, "conversion_enabled", True))
     for ing in ingredients:
         if ing.cost_per_unit is None:
             continue
@@ -70,7 +73,7 @@ async def kitchen_unit_costs(
         if original_currency == currency:
             result.costs[ing.id] = UnitCost(original, currency, original, currency, None)
             continue
-        rate = await rates.find_rate(original_currency, currency, day)
+        rate = await rates.find_rate(original_currency, currency, day) if enabled else None
         if rate is None:
             result.rate_unavailable.add(ing.id)
             continue

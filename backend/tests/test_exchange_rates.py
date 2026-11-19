@@ -682,3 +682,139 @@ def test_rates_job_runs_in_the_worker_schedule() -> None:
     assert len(jobs) == 1
     assert jobs[0].hour == {1, 13}
     assert jobs[0].minute == 15
+
+
+# ── Conversion feature flag (CURRENCY_CONVERSION_ENABLED_COUNTRIES) ───────────
+
+
+async def test_conversion_is_off_outside_enabled_countries_until_licensed(
+    client: AsyncClient, db: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core import config as cfg
+
+    monkeypatch.setattr(cfg.settings, "APP_ENV", "staging")  # dev enables it everywhere
+    monkeypatch.setattr(cfg.settings, "CURRENCY_CONVERSION_ENABLED_COUNTRIES", ["RW"])
+    await _seed(db, _today_utc() - timedelta(days=1), {"RWF": "1477.34", "EUR": "0.92"})
+
+    fr, fr_h = await _kitchen(client, db, "EUR", "Europe/Paris", "FR")
+    kitchen = (await client.get(f"/api/v1/kitchens/{fr}", headers=fr_h)).json()
+    assert kitchen["conversion_enabled"] is False
+
+    # Off: the rate lookup, foreign-currency costs and the "convert" currency change.
+    rate = await client.get(f"/api/v1/kitchens/{fr}/exchange-rates?base=USD", headers=fr_h)
+    assert rate.status_code == 403
+    assert rate.json()["error"]["code"] == "CONVERSION_DISABLED"
+    usd_cost = await client.post(
+        f"/api/v1/kitchens/{fr}/ingredients",
+        json={"name": "Beef", "unit": "kg", "cost_per_unit": "8", "cost_per_unit_currency": "USD"},
+        headers=fr_h,
+    )
+    assert usd_cost.status_code == 403
+    assert usd_cost.json()["error"]["code"] == "CONVERSION_DISABLED"
+    convert = await client.post(
+        f"/api/v1/kitchens/{fr}/currency-change/preview",
+        json={"to_currency": "USD", "mode": "convert"},
+        headers=fr_h,
+    )
+    assert convert.status_code == 403
+
+    # Still on: prices in the kitchen's own currency, and relabelling (no rate involved).
+    await _menu_item(client, fr, fr_h, "Croque", "7.99")
+    await _ingredient(client, fr, fr_h, "Ham", "12.50", "EUR")
+    await _ingredient(client, fr, fr_h, "Bread", "3.20", None)
+    relabel = await client.post(
+        f"/api/v1/kitchens/{fr}/currency-change/preview",
+        json={"to_currency": "USD", "mode": "relabel"},
+        headers=fr_h,
+    )
+    assert relabel.status_code == 200, relabel.text
+
+    # An enabled country (RW) converts as before.
+    rw, rw_h = await _kitchen(client, db, "RWF", "Africa/Kigali", "RW")
+    assert (await client.get(f"/api/v1/kitchens/{rw}", headers=rw_h)).json()[
+        "conversion_enabled"
+    ] is True
+    ok = await client.get(f"/api/v1/kitchens/{rw}/exchange-rates?base=USD", headers=rw_h)
+    assert ok.status_code == 200
+    assert ok.json()["available"] is True
+
+
+async def test_foreign_costs_already_stored_are_not_converted_when_off(
+    db: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core import config as cfg
+    from app.modules.exchange_rates.costs import kitchen_unit_costs
+
+    await _seed(db, DAY - timedelta(days=1), {"RWF": "1477.34", "EUR": "0.92"})
+    kitchen = Kitchen(currency="EUR", timezone="Europe/Paris", country="FR")
+
+    class _Ing:
+        id = uuid.uuid4()
+        cost_per_unit = D("8")
+        cost_per_unit_currency = "USD"
+
+    monkeypatch.setattr(cfg.settings, "APP_ENV", "production")
+    off = await kitchen_unit_costs(db, kitchen, [_Ing()], on_date=DAY)
+    assert off.is_rate_unavailable(_Ing()) is True
+    assert off.get(_Ing()) is None
+
+    monkeypatch.setattr(cfg.settings, "APP_ENV", "development")
+    on = await kitchen_unit_costs(db, kitchen, [_Ing()], on_date=DAY)
+    cost = on.get(_Ing())
+    assert cost is not None
+    assert cost.rate is not None
+
+
+def test_conversion_flag_defaults_to_rwanda() -> None:
+    from app.core.config import Settings
+
+    assert Settings.model_fields["CURRENCY_CONVERSION_ENABLED_COUNTRIES"].default == ["RW"]
+
+
+# ── Deployment: worker-alive check (docs/deployment.md) ───────────────────────
+
+
+def test_worker_alive_needs_a_rates_fetch_within_24_hours() -> None:
+    from app.modules.exchange_rates.health import (
+        RatesHealthResponse,
+        SourceHealth,
+        worker_is_alive,
+    )
+
+    now = datetime(2026, 11, 19, 12, 0, tzinfo=UTC)
+
+    def report(*fetched: datetime | None) -> RatesHealthResponse:
+        sources = [
+            SourceHealth(
+                source=f"s{i}",
+                configured=True,
+                last_success_at=at,
+                newest_rate_date=None,
+                rates_on_newest_date=0,
+            )
+            for i, at in enumerate(fetched)
+        ]
+        return RatesHealthResponse(
+            checked_on=now.date(),
+            max_age_days=3,
+            sources=sources,
+            currencies=[],
+            missing=[],
+            oldest_rate_age_days=None,
+            healthy=True,
+        )
+
+    assert worker_is_alive(report(None, None), now) is False  # never fetched
+    assert worker_is_alive(report(now - timedelta(hours=23)), now) is True
+    assert worker_is_alive(report(now - timedelta(hours=25)), now) is False
+    # The newest source counts: Frankfurter fresh, the keyless primary never fetched.
+    assert worker_is_alive(report(None, now - timedelta(hours=1)), now) is True
+
+
+def test_rates_job_also_runs_at_worker_startup_with_a_heartbeat() -> None:
+    from app.workers.scheduler import WorkerSettings
+    from app.workers.tasks.exchange_rates import refresh_exchange_rates
+
+    job = next(j for j in WorkerSettings.cron_jobs if j.coroutine is refresh_exchange_rates)
+    assert job.run_at_startup is True
+    assert WorkerSettings.health_check_interval == 60

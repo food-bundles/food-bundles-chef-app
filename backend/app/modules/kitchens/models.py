@@ -53,4 +53,13 @@ class Kitchen(Base):
 
         return bool(self.country) and self.country in settings.FOOD_BUNDLES_COUNTRIES
 
+    @property
+    def conversion_enabled(self) -> bool:
+        """Currency conversion is offered here (CURRENCY_CONVERSION_ENABLED_COUNTRIES)."""
+        from app.core.config import settings
+
+        if settings.is_development:
+            return True
+        return bool(self.country) and self.country in settings.CURRENCY_CONVERSION_ENABLED_COUNTRIES
+
     chef: Mapped[Chef] = relationship("Chef", back_populates="kitchens", lazy="noload")

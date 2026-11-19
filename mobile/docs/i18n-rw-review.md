@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive". |
 | AI | AI | Kept as the English acronym. |
 
-Total keys: **1046** — status as generated: 0 approved,
-1046 needing review.
+Total keys: **1049** — status as generated: 0 approved,
+1049 needing review.
 
 ## agent (129)
 
@@ -518,7 +518,7 @@ Total keys: **1046** — status as generated: 0 approved,
 | `errors.boundary.body` | The app hit an unexpected problem. Your saved data is safe. | Porogaramu yahuye n'ikibazo kitunguranye. Amakuru yawe yabitswe ari amahoro. | ⚠ needs review |
 | `errors.boundary.retry` | Try again | Ongera ugerageze | ⚠ needs review |
 
-## kitchens (91)
+## kitchens (92)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -613,8 +613,9 @@ Total keys: **1046** — status as generated: 0 approved,
 | `currencyChange.applyRelabel` | Relabel currency | Hindura ifaranga | ⚠ needs review |
 | `currencyChange.rateChanged` | The exchange rate changed. Check the new preview and confirm again. | Igipimo cy'ivunjisha cyahindutse. Reba uko bizaba ubu wongere wemeze. | ⚠ needs review |
 | `currencyChange.applyError` | Couldn't change the currency. Nothing was changed. | Ntibyashobotse guhindura ifaranga. Nta cyahindutse. | ⚠ needs review |
+| `currencyChange.convertOff` | Converting prices is not available for kitchens in your country yet. You can still relabel, or keep prices in your own currency. | Guhindura ibiciro mu yandi mafaranga ntibirashoboka ku bikoni byo mu gihugu cyawe. Ushobora guhindura izina ry'ifaranga gusa, cyangwa ugakomeza ibiciro mu ifaranga ryawe. | ⚠ needs review |
 
-## menu (207)
+## menu (208)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -764,6 +765,7 @@ Total keys: **1046** — status as generated: 0 approved,
 | `menuItem.lineConverted` | {{original}} at {{rate}} ({{date}}) | {{original}} ku gipimo {{rate}} ({{date}}) | ⚠ needs review |
 | `menuItem.lineRateUnavailable` | Cost in {{currency}}: rate unavailable | Ikiguzi muri {{currency}}: nta gipimo gihari | ⚠ needs review |
 | `menuItem.costIncomplete` | Food cost is incomplete: some costs in another currency have no recent exchange rate. | Ikiguzi cy'ibiryo ntikizuye: hari ibiguzi biri mu yandi mafaranga bidafite igipimo cy'ivunjisha cya vuba. | ⚠ needs review |
+| `menuItem.lineConversionOff` | Cost in {{currency}}: currency conversion is not available for this kitchen yet. | Igiciro mu {{currency}}: guhindura amafaranga ntibirashoboka kuri iki gikoni. | ⚠ needs review |
 | `createItem.analysingDish` | Analyzing dish… | Gusuzuma ifunguro… | ⚠ needs review |
 | `createItem.addDishPhoto` | Add Dish Photo | Ongeraho ifoto y'ifunguro | ⚠ needs review |
 | `createItem.aiLabel` | AI | AI | ⚠ needs review |
@@ -1019,7 +1021,7 @@ Total keys: **1046** — status as generated: 0 approved,
 | `settings.version` | Version {{version}} | Verisiyo {{version}} | ⚠ needs review |
 | `settings.galleryHint` | Long-press to open the UI gallery (development builds only) | Kanda igihe kirekire ufungure imbonerahamwe y'imiterere (ku miterere y'iterambere gusa) | ⚠ needs review |
 
-## stock (120)
+## stock (121)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -1143,3 +1145,4 @@ Total keys: **1046** — status as generated: 0 approved,
 | `ingredients.levelAfter` | Level after: {{qty}} {{unit}} | Bizaba: {{qty}} {{unit}} | ⚠ needs review |
 | `ingredients.costCurrencyLabel` | Cost currency | Ifaranga ry'ikiguzi | ⚠ needs review |
 | `ingredients.costCurrencyHint` | Keep the currency your supplier charges in. Food cost converts it at the day's rate. | Gumana ifaranga umucuruzi wawe akoresha. Ikiguzi cy'ibiryo kirihindura ku gipimo cy'uwo munsi. | ⚠ needs review |
+| `ingredients.costCurrencyOff` | Currency conversion is not available for this kitchen yet, so this cost is left out of food cost. | Guhindura amafaranga ntibirashoboka kuri iki gikoni, bityo iki giciro ntikibarwa mu giciro cy'ibiryo. | ⚠ needs review |

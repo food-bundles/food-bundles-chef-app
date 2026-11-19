@@ -15,6 +15,7 @@ from typing import Any, Protocol
 
 from app.core.exceptions import (
     AmountPrecisionError,
+    ConversionDisabledError,
     OtherCurrencyNotSupportedError,
     UnknownCurrencyCodeError,
 )
@@ -49,14 +50,22 @@ def resolve_currency(kitchen: HasCurrency, requested: str | None) -> str:
     return code
 
 
-def resolve_cost_currency(kitchen: HasCurrency, requested: str | None) -> str:
+def resolve_cost_currency(
+    kitchen: HasCurrency, requested: str | None, current: str | None = None
+) -> str:
     """The currency of an ingredient cost: any priceable ISO 4217 code, else the kitchen's.
 
     The original amount and currency are kept; food cost converts (decision 4, 2026-11-19).
     """
     if requested is None:
         return str(kitchen.currency)
-    return known_currency(requested)
+    code = known_currency(requested)
+    foreign = code != str(kitchen.currency) and code != current
+    if foreign and not getattr(kitchen, "conversion_enabled", True):
+        # A NEW foreign-currency cost needs conversion for food cost: off in this country.
+        # A cost already stored in that currency may keep it.
+        raise ConversionDisabledError()
+    return code
 
 
 def known_currency(code: str) -> str:
