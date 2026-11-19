@@ -11,6 +11,7 @@ interface SalesRow {
   menu_item_name: string;
   date: string;
   portions_sold: number;
+  /** Legacy column name: holds the price in price_currency (RWF for old rows). */
   price_rwf: number;
   price_currency: string | null;
 }
@@ -23,7 +24,7 @@ function rowToRecord(row: SalesRow): SalesRecord {
     menuItemName: row.menu_item_name,
     date: row.date,
     portionsSold: row.portions_sold,
-    priceRwf: row.price_rwf,
+    price: row.price_rwf,
     currency: row.price_currency ?? undefined,
   };
 }
@@ -77,8 +78,8 @@ export class SalesSQLiteRepository implements SalesRepository {
       record.menuItemName,
       record.date,
       record.portionsSold,
-      record.priceRwf,
-      record.currency ? toMinorUnits(String(record.priceRwf), record.currency) : null,
+      record.price,
+      record.currency ? toMinorUnits(String(record.price), record.currency) : null,
       record.currency ?? null,
     );
     return record;

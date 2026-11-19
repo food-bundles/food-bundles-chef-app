@@ -45,7 +45,7 @@
     "ordered": "Ordered: {{qty}} {{unit}}",
     "receivedQty": "Received: {{qty}} {{unit}}",
     "shortDelivery": " ⚠ Short delivery",
-    "refPrice": "Ref: {{price}} RWF/{{unit}}",
+    "refPrice": "Ref: {{price}}/{{unit}}",
     "statusSubmitted": "Awaiting Delivery",
     "statusConfirmed": "Pending",
     "statusOutForDelivery": "In Transit",

@@ -329,7 +329,7 @@ class DishPrice(BaseModel):
     # for installed app versions; `*_money` carry the exact amount and currency.
     low: float
     high: float
-    currency: str = "RWF"
+    currency: str  # the kitchen's, always set by the server
     low_money: MoneyOut | None = None
     high_money: MoneyOut | None = None
     cost_per_portion: float

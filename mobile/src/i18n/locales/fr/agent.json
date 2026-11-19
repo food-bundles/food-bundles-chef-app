@@ -145,7 +145,8 @@
       "editA11y": "Modifier : {{title}}",
       "confirmA11y": "Confirmer : {{title}}",
       "discardEdit": "Annuler les modifications",
-      "saveEdit": "Enregistrer les modifications"
+      "saveEdit": "Enregistrer les modifications",
+      "converted": "Converti"
     }
   }
 }

@@ -18,7 +18,7 @@ import { deleteMenuItem, MENU_ITEM_CATEGORIES, updateMenuItem, type MenuItemCate
 import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
-import { formatRWF } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
 
@@ -278,7 +278,7 @@ function MenuItemCard({
               {item.description}
             </Text>
           ) : null}
-          <Text style={[styles.price, { color: tokens.link }]}>{formatRWF(item.selling_price, i18n.language)}</Text>
+          <Text style={[styles.price, { color: tokens.link }]}>{formatMoney(item.selling_price, item.selling_price_currency ?? '', i18n.language)}</Text>
         </AppPressable>
         <Switch
           value={item.is_active}

@@ -45,7 +45,7 @@
     "ordered": "Byasabwe: {{qty}} {{unit}}",
     "receivedQty": "Byakiriwe: {{qty}} {{unit}}",
     "shortDelivery": " ⚠ Ibibukuwe bimaze",
-    "refPrice": "Ref: {{price}} RWF/{{unit}}",
+    "refPrice": "Ref: {{price}}/{{unit}}",
     "statusSubmitted": "Bitegerejwe ibibukuwe",
     "statusConfirmed": "Bitegerejwe",
     "statusOutForDelivery": "Muri nzira",

@@ -27,7 +27,8 @@ import { createMenu, createMenuItem, listMenus, MENU_ITEM_CATEGORIES, updateMenu
 import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
-import { formatRWF, toAppLanguage } from '@/lib/format';
+import { toAppLanguage } from '@/lib/format';
+import { formatMoney, sanitisePriceInput } from '@/lib/money';
 import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
 import {
@@ -87,6 +88,7 @@ export function ScanMenuModal({
   const qc = useQueryClient();
   const language = toAppLanguage(i18n.language);
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
+  const kitchenCurrency = useKitchenStore((s) => s.activeKitchen?.currency ?? '');
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const { features } = useAiFeatures();
   const { data: menu = [] } = useMenuItems();
@@ -324,7 +326,7 @@ export function ScanMenuModal({
               menuId,
               {
                 name: row.name.trim(),
-                selling_price: String(Math.round(Number(row.price))),
+                selling_price: String(Number(row.price)),
                 description: row.description?.trim() || null,
                 category: row.category,
               },
@@ -337,7 +339,7 @@ export function ScanMenuModal({
       for (const row of plan.updates) {
         const dup = row.duplicateOf;
         if (!dup) continue;
-        await updateMenuItem(kitchenId, dup.menuId, dup.id, { selling_price: String(Math.round(Number(row.price))) });
+        await updateMenuItem(kitchenId, dup.menuId, dup.id, { selling_price: String(Number(row.price)) });
         outcome.updated.push({ id: dup.id, menuId: dup.menuId, name: dup.name, previousPrice: dup.price });
       }
       void qc.invalidateQueries({ queryKey: queryKeys.menu.items(chefId, kitchenId) });
@@ -427,7 +429,7 @@ export function ScanMenuModal({
           <ReviewRowCard
             key={row.key}
             row={row}
-            flags={rowFlags(row, peerPricesFor(row, menu, rows))}
+            flags={rowFlags(row, peerPricesFor(row, menu, rows, kitchenCurrency), kitchenCurrency)}
             error={showErrors ? rowError(row) : null}
             onChange={(patch) => updateRow(row.key, patch)}
           />
@@ -591,6 +593,7 @@ function ReviewRowCard({
 }) {
   const { t, i18n } = useTranslation();
   const tokens = useTheme();
+  const currency = useKitchenStore((s) => s.activeKitchen?.currency ?? '');
   const warn = (flag: RowFlag) => flags.includes(flag);
   const nameWarn = warn('check_name');
   const priceWarn = warn('check_price') || warn('no_price') || warn('price_high') || warn('price_low');
@@ -634,10 +637,10 @@ function ReviewRowCard({
           <View style={styles.priceRow}>
             <ThemedTextInput
               value={row.price}
-              onChangeText={(v) => onChange({ price: v.replace(/[^0-9]/g, '') })}
-              keyboardType="number-pad"
+              onChangeText={(v) => onChange({ price: sanitisePriceInput(v, currency) })}
+              keyboardType="decimal-pad"
               placeholder="0"
-              accessibilityLabel={t('menu.scan.priceLabel', { name: row.name })}
+              accessibilityLabel={t('menu.scan.priceLabel', { name: row.name, currency })}
               style={[
                 styles.priceInput,
                 { color: tokens.text, backgroundColor: tokens.surface, borderColor: priceWarn ? tokens.warning : tokens.border },
@@ -668,7 +671,7 @@ function ReviewRowCard({
                 <AlertTriangle size={14} color={info ? tokens.textMuted : tokens.warningText} />
                 <Text style={[styles.flagText, { color: info ? tokens.textMuted : tokens.warningText }]}>
                   {t(FLAG_KEYS[flag], {
-                    price: row.duplicateOf ? formatRWF(row.duplicateOf.price, i18n.language) : '',
+                    price: row.duplicateOf ? formatMoney(row.duplicateOf.price, currency, i18n.language) : '',
                   })}
                 </Text>
               </View>

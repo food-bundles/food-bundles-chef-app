@@ -341,6 +341,37 @@ Then you verify the answers and Step 2 runs.
   kept. When a unit is converted, the unit price is re-based to the new unit. US/UK
   measures and unsized packs are asked.
 
+### Build notes: step 6 (2026-11-19)
+
+- **`formatRWF` removed.** All 33 call sites, in 11 files, now use `formatMoney(amount,
+  currency)`. The currency is the one the API sends with the amount:
+  `selling_price_currency`, `reference_price_currency`, `unit_price_currency`, `cost.currency`
+  or `price.currency`. The Assistant's action cards fall back to the active kitchen's
+  currency. With no currency at all, the number is shown on its own; a currency is never
+  guessed.
+- **Totals are per currency.** The order screen and the requisition PDF print one total per
+  currency, for example "€25.00 + RWF 7,500". `sumByCurrency` adds in minor units.
+- **Anomaly check:** `detectAnomaly({amount, currency}, peers)` uses only peers in the same
+  currency and needs at least 2 of them. It is used by the scan review, New Menu Item and
+  Sales Entry. The server has no menu-import endpoint (the app creates the items), so the
+  rule lives in this one shared helper.
+- **Price inputs** on New/Edit Menu Item, Scan Menu review and Log Delivery:
+  - They use `decimal-pad`. `sanitisePriceInput` accepts the currency's own decimals and a
+    decimal comma: "7,99" for EUR, whole numbers for RWF.
+  - The suffix and the label show the kitchen's currency.
+  - Scanned prices are no longer rounded on import.
+- **The Assistant's price field** is a whole number for RWF and a decimal for EUR, USD and
+  other currencies with decimals. A converted price shows its original amount and the rate,
+  with its date.
+- **Strings:** the five RWF strings are now currency-neutral in EN, FR and RW.
+- **Renames:**
+  - `priceRwf` becomes `price` plus `currency` in the domain models and mocks. The mocks are
+    explicitly RWF.
+  - The legacy SQLite column `price_rwf` keeps its name, to avoid a migration; it is
+    documented as holding the amount in `price_currency`.
+- **Backend:** the unused `DEFAULT_CURRENCY = "RWF"` is removed, and `DishPrice.currency`
+  no longer defaults to RWF.
+
 ## 4. Photo coverage against the new targets (2026-11-19)
 
 | Target | Have | Gap |

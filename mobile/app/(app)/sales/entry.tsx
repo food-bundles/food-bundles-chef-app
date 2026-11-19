@@ -9,7 +9,8 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { QuantitySelector } from '@/components/ui/QuantitySelector';
 import { Snackbar } from '@/components/ui/Snackbar';
 import { detectAnomaly } from '@/domain/anomaly';
-import { formatDate, formatRWF } from '@/lib/format';
+import { formatDate } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import { useKitchenToday } from '@/features/kitchens/kitchen-today';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, radius } from '@/lib/theme';
@@ -32,8 +33,11 @@ export default function SalesEntryScreen() {
   // Soft warning for items whose revenue is far above/below the other entries (shared median helper).
   const anomalyItems = useMemo(() => {
     const entered = menuItems
-      .map((item) => ({ item, revenue: (quantities[item.id] ?? 0) * parseFloat(item.selling_price) }))
-      .filter((r) => r.revenue > 0);
+      .map((item) => ({
+        item,
+        revenue: { amount: (quantities[item.id] ?? 0) * parseFloat(item.selling_price), currency: item.selling_price_currency ?? '' },
+      }))
+      .filter((r) => r.revenue.amount > 0);
     return entered
       .filter((r) => detectAnomaly(r.revenue, entered.filter((p) => p !== r).map((p) => p.revenue)) !== false)
       .map((r) => r.item.name);
@@ -142,7 +146,7 @@ export default function SalesEntryScreen() {
                 <View style={{ flex: 1, marginRight: spacing.md }}>
                   <Text style={{ color: tk.text, fontWeight: '600' }}>{item.name}</Text>
                   <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
-                    {formatRWF(item.selling_price, i18n.language)}
+                    {formatMoney(item.selling_price, item.selling_price_currency ?? '', i18n.language)}
                   </Text>
                 </View>
                 <QuantitySelector

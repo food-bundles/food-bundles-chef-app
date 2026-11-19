@@ -20,8 +20,8 @@ import {
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useIngredients } from '@/features/ingredients/useIngredients';
 import { AddToRecipeSheet } from '@/features/menu/AddToRecipeSheet';
-import { formatDate, formatQuantity, formatRWF } from '@/lib/format';
-import { formatUnitCost } from '@/lib/money';
+import { formatDate, formatQuantity } from '@/lib/format';
+import { formatMoney, formatUnitCost } from '@/lib/money';
 import { formatRate } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -96,6 +96,8 @@ export default function MenuItemDetailScreen() {
   }
 
   const price = parseFloat(item.selling_price);
+  // Food cost is in the kitchen's currency (converted server-side where needed).
+  const costCurrency = cost?.currency ?? item.selling_price_currency ?? '';
   const hasCost = Boolean(cost?.lines.some((l) => l.line_cost != null));
   // A partial total (a cost in another currency had no rate) would overstate the margin and
   // mislead the food-cost coach, so it is not shown; the "incomplete" notice explains why.
@@ -152,7 +154,7 @@ export default function MenuItemDetailScreen() {
         <View style={[card, { padding: spacing.md, gap: spacing.sm }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: tk.text, fontSize: fontSize['2xl'], fontWeight: '800' }}>
-              {formatRWF(price, i18n.language)}
+              {formatMoney(price, item.selling_price_currency ?? costCurrency, i18n.language)}
             </Text>
             <StatusBadge
               label={item.is_active ? t('menuItem.active') : t('menuItem.inactive')}
@@ -164,7 +166,7 @@ export default function MenuItemDetailScreen() {
             <View style={{ flexDirection: 'row', gap: spacing.lg, marginTop: 4 }}>
               <View>
                 <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('menuItem.foodCost')}</Text>
-                <Text style={{ color: tk.text, fontSize: fontSize.sm, fontWeight: '600' }}>{formatRWF(totalCost, i18n.language)}</Text>
+                <Text style={{ color: tk.text, fontSize: fontSize.sm, fontWeight: '600' }}>{formatMoney(totalCost, costCurrency, i18n.language)}</Text>
               </View>
               {margin != null && (
                 <View>
@@ -213,7 +215,7 @@ export default function MenuItemDetailScreen() {
             </View>
             <Text style={{ color: tk.text, fontSize: fontSize.xs, lineHeight: 18 }}>
               {targetPrice
-                ? t('menuItem.raisePriceTo', { price: formatRWF(targetPrice, i18n.language), margin: TARGET_MARGIN * 100 })
+                ? t('menuItem.raisePriceTo', { price: formatMoney(targetPrice, costCurrency, i18n.language), margin: TARGET_MARGIN * 100 })
                 : t('menuItem.raisePrice')}
               {topCostLine ? ` ${t('menuItem.orReducePortion', { name: topCostLine.ingredient_name })}` : ''}
             </Text>
@@ -223,7 +225,7 @@ export default function MenuItemDetailScreen() {
                 <Text style={{ color: tk.text, fontSize: fontSize.xs }}>
                   {t('menuItem.highestCostIngredient', {
                     name: topCostLine.ingredient_name,
-                    cost: formatRWF(topCostLine.line_cost, i18n.language),
+                    cost: formatMoney(topCostLine.line_cost, costCurrency, i18n.language),
                   })}
                 </Text>
               </View>
@@ -282,7 +284,7 @@ export default function MenuItemDetailScreen() {
                     </View>
                     <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
                       {t('menuItem.perPortion', { qty: formatQuantity(line.qty_per_portion, i18n.language), unit: line.unit })}
-                      {costLine?.line_cost ? ` · ${formatRWF(costLine.line_cost, i18n.language)}` : ''}
+                      {costLine?.line_cost ? ` · ${formatMoney(costLine.line_cost, costCurrency, i18n.language)}` : ''}
                     </Text>
                     {costLine?.rate_unavailable && costLine.cost_per_unit_currency ? (
                       <Text style={{ color: tk.danger, fontSize: fontSize.xs, marginTop: 2 }}>

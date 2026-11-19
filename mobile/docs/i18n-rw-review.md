@@ -25,10 +25,10 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive". |
 | AI | AI | Kept as the English acronym. |
 
-Total keys: **1093** — status as generated: 0 approved,
-1093 needing review.
+Total keys: **1094** — status as generated: 0 approved,
+1094 needing review.
 
-## agent (129)
+## agent (130)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -161,6 +161,7 @@ Total keys: **1093** — status as generated: 0 approved,
 | `agent.card.confirmA11y` | Confirm: {{title}} | Emeza: {{title}} | ⚠ needs review |
 | `agent.card.discardEdit` | Discard changes | Reka impinduka | ⚠ needs review |
 | `agent.card.saveEdit` | Save changes | Bika impinduka | ⚠ needs review |
+| `agent.card.converted` | Converted | Byahinduwe | ⚠ needs review |
 
 ## ai (78)
 
@@ -434,7 +435,7 @@ Total keys: **1093** — status as generated: 0 approved,
 | `receiving.ordered` | Ordered: {{qty}} {{unit}} | Byasabwe: {{qty}} {{unit}} | ⚠ needs review |
 | `receiving.receivedQty` | Received: {{qty}} {{unit}} | Byakiriwe: {{qty}} {{unit}} | ⚠ needs review |
 | `receiving.shortDelivery` |  ⚠ Short delivery |  ⚠ Ibibukuwe bimaze | ⚠ needs review |
-| `receiving.refPrice` | Ref: {{price}} RWF/{{unit}} | Ref: {{price}} RWF/{{unit}} | ⚠ needs review |
+| `receiving.refPrice` | Ref: {{price}}/{{unit}} | Ref: {{price}}/{{unit}} | ⚠ needs review |
 | `receiving.statusSubmitted` | Awaiting Delivery | Bitegerejwe ibibukuwe | ⚠ needs review |
 | `receiving.statusConfirmed` | Pending | Bitegerejwe | ⚠ needs review |
 | `receiving.statusOutForDelivery` | In Transit | Muri nzira | ⚠ needs review |
@@ -723,9 +724,9 @@ Total keys: **1093** — status as generated: 0 approved,
 | `menu.scan.fixRows_one` | Fix {{count}} item before importing. | Kosora ikintu {{count}} mbere yo kwinjiza. | ⚠ needs review |
 | `menu.scan.fixRows_other` | Fix {{count}} items before importing. | Kosora ibintu {{count}} mbere yo kwinjiza. | ⚠ needs review |
 | `menu.scan.nameRequired` | Enter a name (at least 2 letters). | Andika izina (nibura inyuguti 2). | ⚠ needs review |
-| `menu.scan.priceRequired` | Enter a price in RWF. | Andika igiciro mu RWF. | ⚠ needs review |
+| `menu.scan.priceRequired` | Enter a price. | Andika igiciro. | ⚠ needs review |
 | `menu.scan.nameLabel` | Item name | Izina ry'ikintu | ⚠ needs review |
-| `menu.scan.priceLabel` | Price of {{name}} in RWF | Igiciro cya {{name}} mu RWF | ⚠ needs review |
+| `menu.scan.priceLabel` | Price of {{name}} in {{currency}} | Igiciro cya {{name}} mu {{currency}} | ⚠ needs review |
 | `menu.scan.importItem` | Import {{name}} | Injiza {{name}} | ⚠ needs review |
 | `menu.scan.updatePriceOf` | Update the price of {{name}} | Hindura igiciro cya {{name}} | ⚠ needs review |
 | `menu.scan.unnamed` | item | ikintu | ⚠ needs review |
@@ -769,7 +770,7 @@ Total keys: **1093** — status as generated: 0 approved,
 | `menuItem.hiddenFromSales` | Hidden from sales entry | Yashyizwe hanze mu kwandika ubuguzi | ⚠ needs review |
 | `menuItem.noIngredientsYet` | No ingredients linked yet.<br>Add ingredients to track food cost and stock usage. | Nta bikoresho bihuye kugeza ubu.<br>Ongeraho ibikoresho kugira ngo ukurikire ikiguzi cy'ibiribwa n'imikoreshereze y'ububiko. | ⚠ needs review |
 | `menuItem.foodCostHigh` | Food cost is high — {{margin}}% margin | Ikiguzi cy'ibiribwa ni kinini — inyungu {{margin}}% | ⚠ needs review |
-| `menuItem.highestCostIngredient` | Highest cost ingredient: {{name}} · {{cost}} RWF/portion | Ikiribwa cy'ikiguzi kinini: {{name}} · {{cost}} RWF/igice | ⚠ needs review |
+| `menuItem.highestCostIngredient` | Highest cost ingredient: {{name}} · {{cost}}/portion | Ikiribwa cy'ikiguzi kinini: {{name}} · {{cost}}/igice | ⚠ needs review |
 | `menuItem.title` | Menu item | Ifunguro | ⚠ needs review |
 | `menuItem.active` | Active | Rirakoreshwa | ⚠ needs review |
 | `menuItem.inactive` | Inactive | Ntirikoreshwa | ⚠ needs review |
@@ -827,7 +828,7 @@ Total keys: **1093** — status as generated: 0 approved,
 | `createItem.itemNameLabel` | Item Name | Izina ry'ikiribwa | ⚠ needs review |
 | `createItem.itemNamePlaceholder` | e.g. Brochettes, Ugali, Orange Juice | urugero. Brochettes, Ugali, Umutobe w'indimu | ⚠ needs review |
 | `createItem.categoryLabel` | Category | Icyiciro | ⚠ needs review |
-| `createItem.priceLabel` | Selling Price (RWF) | Igiciro cy'ubuguzi (RWF) | ⚠ needs review |
+| `createItem.priceLabel` | Selling price ({{currency}}) | Igiciro cy'ubuguzi ({{currency}}) | ⚠ needs review |
 | `createItem.pricePlaceholder` | e.g. 3500 | urugero. 3500 | ⚠ needs review |
 | `createItem.descriptionLabel` | Description (optional) | Ibisobanuro (ntibisabwa) | ⚠ needs review |
 | `createItem.descriptionPlaceholder` | e.g. Grilled beef skewers with peppers | urugero. Inyama z'inka zitondetse hamwe n'urusenda | ⚠ needs review |

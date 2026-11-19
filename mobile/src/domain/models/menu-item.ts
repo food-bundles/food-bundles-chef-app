@@ -4,7 +4,10 @@ export interface MenuItem {
   name: string;
   description?: string;
   category: string;
-  priceRwf: number;
+  /** Selling price in `currency` (decimal major units). */
+  price: number;
+  /** ISO 4217. */
+  currency: string;
   isActive: boolean;
   createdAt: string;
 }

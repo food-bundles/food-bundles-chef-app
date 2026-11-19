@@ -79,6 +79,10 @@ export function formatMoney(
 ): string {
   const n = toNumber(amount);
   if (n === null) return '—';
+  if (!currency) {
+    // Currency not known (yet): the number alone, never a guessed currency.
+    return new Intl.NumberFormat(LOCALE[toAppLanguage(lang)], { maximumFractionDigits: 2 }).format(n);
+  }
   const digits = minorUnits(currency);
   try {
     return new Intl.NumberFormat(LOCALE[toAppLanguage(lang)], {
@@ -133,4 +137,38 @@ export function fromMinorUnits(units: number, currency: string): string {
   const sign = units < 0 ? '-' : '';
   const s = String(Math.abs(units)).padStart(digits + 1, '0');
   return `${sign}${s.slice(0, -digits)}.${s.slice(-digits)}`;
+}
+
+/**
+ * What a price field accepts while typing, for `currency`: digits and one decimal separator
+ * ("," becomes "."), at most the currency's decimals (7.99 EUR; whole RWF, so "1500.5" →
+ * "1500"). Never rounds: extra digits are simply not taken.
+ */
+export function sanitisePriceInput(text: string, currency: string): string {
+  const digits = minorUnits(currency || 'XXX');
+  const cleaned = text.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const [whole = '', ...rest] = cleaned.split('.');
+  if (digits === 0 || rest.length === 0) return whole;
+  return `${whole}.${rest.join('').slice(0, digits)}`;
+}
+
+/**
+ * Totals per currency, never added across currencies (sums in minor units, so 0.1 + 0.2 is
+ * exactly 0.30). Order of first appearance is kept.
+ */
+export function sumByCurrency(items: readonly { amount: number; currency: string }[]): { amount: number; currency: string }[] {
+  const totals = new Map<string, number>();
+  for (const { amount, currency } of items) {
+    if (!Number.isFinite(amount)) continue;
+    const code = currency.toUpperCase();
+    const scale = 10 ** minorUnits(code || 'XXX');
+    totals.set(code, (totals.get(code) ?? 0) + Math.round(amount * scale));
+  }
+  return [...totals].map(([currency, units]) => ({ amount: units / 10 ** minorUnits(currency || 'XXX'), currency }));
+}
+
+/** "RWF 35,000 + €20.00": one formatted amount per currency; "—" when empty. */
+export function formatMoneyList(items: readonly { amount: number; currency: string }[], lang?: string): string {
+  if (items.length === 0) return '—';
+  return items.map((m) => formatMoney(m.amount, m.currency, lang)).join(' + ');
 }

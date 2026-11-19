@@ -15,6 +15,7 @@ import type { PendingLineDecision } from '@/features/receiving/pendingDecisions'
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { colors, spacing, fontSize, fontWeight } from '@/lib/theme';
 import { formatDate } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import type { OrderLineDto } from '@/api/orders-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
 import type { ReceivingDecision } from '@/api/receiving-api';
@@ -193,7 +194,7 @@ function LineItemRow({
   canReceive: boolean;
   decision?: PendingLineDecision;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isDark = useColorScheme() === 'dark';
   const cardBg = isDark ? colors.surface[800] : colors.white;
   const textPrimary = isDark ? colors.white : colors.surface[900];
@@ -241,7 +242,7 @@ function LineItemRow({
           </Text>
         )}
         <Text style={{ color: colors.surface[500], fontSize: fontSize.xs, marginTop: 2 }}>
-          {t('receiving.refPrice', { price: line.unit_price, unit: line.unit })}
+          {t('receiving.refPrice', { price: formatMoney(line.unit_price, line.unit_price_currency ?? '', i18n.language), unit: line.unit })}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 6 }}>

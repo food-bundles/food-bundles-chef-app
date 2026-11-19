@@ -18,8 +18,8 @@ import { deleteIngredient, updateIngredient } from '@/api/ingredients-api';
 import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
-import { formatDate, formatQuantity, formatRWF, formatTime } from '@/lib/format';
-import { currencyName, formatUnitCost, priceableCurrencies } from '@/lib/money';
+import { formatDate, formatQuantity, formatTime } from '@/lib/format';
+import { currencyName, formatMoney, formatUnitCost, priceableCurrencies } from '@/lib/money';
 import { sanitiseCostInput, trimDecimalZeros } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
@@ -47,7 +47,7 @@ function MenuItemUsageRow({ menuItem, ingredientId }: { menuItem: MenuItemDto; i
       iconBg={tk.primaryTint}
       title={menuItem.name}
       titleAccessory={!menuItem.is_active ? <StatusBadge label={t('ingredients.offMenu')} variant="warning" /> : undefined}
-      subtitle={`${t('menuItem.perPortion', { qty: formatQuantity(matchedLine.qty_per_portion, i18n.language), unit: matchedLine.unit })} · ${formatRWF(menuItem.selling_price, i18n.language)}`}
+      subtitle={`${t('menuItem.perPortion', { qty: formatQuantity(matchedLine.qty_per_portion, i18n.language), unit: matchedLine.unit })} · ${formatMoney(menuItem.selling_price, menuItem.selling_price_currency ?? '', i18n.language)}`}
       onPress={() => router.push(`/(app)/menu/${menuItem.id}` as never)}
     />
   );

@@ -17,7 +17,8 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { useOrders, useCreateOrder } from '@/features/orders/useOrders';
 import { useCatalog, type CatalogProductDto } from '@/features/purchasing/useCatalog';
 import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
-import { formatDate, formatQuantity, formatRWF } from '@/lib/format';
+import { formatDate, formatQuantity } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import { useTheme } from '@/providers/ThemeProvider';
 
 type Tab = 'catalog' | 'orders';
@@ -66,6 +67,8 @@ export default function PurchasingScreen() {
   const unitPrice = (p: CatalogProductDto) => (p.reference_price != null ? parseFloat(p.reference_price) : 0);
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
   const cartTotal = cart.reduce((s, c) => s + c.quantity * unitPrice(c.product), 0);
+  // Catalogue reference prices share one currency (FOOD_BUNDLES_CATALOG_CURRENCY).
+  const catalogCurrency = cart[0]?.product.reference_price_currency ?? '';
 
   const handleShareRequisition = async () => {
     if (cart.length === 0) return;
@@ -75,8 +78,8 @@ export default function PurchasingScreen() {
           name: c.product.name,
           qty: formatQuantity(c.quantity, i18n.language),
           unit: c.product.unit,
-          price: formatRWF(unitPrice(c.product), i18n.language),
-          total: formatRWF(unitPrice(c.product) * c.quantity, i18n.language),
+          price: formatMoney(unitPrice(c.product), c.product.reference_price_currency ?? '', i18n.language),
+          total: formatMoney(unitPrice(c.product) * c.quantity, c.product.reference_price_currency ?? '', i18n.language),
         }),
       )
       .join('\n');
@@ -88,7 +91,7 @@ export default function PurchasingScreen() {
       t('purchasing.shareItems'),
       lines,
       '',
-      t('purchasing.shareTotal', { total: formatRWF(cartTotal, i18n.language) }),
+      t('purchasing.shareTotal', { total: formatMoney(cartTotal, catalogCurrency, i18n.language) }),
       '',
       t('purchasing.shareFooter'),
     ].join('\n');
@@ -239,7 +242,7 @@ export default function PurchasingScreen() {
             <StickyFooter>
               <View className="flex-row items-center justify-between">
                 <Text style={{ color: tk.textMuted, fontSize: 13 }}>
-                  {t('purchasing.cartSummary', { count: cartCount, total: formatRWF(cartTotal, i18n.language) })}
+                  {t('purchasing.cartSummary', { count: cartCount, total: formatMoney(cartTotal, catalogCurrency, i18n.language) })}
                 </Text>
                 <AppPressable
                   onPress={() => void handleShareRequisition()}
@@ -360,7 +363,7 @@ function CatalogRow({ product, qty, onQtyChange }: { product: CatalogProductDto;
           <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5 capitalize">{product.category}</Text>
           {price != null ? (
             <Text className="text-brand-600 dark:text-brand-300 text-sm font-semibold mt-1">
-              {formatRWF(price, i18n.language)}/{product.unit}
+              {formatMoney(price, product.reference_price_currency ?? '', i18n.language)}/{product.unit}
             </Text>
           ) : (
             <Text className="text-surface-600 dark:text-surface-400 text-sm mt-1">{t('purchasing.priceTbc')}</Text>

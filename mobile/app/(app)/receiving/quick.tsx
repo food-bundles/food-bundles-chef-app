@@ -26,6 +26,7 @@ import { createOrder, submitOrder, confirmOrder } from '@/api/orders-api';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
 import { queryKeys } from '@/api/query-keys';
 import { formatTime, toAppLanguage } from '@/lib/format';
+import { sanitisePriceInput } from '@/lib/money';
 import { activeKitchenToday } from '@/features/kitchens/kitchen-today';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
@@ -645,6 +646,7 @@ function LineItemRow({
 }) {
   const { t } = useTranslation();
   const tk = useTheme();
+  const currency = useKitchenStore((st) => st.activeKitchen?.currency ?? '');
   const smallInput = (hasError: boolean) => [
     styles.smallInput,
     { backgroundColor: tk.surfaceSunken, color: tk.text, borderColor: hasError ? tk.danger : 'transparent' },
@@ -707,9 +709,9 @@ function LineItemRow({
           <Text style={[styles.smallLabel, { color: tk.textMuted }]}>{t('receiving.pricePerUnit')}</Text>
           <ThemedTextInput
             value={line.unitPrice}
-            onChangeText={(v) => onChange(line.id, 'unitPrice', v.replace(/[^0-9]/g, ''))}
+            onChangeText={(v) => onChange(line.id, 'unitPrice', sanitisePriceInput(v, currency))}
             placeholder="0"
-            keyboardType="number-pad"
+            keyboardType="decimal-pad"
             style={smallInput(false)}
             accessibilityLabel={t('receiving.pricePerUnit')}
           />

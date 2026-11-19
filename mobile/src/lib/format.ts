@@ -36,12 +36,7 @@ export function formatInteger(value: number, lang?: string): string {
   }
 }
 
-/** RWF amount: thousands separator, no decimals, e.g. "3,500 RWF". Non-finite input renders as "— RWF". */
-export function formatRWF(value: number | string | null | undefined, lang?: string): string {
-  const n = typeof value === 'string' ? parseFloat(value) : value;
-  if (n == null || !Number.isFinite(n)) return '— RWF';
-  return `${formatInteger(n, lang)} RWF`;
-}
+// Money is formatted by formatMoney (src/lib/money.ts), always in the amount's own currency.
 
 /** Quantity with at most 2 decimals and trailing zeros trimmed: 500.0000 → "500", 0.250 → "0.25". */
 export function formatQuantity(value: number | string | null | undefined, lang?: string): string {

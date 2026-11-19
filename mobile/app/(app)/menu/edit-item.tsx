@@ -11,6 +11,7 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { SelectableChip } from '@/components/ui/SelectableChip';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { sanitisePriceInput } from '@/lib/money';
 import { useSessionStore } from '@/store/session-store';
 import { queryKeys } from '@/api/query-keys';
 import { deleteMenuItem, updateMenuItem, MENU_ITEM_CATEGORIES, type MenuItemCategory } from '@/api/menus-api';
@@ -34,6 +35,7 @@ export default function EditMenuItemScreen() {
   }>();
 
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
+  const kitchenCurrency = activeKitchen?.currency ?? '';
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
@@ -171,14 +173,14 @@ export default function EditMenuItemScreen() {
           name="selling_price"
           render={({ field: { onChange, onBlur, value } }) => (
             <AppTextField
-              label={t('createItem.priceLabel')}
+              label={t('createItem.priceLabel', { currency: kitchenCurrency })}
               placeholder={t('createItem.pricePlaceholder')}
               value={value}
-              onChangeText={(v) => onChange(v.replace(/[^0-9]/g, ''))}
+              onChangeText={(v) => onChange(sanitisePriceInput(v, kitchenCurrency))}
               onBlur={onBlur}
               error={errors.selling_price?.message}
-              keyboardType="number-pad"
-              suffix="RWF"
+              keyboardType="decimal-pad"
+              suffix={kitchenCurrency}
             />
           )}
         />
