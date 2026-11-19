@@ -7,6 +7,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.shared.enums import OrderStatus
+from app.shared.schemas.money import MoneyOut
 
 
 class OrderLineCreate(BaseModel):
@@ -15,6 +16,8 @@ class OrderLineCreate(BaseModel):
     unit: str = Field(..., min_length=1, max_length=30)
     quantity_ordered: Decimal = Field(..., gt=0)
     unit_price: Decimal = Field(..., ge=0)
+    # ISO 4217; defaults to the kitchen's currency (other currencies need conversion).
+    unit_price_currency: str | None = Field(None, min_length=3, max_length=3)
     ingredient_id: uuid.UUID | None = None
 
 
@@ -33,7 +36,10 @@ class OrderLineResponse(BaseModel):
     product_name: str
     unit: str
     quantity_ordered: Decimal
+    # Deprecated (one release): use unit_price_money.
     unit_price: Decimal
+    unit_price_currency: str | None = None
+    unit_price_money: MoneyOut | None = None
     ingredient_id: uuid.UUID | None
 
 

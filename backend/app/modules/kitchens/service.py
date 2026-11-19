@@ -15,6 +15,7 @@ from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.repository import KitchenRepository
 from app.modules.kitchens.schemas import KitchenCreateRequest, KitchenUpdateRequest
 from app.shared.enums import KitchenStatus
+from app.shared.money_fields import exact_money
 
 
 class KitchenService:
@@ -59,6 +60,13 @@ class KitchenService:
             kitchen.timezone = data.timezone
         if data.country is not None:
             kitchen.country = data.country
+        if data.price_step is not None:
+            # Must be a whole number of the currency's smallest unit; 0 clears the override.
+            kitchen.price_step = (
+                None
+                if data.price_step == 0
+                else exact_money(data.price_step, kitchen.currency).amount
+            )
 
         return await self._repo.update(kitchen)
 

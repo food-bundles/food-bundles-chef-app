@@ -14,6 +14,7 @@ from app.modules.menus.schemas import (
     MenuItemUpdateRequest,
     MenuUpdateRequest,
 )
+from app.shared.money_fields import resolve_currency, set_price
 
 
 class MenuService:
@@ -53,8 +54,9 @@ class MenuService:
             name=data.name,
             description=data.description,
             category=data.category,
-            selling_price=data.selling_price,
         )
+        currency = resolve_currency(kitchen, data.selling_price_currency)
+        set_price(item, "selling_price", data.selling_price, currency)
         return await self._item_repo.create(item)
 
     async def update_item(
@@ -66,8 +68,16 @@ class MenuService:
     ) -> MenuItem:
         await self._require_menu(kitchen, menu_id)
         item = await self._require_item(kitchen, item_id)
-        for field, value in data.model_dump(exclude_none=True).items():
+        changes = data.model_dump(exclude_none=True)
+        requested_currency = changes.pop("selling_price_currency", None)
+        price = changes.pop("selling_price", None)
+        for field, value in changes.items():
             setattr(item, field, value)
+        if price is not None or requested_currency is not None:
+            currency = resolve_currency(kitchen, requested_currency)
+            set_price(
+                item, "selling_price", price if price is not None else item.selling_price, currency
+            )
         return await self._item_repo.update(item)
 
     async def _require_menu(self, kitchen: Kitchen, menu_id: uuid.UUID) -> Menu:

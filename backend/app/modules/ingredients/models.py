@@ -3,12 +3,17 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.modules.inventory.models import InventoryEntry
+    from app.modules.recipes.models import RecipeLine
 
 
 class Ingredient(Base):
@@ -20,9 +25,7 @@ class Ingredient(Base):
 
     __tablename__ = "ingredients"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     kitchen_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("kitchens.id", ondelete="CASCADE"),
@@ -40,7 +43,10 @@ class Ingredient(Base):
         Numeric(10, 4), nullable=False, default=Decimal("0.0000")
     )
     # cost_per_unit: latest known purchase cost (RWF or kitchen currency)
-    cost_per_unit: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    # A unit cost is often a fraction of the smallest coin (0.35 RWF per g): 6 decimals,
+    # in the currency it was entered in (may differ from the kitchen's).
+    cost_per_unit: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    cost_per_unit_currency: Mapped[str | None] = mapped_column(String(3))
     # selling_unit_size: the supplier's minimum order multiple (e.g. 5 kg bag → 5)
     selling_unit_size: Mapped[Decimal] = mapped_column(
         Numeric(10, 3), nullable=False, default=Decimal("1.000")
@@ -60,9 +66,9 @@ class Ingredient(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    stock_entries: Mapped[list[InventoryEntry]] = relationship(  # noqa: F821
+    stock_entries: Mapped[list[InventoryEntry]] = relationship(
         "InventoryEntry", back_populates="ingredient", lazy="noload"
     )
-    recipe_lines: Mapped[list[RecipeLine]] = relationship(  # noqa: F821
+    recipe_lines: Mapped[list[RecipeLine]] = relationship(
         "RecipeLine", back_populates="ingredient", lazy="noload"
     )

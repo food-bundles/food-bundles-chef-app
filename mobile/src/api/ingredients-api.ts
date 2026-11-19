@@ -8,6 +8,8 @@ export interface IngredientCreateBody {
   yield_fraction?: string;        // decimal string e.g. "0.85"
   qty_per_portion?: string;
   cost_per_unit?: string | null;
+  /** ISO 4217; defaults to the kitchen currency. */
+  cost_per_unit_currency?: string | null;
   selling_unit_size?: string;
   days_open_per_week?: number;
   safety_buffer_fraction?: string | null;
@@ -20,6 +22,7 @@ export interface IngredientUpdateBody {
   yield_fraction?: string | null;
   qty_per_portion?: string | null;
   cost_per_unit?: string | null;
+  cost_per_unit_currency?: string | null;
   selling_unit_size?: string | null;
   days_open_per_week?: number | null;
   safety_buffer_fraction?: string | null;
@@ -34,6 +37,7 @@ export interface IngredientDto {
   yield_fraction: string;
   qty_per_portion: string;
   cost_per_unit: string | null;
+  cost_per_unit_currency: string | null;
   selling_unit_size: string;
   days_open_per_week: number;
   safety_buffer_fraction: string | null;

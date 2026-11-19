@@ -1,3 +1,4 @@
+import type { MoneyDto } from './money-dto';
 import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ export interface MenuItemCreateBody {
   name: string;
   description?: string | null;
   selling_price: string;   // decimal string
+  /** ISO 4217; defaults to the kitchen currency. */
+  selling_price_currency?: string;
   category?: MenuItemCategory | null;
 }
 
@@ -38,6 +41,8 @@ export interface MenuItemUpdateBody {
   name?: string | null;
   description?: string | null;
   selling_price?: string | null;
+  /** ISO 4217; defaults to the kitchen currency. */
+  selling_price_currency?: string | null;
   is_active?: boolean | null;
   category?: MenuItemCategory | null;
 }
@@ -50,7 +55,10 @@ export interface MenuItemDto {
   description: string | null;
   /** Null for items created before categories existed. */
   category?: MenuItemCategory | null;
+  /** Deprecated (one release): use selling_price_money. */
   selling_price: string;
+  selling_price_currency: string | null;
+  selling_price_money: MoneyDto | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

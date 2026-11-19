@@ -44,6 +44,21 @@ class ConflictError(AppError):
     message = "A conflict occurred with the current state of the resource."
 
 
+class AmountPrecisionError(AppError):
+    """An amount has more decimals than its currency allows; it is refused, never rounded."""
+
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    error_code = "AMOUNT_PRECISION"
+    message = "This amount has more decimal places than the currency allows."
+
+
+class OtherCurrencyNotSupportedError(ConflictError):
+    """Amounts in a currency other than the kitchen's need conversion (exchange rates)."""
+
+    error_code = "OTHER_CURRENCY_NOT_SUPPORTED"
+    message = "Amounts must be in the kitchen's currency until currency conversion is available."
+
+
 class CurrencyChangeNotAllowedError(ConflictError):
     """A kitchen's currency changes only through the convert / relabel flow."""
 

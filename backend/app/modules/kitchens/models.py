@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,6 +33,8 @@ class Kitchen(Base):
     timezone: Mapped[str] = mapped_column(String(50))
     # ISO 3166-1 alpha-2. Decides catalogue availability (FOOD_BUNDLES_COUNTRIES).
     country: Mapped[str | None] = mapped_column(String(2))
+    # Step for suggested selling prices, in major units; null = the currency's default.
+    price_step: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
     status: Mapped[str] = mapped_column(String(20), default=KitchenStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

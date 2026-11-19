@@ -181,6 +181,8 @@ class Settings(BaseSettings):
     # Countries (ISO 3166-1 alpha-2) Food Bundles serves: only kitchens there see the
     # catalogue and can order catalogue items (decision 9, 2026-11-19). JSON list in env.
     FOOD_BUNDLES_COUNTRIES: list[str] = ["RW"]
+    # Currency of Food Bundles catalogue reference prices (ISO 4217).
+    FOOD_BUNDLES_CATALOG_CURRENCY: str = "RWF"
     # Local hour (kitchen time zone) for the daily low-stock push reminder.
     LOW_STOCK_REMINDER_LOCAL_HOUR: int = 7
     # Default step (major units) for suggested selling prices per currency; other currencies

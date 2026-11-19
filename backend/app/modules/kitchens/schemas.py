@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -60,6 +61,8 @@ class KitchenUpdateRequest(BaseModel):
     currency: str | None = Field(None, min_length=3, max_length=3)
     timezone: str | None = Field(None, max_length=50)
     country: str | None = Field(None, min_length=2, max_length=2)
+    # Step for suggested selling prices (major units); 0 clears it (currency default).
+    price_step: Decimal | None = Field(None, ge=0)
 
     @field_validator("currency")
     @classmethod
@@ -90,6 +93,7 @@ class KitchenResponse(BaseModel):
     timezone: str
     country: str | None
     catalog_available: bool
+    price_step: Decimal | None = None
     status: KitchenStatus
     created_at: datetime
     updated_at: datetime

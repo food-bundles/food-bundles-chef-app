@@ -22,6 +22,7 @@ from app.modules.orders.schemas import (
     OrderWithLinesResponse,
 )
 from app.shared.enums import OrderStatus
+from app.shared.money_fields import resolve_currency, set_price
 
 # Order lines typed in by the chef rather than picked from the Food Bundles catalogue.
 MANUAL_PRODUCT_ID = "manual"
@@ -57,18 +58,23 @@ class OrderService:
         )
         order = await self._repo.create(order)
 
-        lines = [
-            OrderLine(
+        lines = []
+        for line in data.lines:
+            row = OrderLine(
                 order_id=order.id,
                 catalog_product_id=line.catalog_product_id,
                 product_name=line.product_name,
                 unit=line.unit,
                 quantity_ordered=line.quantity_ordered,
-                unit_price=line.unit_price,
                 ingredient_id=line.ingredient_id,
             )
-            for line in data.lines
-        ]
+            set_price(
+                row,
+                "unit_price",
+                line.unit_price,
+                resolve_currency(kitchen, line.unit_price_currency),
+            )
+            lines.append(row)
         lines = await self._line_repo.create_many(lines)
 
         return OrderWithLinesResponse(
@@ -181,5 +187,7 @@ def _line_to_schema(line: OrderLine) -> OrderLineResponse:
         unit=line.unit,
         quantity_ordered=line.quantity_ordered,
         unit_price=line.unit_price,
+        unit_price_currency=line.unit_price_currency,
+        unit_price_money=line.unit_price_money,
         ingredient_id=line.ingredient_id,
     )

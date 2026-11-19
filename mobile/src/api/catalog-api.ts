@@ -1,3 +1,4 @@
+import type { MoneyDto } from './money-dto';
 import { request } from './http-client';
 
 export interface CatalogProductDto {
@@ -6,7 +7,10 @@ export interface CatalogProductDto {
   name: string;
   category: string;
   unit: string;
+  /** Deprecated (one release): use reference_price_money. */
   reference_price: string | null;
+  reference_price_currency: string | null;
+  reference_price_money: MoneyDto | null;
   description: string | null;
   image_url: string | null;
   is_active: boolean;

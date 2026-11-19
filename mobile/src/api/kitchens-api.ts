@@ -24,6 +24,8 @@ export interface KitchenUpdateBody {
   currency?: string | null;
   timezone?: string | null;
   country?: string | null;
+  /** Step for suggested prices; "0" clears it. */
+  price_step?: string | null;
 }
 
 export interface KitchenDto {
@@ -38,6 +40,8 @@ export interface KitchenDto {
   country: string | null;
   /** Food Bundles catalogue and catalogue requisitions are offered to this kitchen. */
   catalog_available: boolean;
+  /** Step for suggested selling prices (major units); null = the currency's default. */
+  price_step: string | null;
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;

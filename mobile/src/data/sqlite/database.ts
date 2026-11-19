@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
  * Schema version. Increment this when adding a new migration.
  * Never decrement or reuse a version number.
  */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const MIGRATIONS: Record<number, string[]> = {
   1: [
@@ -127,6 +127,23 @@ const MIGRATIONS: Record<number, string[]> = {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )`,
+  ],
+  // v2 (multi-currency): exact minor units + ISO 4217 next to the legacy *_rwf columns.
+  // Rows cached before v2 were RWF (0 decimals); a non-whole value stays NULL instead of
+  // being rounded.
+  2: [
+    `ALTER TABLE menu_items ADD COLUMN price_minor INTEGER`,
+    `ALTER TABLE menu_items ADD COLUMN price_currency TEXT`,
+    `ALTER TABLE sales_records ADD COLUMN price_minor INTEGER`,
+    `ALTER TABLE sales_records ADD COLUMN price_currency TEXT`,
+    `ALTER TABLE order_line_items ADD COLUMN unit_price_minor INTEGER`,
+    `ALTER TABLE order_line_items ADD COLUMN unit_price_currency TEXT`,
+    `UPDATE menu_items SET price_minor = CAST(price_rwf AS INTEGER), price_currency = 'RWF'
+       WHERE price_rwf = CAST(price_rwf AS INTEGER)`,
+    `UPDATE sales_records SET price_minor = CAST(price_rwf AS INTEGER), price_currency = 'RWF'
+       WHERE price_rwf = CAST(price_rwf AS INTEGER)`,
+    `UPDATE order_line_items SET unit_price_minor = CAST(unit_price_rwf AS INTEGER), unit_price_currency = 'RWF'
+       WHERE unit_price_rwf = CAST(unit_price_rwf AS INTEGER)`,
   ],
 };
 
