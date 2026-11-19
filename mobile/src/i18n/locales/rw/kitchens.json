@@ -54,11 +54,50 @@
     "currencyLabel": "Ifaranga",
     "timezoneLabel": "Isaha y'akarere",
     "choose": "Hitamo…",
-    "currencyLockedHint": "Ibiciro bishingiye ku ifaranga. Kurihindura bizasaba kubyemeza (biraza vuba).",
+    "currencyLockedHint": "Ibiciro bishingiye ku ifaranga. Koresha \"Guhindura ifaranga\" hasi kugira ngo ubihindure.",
     "errors": {
       "country": "Hitamo igihugu igikoni kirimo.",
       "currency": "Hitamo ifaranga ibiciro byawe biriho.",
       "timezone": "Hitamo isaha y'akarere k'igikoni."
     }
+  },
+  "currencyChange": {
+    "title": "Guhindura ifaranga",
+    "entryTitle": "Guhindura ifaranga",
+    "entrySubtitle": "Ubu ni {{currency}} · hindura ibiciro cyangwa izina ry'ifaranga",
+    "entryHint": "Ubanza kubona uko bizaba mbere y'uko hagira igihinduka",
+    "currentLabel": "Ifaranga rikoreshwa ubu",
+    "newLabel": "Ifaranga rishya",
+    "newHint": "Hitamo ifaranga igikoni cyawe kizakoresha",
+    "modeHeading": "Ibiciro bihinduke bite?",
+    "mode": {
+      "convert": "Hindura ibiciro byanjye",
+      "relabel": "Hindura izina gusa"
+    },
+    "modeHelp": {
+      "convert": "Buri giciro cyo kuri menu n'ikiguzi cy'ibikoresho bihindurwa ku gipimo kimwe cy'ivunjisha, kigaragara hasi n'itariki yacyo.",
+      "relabel": "Koresha ibi niba ibiciro byawe byanditswe mu ifaranga ritari ryo. Imibare ntihinduka; ifaranga ni ryo rihinduka gusa."
+    },
+    "loading": "Birimo gutegurwa",
+    "previewError": "Ntibyashobotse kwerekana uko bizaba. Reba interineti wongere ugerageze.",
+    "rateOf": "Igipimo cyo ku wa {{date}}",
+    "crossRate": "cyabazwe hifashishijwe USD",
+    "rateUnavailable": "Nta gipimo cy'ivunjisha gihari cyo mu minsi 3 ishize. Ongera ugerageze nyuma, cyangwa uhindure izina gusa.",
+    "relabelPrecision": "Hari ibiciro bifite ibice birenze ibyo {{currency}} yemera. Banza ubikosore, cyangwa uhindure ibiciro.",
+    "historyTitle": "Iki gikoni gisanzwe gifite amakuru",
+    "historyBody": "Ibyagurishijwe {{sales}}, komande {{orders}}, ibyanditswe muri stock {{stock}} n'ibyakiriwe {{deliveries}} bigumana ifaranga ryabyo rya mbere. Raporo ivanga amakuru ya kera n'amashya izerekana amafaranga yombi.",
+    "pricesHeading": "Ibiciro bihinduka ({{count}})",
+    "noPrices": "Nta biciro byo guhindura birahari.",
+    "unitCost": "ikiguzi kuri buri gipimo",
+    "beforeAfter": "{{before}} → {{after}}",
+    "needsRounding": "bisaba kuzengurutsa",
+    "noRate": "nta gipimo",
+    "priceStepReset": "Uburyo bwo kuzengurutsa ibiciro busubira ku bwa ifaranga rishya.",
+    "pastRecords": "Ibyagurishijwe, komande, ibyakiriwe n'ibya stock byashize ntibihinduka.",
+    "typeToConfirm": "Andika {{code}} kugira ngo wemeze",
+    "applyConvert": "Hindura ibiciro",
+    "applyRelabel": "Hindura ifaranga",
+    "rateChanged": "Igipimo cy'ivunjisha cyahindutse. Reba uko bizaba ubu wongere wemeze.",
+    "applyError": "Ntibyashobotse guhindura ifaranga. Nta cyahindutse."
   }
 }

@@ -160,10 +160,13 @@ countries. Every stored rate records which source it came from.
 
 - Table `exchange_rates(rate_date, base, quote, rate NUMERIC(24,12), source, provider_timestamp,
   fetched_at)`, unique on `(rate_date, base, quote, source)`. Cross rates (RWF→EUR via USD)
-  are computed from the same day and source, and labelled as cross rates.
+  are computed from one source (never mixing sources) and labelled as cross rates. *Built
+  (step 3):* central banks publish on different days (on 2026-11-19 Frankfurter had ECB's EUR
+  for the 19th but BNR's RWF only for the 18th), so each leg uses its newest day within the
+  window and the cross rate is dated by its **older** leg; that is the date shown.
 - A daily job fetches the table (arq scheduler) and keeps it in a short cache. Nothing else
   writes to this table.
-- Staleness: a rate up to 2 days old is used with its date shown ("rate of 17 Nov").
+- Staleness: a rate up to 3 days old (decision 2) is used with its date shown ("rate of 17 Nov").
   Anything older, or missing, is **"rate unavailable"**: conversion is disabled and the
   original amount is kept. No interpolation and no guessing. Thresholds are configurable.
 - `convert(money, to_currency, on_date) → Converted(original, converted, rate, rate_date,

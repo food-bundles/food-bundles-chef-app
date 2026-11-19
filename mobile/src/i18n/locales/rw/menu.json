@@ -152,7 +152,10 @@
     "noIngredientMatch": "Nta kiribwa gihuye na “{{query}}”.",
     "allIngredientsInRecipe": "Ibikoresho byose bisanzwe biri mu byo guteka.",
     "createNamed": "Ongeraho “{{name}}” nk'ikiribwa gishya",
-    "createNew": "Ongeraho ikiribwa gishya"
+    "createNew": "Ongeraho ikiribwa gishya",
+    "lineConverted": "{{original}} ku gipimo {{rate}} ({{date}})",
+    "lineRateUnavailable": "Ikiguzi muri {{currency}}: nta gipimo gihari",
+    "costIncomplete": "Ikiguzi cy'ibiryo ntikizuye: hari ibiguzi biri mu yandi mafaranga bidafite igipimo cy'ivunjisha cya vuba."
   },
   "createItem": {
     "title": "Ikiribwa gishya cya menu",

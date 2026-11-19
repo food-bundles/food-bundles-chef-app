@@ -197,6 +197,15 @@ class Settings(BaseSettings):
     }
     FOOD_BUNDLES_API_URL: str = ""
     FOOD_BUNDLES_API_KEY: SecretStr = SecretStr("")
+    # Exchange rates (Step 2a decision 1-2, 2026-11-19). Rates come ONLY from these services,
+    # through the daily job into the exchange_rates table; AI models never produce rates.
+    # ExchangeRate-API (paid plan) is primary; with no key, Frankfurter serves alone.
+    EXCHANGE_RATE_API_KEY: SecretStr = SecretStr("")
+    EXCHANGE_RATE_API_URL: str = "https://v6.exchangerate-api.com/v6"
+    FRANKFURTER_API_URL: str = "https://api.frankfurter.dev/v2"
+    EXCHANGE_RATE_TIMEOUT_SECONDS: float = 20.0
+    # A rate is usable up to this many days old (weekends); older or missing = unavailable.
+    RATE_STALE_DAYS: int = 3
 
     # Object storage
     OBJECT_STORAGE_PROVIDER: Literal["local", "s3", "gcs", "cloudinary"] = "local"

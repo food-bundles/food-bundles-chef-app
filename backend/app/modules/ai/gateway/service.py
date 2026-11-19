@@ -43,6 +43,7 @@ from app.modules.ai.schemas.gateway import (
     ModelImageClassification,
     ModelMenuExtraction,
 )
+from app.modules.exchange_rates.costs import KitchenUnitCosts, kitchen_unit_costs
 from app.modules.ingredients.models import Ingredient
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.kitchens.models import Kitchen
@@ -62,6 +63,7 @@ def _normalise(name: str) -> str:
 
 class AiGatewayService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._ingredients = IngredientRepository(db)
 
     async def classify(
@@ -276,7 +278,12 @@ class AiGatewayService:
             if ing is not None:
                 matched.append((ing, qty, ai_ing.unit))
 
-        price, reason = _price_from_costs(matched, total=len(result.ingredients))
+        # Costs in the kitchen's currency, converted by deterministic code from the rates
+        # table; the model never sees or supplies a rate.
+        unit_costs = await kitchen_unit_costs(self._db, kitchen, [m[0] for m in matched])
+        price, reason = _price_from_costs(
+            matched, total=len(result.ingredients), unit_costs=unit_costs
+        )
         return DishAnalysisResponse(
             kind=result.kind,
             dish_name=(name_hint.strip() if name_hint and name_hint.strip() else result.dish_name),
@@ -295,7 +302,7 @@ class AiGatewayService:
 
 
 def _price_from_costs(
-    matched: list[tuple[Ingredient, Decimal, str]], total: int
+    matched: list[tuple[Ingredient, Decimal, str]], total: int, unit_costs: KitchenUnitCosts
 ) -> tuple[DishPrice | None, str | None]:
     """Deterministic price range: ingredient cost per portion ÷ target food-cost share."""
     if total == 0:
@@ -303,12 +310,13 @@ def _price_from_costs(
     cost = Decimal("0")
     costed = 0
     for ing, qty, unit in matched:
-        if ing.cost_per_unit is None or ing.yield_fraction <= 0:
+        unit_cost = unit_costs.get(ing)
+        if unit_cost is None or ing.yield_fraction <= 0:
             continue
         qty_in_unit = convert_quantity(qty, unit, ing.unit)
         if qty_in_unit is None:
             continue
-        cost += qty_in_unit / ing.yield_fraction * ing.cost_per_unit
+        cost += qty_in_unit / ing.yield_fraction * unit_cost.amount
         costed += 1
     if costed == 0 or cost <= 0:
         return None, "no_matched_costs"

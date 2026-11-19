@@ -3,12 +3,13 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Utensils, Pencil } from 'lucide-react-native';
+import { Utensils, Pencil, Coins } from 'lucide-react-native';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { ListRow } from '@/components/ui/ListRow';
+import { OptionPickerSheet } from '@/components/ui/OptionPickerSheet';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { StockIndicator } from '@/components/ui/StockIndicator';
 import { useIngredientDetail, useStockLevels, useRecordInventoryEntry, useInventoryHistory } from '@/features/inventory/useStockLevels';
@@ -18,6 +19,8 @@ import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
 import { formatDate, formatQuantity, formatRWF, formatTime } from '@/lib/format';
+import { currencyName, formatUnitCost, priceableCurrencies } from '@/lib/money';
+import { sanitiseCostInput, trimDecimalZeros } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { FormAction } from '@/components/ui/FormActionButton';
@@ -56,6 +59,7 @@ export default function IngredientDetailScreen() {
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
+  const kitchenCurrency = useKitchenStore((s) => s.activeKitchen?.currency ?? '');
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
 
   const { data: ingredient, isLoading: loadingIngredient } = useIngredientDetail(id ?? '');
@@ -73,6 +77,8 @@ export default function IngredientDetailScreen() {
 
   const [editName, setEditName] = useState('');
   const [editCost, setEditCost] = useState('');
+  const [editCostCurrency, setEditCostCurrency] = useState('');
+  const [costPickerOpen, setCostPickerOpen] = useState(false);
   const [editYield, setEditYield] = useState('');
 
   const stockLevel = stockLevels.find((s) => s.ingredient_id === id);
@@ -128,7 +134,9 @@ export default function IngredientDetailScreen() {
   const startEdit = () => {
     if (!ingredient) return;
     setEditName(ingredient.name);
-    setEditCost(ingredient.cost_per_unit ? String(Math.round(parseFloat(ingredient.cost_per_unit))) : '');
+    // Keep the cost exactly as stored (it may have decimals, e.g. 0.00125 USD per g).
+    setEditCost(ingredient.cost_per_unit ? trimDecimalZeros(sanitiseCostInput(ingredient.cost_per_unit)) : '');
+    setEditCostCurrency(ingredient.cost_per_unit_currency ?? kitchenCurrency);
     setEditYield(String(Math.round(parseFloat(ingredient.yield_fraction) * 100)));
     setMessage(null);
     setMode('edit');
@@ -148,6 +156,7 @@ export default function IngredientDetailScreen() {
       await updateIngredient(kitchenId, id, {
         name: editName.trim(),
         cost_per_unit: editCost.trim() ? editCost.trim() : null,
+        cost_per_unit_currency: editCost.trim() ? editCostCurrency || kitchenCurrency : null,
         yield_fraction: String(yieldNum / 100),
       });
       invalidateIngredient();
@@ -270,12 +279,32 @@ export default function IngredientDetailScreen() {
             <AppTextField
               label={t('ingredients.costPerUnitLabel', { unit })}
               value={editCost}
-              onChangeText={(v) => setEditCost(v.replace(/[^0-9]/g, ''))}
+              onChangeText={(v) => setEditCost(sanitiseCostInput(v))}
               placeholder="0"
-              keyboardType="number-pad"
-              suffix={`RWF/${unit}`}
+              keyboardType="decimal-pad"
+              suffix={`${editCostCurrency || kitchenCurrency}/${unit}`}
             />
             <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('ingredients.costHint')}</Text>
+            <ListRow
+              icon={<Coins size={16} color={tk.link} />}
+              title={t('ingredients.costCurrencyLabel')}
+              subtitle={`${currencyName(editCostCurrency || kitchenCurrency, i18n.language)} (${editCostCurrency || kitchenCurrency})`}
+              onPress={() => setCostPickerOpen(true)}
+              chevron
+              accessibilityHint={t('ingredients.costCurrencyHint')}
+            />
+            {(editCostCurrency || kitchenCurrency) !== kitchenCurrency ? (
+              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('ingredients.costCurrencyHint')}</Text>
+            ) : null}
+            <OptionPickerSheet
+              visible={costPickerOpen}
+              title={t('ingredients.costCurrencyLabel')}
+              options={priceableCurrencies().map((c) => ({ value: c, label: currencyName(c, i18n.language), detail: c }))}
+              selected={editCostCurrency || kitchenCurrency}
+              pinned={[kitchenCurrency]}
+              onClose={() => setCostPickerOpen(false)}
+              onSelect={setEditCostCurrency}
+            />
             <AppTextField
               label={t('ingredients.yieldLabel')}
               value={editYield}
@@ -337,7 +366,7 @@ export default function IngredientDetailScreen() {
               {[
                 [t('ingredients.detailUnit'), unit],
                 [t('ingredients.detailYield'), `${Math.round(parseFloat(ingredient.yield_fraction) * 100)}%`],
-                [t('ingredients.detailCostPerUnit'), ingredient.cost_per_unit ? `${formatRWF(ingredient.cost_per_unit, i18n.language)}/${unit}` : t('ingredients.noCost')],
+                [t('ingredients.detailCostPerUnit'), ingredient.cost_per_unit ? `${formatUnitCost(ingredient.cost_per_unit, ingredient.cost_per_unit_currency ?? kitchenCurrency, i18n.language)}/${unit}` : t('ingredients.noCost')],
                 ingredient.notes ? [t('ingredients.detailNotes'), ingredient.notes] : null,
               ]
                 .filter((r): r is string[] => r !== null)

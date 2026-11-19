@@ -114,13 +114,15 @@
     "deleteConfirmTitle": "Supprimer l'ingrédient ?",
     "deleteConfirmMessage": "{{name}} sera retiré de vos ingrédients.",
     "editDetails": "Modifier les détails",
-    "costPerUnitLabel": "Coût par {{unit}} (RWF)",
+    "costPerUnitLabel": "Coût par {{unit}}",
     "costHint": "Sert à calculer le coût matière et les prix suggérés.",
     "yieldLabel": "Rendement utilisable (%)",
     "yieldHint": "Part restante après épluchage ou parage, p. ex. 80 = 80 %. Indiquez 100 s'il n'y a aucune perte.",
     "adjustQtyLabel": "Quantité à ajouter ou à retirer",
     "noteLabel": "Note",
     "noCost": "Aucun coût défini",
-    "levelAfter": "Niveau après : {{qty}} {{unit}}"
+    "levelAfter": "Niveau après : {{qty}} {{unit}}",
+    "costCurrencyLabel": "Devise du coût",
+    "costCurrencyHint": "Gardez la devise de votre fournisseur. Le coût matière la convertit au taux du jour."
   }
 }

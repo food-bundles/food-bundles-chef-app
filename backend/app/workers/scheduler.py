@@ -10,6 +10,7 @@ Tasks:
 Cron jobs (UTC):
     refresh_catalog          — hourly, pulls latest products from Food Bundles API
     send_low_stock_reminders — hourly; each kitchen at 07:00 in its own time zone
+    refresh_exchange_rates   — 01:15 and 13:15; the only writer of exchange_rates
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from arq.connections import RedisSettings
 from app.core.config import settings
 from app.workers.tasks.catalog_refresh import refresh_catalog
 from app.workers.tasks.daily_reminders import send_low_stock_reminders
+from app.workers.tasks.exchange_rates import refresh_exchange_rates
 from app.workers.tasks.order_sync import sync_order_to_food_bundles
 from app.workers.tasks.push_notifications import send_push_notification
 
@@ -53,6 +55,8 @@ class WorkerSettings:
         cron(refresh_catalog, hour=None, minute=0),
         # Low-stock reminders: every hour; each kitchen is picked at its own local 07:00
         cron(send_low_stock_reminders, hour=None, minute=0),
+        # Exchange rates: twice a day, so one failed run is retried the same day
+        cron(refresh_exchange_rates, hour={1, 13}, minute=15),
     ]
 
     # Keep job results for 24 h for debugging

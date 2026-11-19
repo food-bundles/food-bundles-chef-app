@@ -32,7 +32,7 @@ class ReceivingDecision(StrEnum):
 
 
 class QualityCheckResult(StrEnum):
-    PASS = "pass"
+    PASS = "pass"  # nosec B105 - a quality status, not a password
     WATCH = "watch"
     FAIL = "fail"
 
@@ -48,7 +48,7 @@ class StockMovementReason(StrEnum):
 
 class MutationStatus(StrEnum):
     PENDING = "pending"
-    SYNCING = "syncing"      # mobile value — do not change to 'processing'
+    SYNCING = "syncing"  # mobile value — do not change to 'processing'
     FAILED = "failed"
     CONFLICT = "conflict"
 
@@ -76,10 +76,11 @@ class AuditEventType(StrEnum):
     AUTH_OTP_VERIFIED = "auth.otp_verified"
     AUTH_LOGIN = "auth.login"
     AUTH_LOGOUT = "auth.logout"
-    AUTH_TOKEN_REFRESHED = "auth.token_refreshed"
+    AUTH_TOKEN_REFRESHED = "auth.token_refreshed"  # nosec B105 - an audit event name, not a token
     KITCHEN_CREATED = "kitchen.created"
     KITCHEN_UPDATED = "kitchen.updated"
     KITCHEN_ARCHIVED = "kitchen.archived"
+    KITCHEN_CURRENCY_CHANGED = "kitchen.currency_changed"
     ORDER_CREATED = "order.created"
     ORDER_CANCELLED = "order.cancelled"
     DELIVERY_STARTED = "delivery.started"

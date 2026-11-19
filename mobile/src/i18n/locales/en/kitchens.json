@@ -54,11 +54,50 @@
     "currencyLabel": "Currency",
     "timezoneLabel": "Time zone",
     "choose": "Choose…",
-    "currencyLockedHint": "Prices depend on the currency. Changing it will need a confirmation step (coming soon).",
+    "currencyLockedHint": "Prices depend on the currency. Use \"Change currency\" below to convert or relabel them.",
     "errors": {
       "country": "Choose the kitchen's country.",
       "currency": "Choose the currency your prices are in.",
       "timezone": "Choose the kitchen's time zone."
     }
+  },
+  "currencyChange": {
+    "title": "Change currency",
+    "entryTitle": "Change currency",
+    "entrySubtitle": "Now {{currency}} · convert or relabel your prices",
+    "entryHint": "Opens a preview before anything changes",
+    "currentLabel": "Current currency",
+    "newLabel": "New currency",
+    "newHint": "Choose the currency your kitchen will use",
+    "modeHeading": "How should prices change?",
+    "mode": {
+      "convert": "Convert my prices",
+      "relabel": "Relabel only"
+    },
+    "modeHelp": {
+      "convert": "Every menu price and ingredient cost is converted at one exchange rate, shown below with its date.",
+      "relabel": "Use this if your prices were entered in the wrong currency. The amounts stay the same; only the currency changes."
+    },
+    "loading": "Loading the preview",
+    "previewError": "Couldn't load the preview. Check your connection and try again.",
+    "rateOf": "Rate of {{date}}",
+    "crossRate": "calculated via USD",
+    "rateUnavailable": "Rate unavailable: there is no exchange rate from the last 3 days. Try again later, or relabel instead.",
+    "relabelPrecision": "Some prices have more decimals than {{currency}} allows. Fix them first, or convert instead.",
+    "historyTitle": "This kitchen already has records",
+    "historyBody": "{{sales}} sales, {{orders}} orders, {{stock}} stock entries and {{deliveries}} deliveries keep their original currency. Reports that mix old and new records will show both currencies.",
+    "pricesHeading": "Prices that change ({{count}})",
+    "noPrices": "No prices to change yet.",
+    "unitCost": "cost per unit",
+    "beforeAfter": "{{before}} → {{after}}",
+    "needsRounding": "needs rounding",
+    "noRate": "no rate",
+    "priceStepReset": "Your price rounding step goes back to the default for the new currency.",
+    "pastRecords": "Past sales, orders, deliveries and stock records are not changed.",
+    "typeToConfirm": "Type {{code}} to confirm",
+    "applyConvert": "Convert prices",
+    "applyRelabel": "Relabel currency",
+    "rateChanged": "The exchange rate changed. Check the new preview and confirm again.",
+    "applyError": "Couldn't change the currency. Nothing was changed."
   }
 }

@@ -152,7 +152,10 @@
     "noIngredientMatch": "No ingredient matches “{{query}}”.",
     "allIngredientsInRecipe": "All ingredients are already in this recipe.",
     "createNamed": "Add “{{name}}” as a new ingredient",
-    "createNew": "Add a new ingredient"
+    "createNew": "Add a new ingredient",
+    "lineConverted": "{{original}} at {{rate}} ({{date}})",
+    "lineRateUnavailable": "Cost in {{currency}}: rate unavailable",
+    "costIncomplete": "Food cost is incomplete: some costs in another currency have no recent exchange rate."
   },
   "createItem": {
     "analysingDish": "Analyzing dish…",

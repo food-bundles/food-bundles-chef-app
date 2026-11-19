@@ -9,7 +9,7 @@ from app.modules.ingredients.models import Ingredient
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.ingredients.schemas import IngredientCreateRequest, IngredientUpdateRequest
 from app.modules.kitchens.models import Kitchen
-from app.shared.money_fields import check_unit_cost, resolve_currency
+from app.shared.money_fields import check_unit_cost, resolve_cost_currency
 
 
 class IngredientService:
@@ -32,7 +32,7 @@ class IngredientService:
             qty_per_portion=data.qty_per_portion,
             cost_per_unit=check_unit_cost(data.cost_per_unit),
             cost_per_unit_currency=(
-                resolve_currency(kitchen, data.cost_per_unit_currency)
+                resolve_cost_currency(kitchen, data.cost_per_unit_currency)
                 if data.cost_per_unit is not None
                 else None
             ),
@@ -60,7 +60,8 @@ class IngredientService:
         for field, value in changes.items():
             setattr(ingredient, field, value)
         if "cost_per_unit" in changes or requested_currency is not None:
-            ingredient.cost_per_unit_currency = resolve_currency(kitchen, requested_currency)
+            # A bare amount (no currency sent) is in the kitchen's currency, as before.
+            ingredient.cost_per_unit_currency = resolve_cost_currency(kitchen, requested_currency)
         return await self._repo.update(ingredient)
 
     async def deactivate_ingredient(self, kitchen: Kitchen, ingredient_id: uuid.UUID) -> Ingredient:

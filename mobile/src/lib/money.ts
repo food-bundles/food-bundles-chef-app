@@ -92,6 +92,30 @@ export function formatMoney(
   }
 }
 
+/**
+ * A unit cost (per g, per kg, per piece): at least the currency's decimals and up to 6, so
+ * 0.00125 USD per gram is not shown as "$0.00". Prices people pay use formatMoney.
+ */
+export function formatUnitCost(
+  amount: number | string | null | undefined,
+  currency: string,
+  lang?: string,
+): string {
+  const n = toNumber(amount);
+  if (n === null) return '—';
+  const digits = minorUnits(currency);
+  try {
+    return new Intl.NumberFormat(LOCALE[toAppLanguage(lang)], {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+      minimumFractionDigits: digits,
+      maximumFractionDigits: Math.max(digits, 6),
+    }).format(n);
+  } catch {
+    return `${String(n)} ${currency.toUpperCase()}`;
+  }
+}
+
 /** Integer minor units ↔ decimal string, exact (no floating point arithmetic on money). */
 export function toMinorUnits(amount: string, currency: string): number | null {
   const digits = minorUnits(currency);

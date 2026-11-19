@@ -6,7 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Coins } from 'lucide-react-native';
 import { FormScreen } from '@/components/ui/FormScreen';
+import { ListRow } from '@/components/ui/ListRow';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
@@ -147,6 +149,16 @@ export default function KitchenDetailScreen() {
         setValue={setValue}
         currencyLocked
       >
+        {!kitchen.isArchived ? (
+          <ListRow
+            icon={<Coins size={16} color={tk.link} />}
+            title={t('currencyChange.entryTitle')}
+            subtitle={t('currencyChange.entrySubtitle', { currency: kitchen.currency })}
+            onPress={() => router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId: kitchen.id } })}
+            chevron
+            accessibilityHint={t('currencyChange.entryHint')}
+          />
+        ) : null}
         {kitchen.isArchived ? (
           <View style={{ paddingVertical: spacing.sm, borderRadius: radius.lg, backgroundColor: tk.surfaceSunken, alignItems: 'center' }}>
             <Text style={{ color: tk.textMuted, fontSize: fontSize.sm }}>{t('kitchens.isArchived')}</Text>

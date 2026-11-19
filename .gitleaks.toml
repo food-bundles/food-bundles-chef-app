@@ -14,7 +14,7 @@ keywords = ["sk-ant-"]
 [[rules]]
 id = "env-assigned-provider-key"
 description = "A provider key assigned a value in an env-style file"
-regex = '''(?i)^\s*(MODEL_API_KEY|ANTHROPIC_API_KEY|ANTROPIC_API_KEY|SMS_API_KEY|CLOUDINARY_API_SECRET|EXPO_ACCESS_TOKEN|FOOD_BUNDLES_API_KEY|AI_OPS_TOKEN)\s*=\s*["']?([^\s"'#]{12,})'''
+regex = '''(?i)^\s*(MODEL_API_KEY|ANTHROPIC_API_KEY|ANTROPIC_API_KEY|SMS_API_KEY|CLOUDINARY_API_SECRET|EXPO_ACCESS_TOKEN|FOOD_BUNDLES_API_KEY|AI_OPS_TOKEN|EXCHANGE_RATE_API_KEY)\s*=\s*["']?([^\s"'#]{12,})'''
 secretGroup = 2
 keywords = ["_key", "secret", "token"]
 

@@ -1,8 +1,9 @@
 """Writing money onto rows: one place that sets the legacy decimal, the exact minor units and
 the currency together (dual-write for one release), and that refuses inexact amounts.
 
-Step 2a build step 2. Until conversion exists (step 3), amounts must be in the kitchen's
-currency; other currencies are refused instead of being mixed into food cost and revenue.
+Step 2a build steps 2-3. Prices people pay or charge (menu prices, order lines) must be in
+the kitchen's currency; other currencies are refused instead of being mixed into revenue.
+Ingredient costs may be in any currency: food cost converts them at the table's rate.
 """
 
 from __future__ import annotations
@@ -12,8 +13,18 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Protocol
 
-from app.core.exceptions import AmountPrecisionError, OtherCurrencyNotSupportedError
-from app.shared.money import InexactAmountError, Money, minor_units, normalise_currency
+from app.core.exceptions import (
+    AmountPrecisionError,
+    OtherCurrencyNotSupportedError,
+    UnknownCurrencyCodeError,
+)
+from app.shared.money import (
+    InexactAmountError,
+    Money,
+    UnknownCurrencyError,
+    minor_units,
+    normalise_currency,
+)
 
 # Decimal places kept for unit costs (Numeric(18, 6)): a cost per gram can be a fraction
 # of the smallest coin.
@@ -27,15 +38,32 @@ class HasCurrency(Protocol):
 def resolve_currency(kitchen: HasCurrency, requested: str | None) -> str:
     """The currency of a new amount: the one sent, else the kitchen's.
 
-    For now only the kitchen's currency is accepted (conversion arrives with exchange rates).
+    Only the kitchen's currency is accepted for selling prices and order lines.
     """
     kitchen_currency = str(kitchen.currency)
     if requested is None:
         return kitchen_currency
-    code = normalise_currency(requested)
+    code = known_currency(requested)
     if code != kitchen_currency:
         raise OtherCurrencyNotSupportedError()
     return code
+
+
+def resolve_cost_currency(kitchen: HasCurrency, requested: str | None) -> str:
+    """The currency of an ingredient cost: any priceable ISO 4217 code, else the kitchen's.
+
+    The original amount and currency are kept; food cost converts (decision 4, 2026-11-19).
+    """
+    if requested is None:
+        return str(kitchen.currency)
+    return known_currency(requested)
+
+
+def known_currency(code: str) -> str:
+    try:
+        return normalise_currency(code)
+    except UnknownCurrencyError:
+        raise UnknownCurrencyCodeError() from None
 
 
 def exact_money(amount: Decimal, currency: str) -> Money:

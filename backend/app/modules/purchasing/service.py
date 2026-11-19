@@ -24,6 +24,7 @@ from app.domain.calculations import (
     purchase_quantity,
     weighted_demand,
 )
+from app.modules.exchange_rates.costs import kitchen_unit_costs
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.repository import InventoryRepository
 from app.modules.kitchens.models import Kitchen
@@ -38,6 +39,7 @@ _ZERO = Decimal("0")
 
 class PurchasingService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._ingredient_repo = IngredientRepository(db)
         self._inventory_repo = InventoryRepository(db)
         self._recipe_repo = RecipeRepository(db)
@@ -48,6 +50,7 @@ class PurchasingService:
         ingredients = await self._ingredient_repo.list_for_kitchen(kitchen.id, active_only=True)
         if not ingredients:
             return PurchaseSuggestionsResponse(kitchen_id=kitchen.id, suggestions=[])
+        unit_costs = await kitchen_unit_costs(self._db, kitchen, ingredients)
 
         # Map ingredient_id → aggregate weighted demand portions
         ingredient_demand: dict[uuid.UUID, Decimal] = defaultdict(lambda: _ZERO)
@@ -102,8 +105,9 @@ class PurchasingService:
             )
 
             cost_est: Decimal | None = None
-            if ing.cost_per_unit is not None and suggested > _ZERO:
-                cost_est = (suggested * ing.cost_per_unit).quantize(Decimal("0.01"))
+            unit_cost = unit_costs.get(ing)
+            if unit_cost is not None and suggested > _ZERO:
+                cost_est = (suggested * unit_cost.amount).quantize(Decimal("0.01"))
 
             suggestions.append(
                 PurchaseSuggestion(
@@ -118,6 +122,8 @@ class PurchasingService:
                     suggested_qty=suggested,
                     selling_unit_size=ing.selling_unit_size,
                     estimated_cost=cost_est,
+                    estimated_cost_currency=kitchen.currency if cost_est is not None else None,
+                    rate_unavailable=unit_costs.is_rate_unavailable(ing),
                 )
             )
 

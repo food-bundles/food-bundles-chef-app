@@ -20,7 +20,9 @@ import {
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useIngredients } from '@/features/ingredients/useIngredients';
 import { AddToRecipeSheet } from '@/features/menu/AddToRecipeSheet';
-import { formatQuantity, formatRWF } from '@/lib/format';
+import { formatDate, formatQuantity, formatRWF } from '@/lib/format';
+import { formatUnitCost } from '@/lib/money';
+import { formatRate } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { RecipeLineDto } from '@/api/menus-api';
@@ -93,7 +95,9 @@ export default function MenuItemDetailScreen() {
 
   const price = parseFloat(item.selling_price);
   const hasCost = Boolean(cost?.lines.some((l) => l.line_cost != null));
-  const totalCost = hasCost && cost ? parseFloat(cost.total_cost) : null;
+  // A partial total (a cost in another currency had no rate) would overstate the margin and
+  // mislead the food-cost coach, so it is not shown; the "incomplete" notice explains why.
+  const totalCost = hasCost && cost && cost.complete !== false ? parseFloat(cost.total_cost) : null;
   const margin = totalCost != null && price > 0 ? ((price - totalCost) / price) * 100 : null;
   const topCostLine = cost?.lines
     .filter((l) => l.line_cost != null)
@@ -168,6 +172,11 @@ export default function MenuItemDetailScreen() {
               )}
             </View>
           )}
+          {cost?.complete === false ? (
+            <Text style={{ color: tk.danger, fontSize: fontSize.xs }} accessibilityRole="alert">
+              {t('menuItem.costIncomplete')}
+            </Text>
+          ) : null}
           <View style={{ borderTopWidth: 1, borderTopColor: tk.border, marginTop: 4, marginHorizontal: -spacing.md }}>
             <ListRow
               icon={<Utensils size={18} color={item.is_active ? tk.link : tk.textMuted} strokeWidth={2} />}
@@ -273,6 +282,19 @@ export default function MenuItemDetailScreen() {
                       {t('menuItem.perPortion', { qty: formatQuantity(line.qty_per_portion, i18n.language), unit: line.unit })}
                       {costLine?.line_cost ? ` · ${formatRWF(costLine.line_cost, i18n.language)}` : ''}
                     </Text>
+                    {costLine?.rate_unavailable && costLine.cost_per_unit_currency ? (
+                      <Text style={{ color: tk.danger, fontSize: fontSize.xs, marginTop: 2 }}>
+                        {t('menuItem.lineRateUnavailable', { currency: costLine.cost_per_unit_currency })}
+                      </Text>
+                    ) : costLine?.rate && costLine.cost_per_unit && costLine.cost_per_unit_currency ? (
+                      <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
+                        {t('menuItem.lineConverted', {
+                          original: formatUnitCost(costLine.cost_per_unit, costLine.cost_per_unit_currency, i18n.language),
+                          rate: formatRate(costLine.rate, i18n.language),
+                          date: formatDate(costLine.rate.rate_date, i18n.language),
+                        })}
+                      </Text>
+                    ) : null}
                   </View>
                   <AppPressable
                     onPress={() => handleDeleteLine(line, name)}

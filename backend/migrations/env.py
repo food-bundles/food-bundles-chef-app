@@ -3,28 +3,27 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
+# Import all models so Alembic can detect them
+import app.modules.ai.models
+import app.modules.audit.models
+import app.modules.authentication.models
+import app.modules.catalog.models
+import app.modules.chefs.models
+import app.modules.exchange_rates.models
+import app.modules.ingredients.models
+import app.modules.inventory.models
+import app.modules.kitchens.models
+import app.modules.menus.models
+import app.modules.orders.models
+import app.modules.receiving.models
+import app.modules.recipes.models
+import app.modules.sales.models  # noqa: F401
 from alembic import context
+from app.core.config import settings
+from app.core.database import Base
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from app.core.config import settings
-from app.core.database import Base
-
-# Import all models so Alembic can detect them
-import app.modules.ai.models  # noqa: F401
-import app.modules.audit.models  # noqa: F401
-import app.modules.authentication.models  # noqa: F401
-import app.modules.catalog.models  # noqa: F401
-import app.modules.chefs.models  # noqa: F401
-import app.modules.ingredients.models  # noqa: F401
-import app.modules.inventory.models  # noqa: F401
-import app.modules.kitchens.models  # noqa: F401
-import app.modules.menus.models  # noqa: F401
-import app.modules.orders.models  # noqa: F401
-import app.modules.receiving.models  # noqa: F401
-import app.modules.recipes.models  # noqa: F401
-import app.modules.sales.models  # noqa: F401
 
 config = context.config
 # "%" must be doubled for configparser interpolation (passwords may contain it).

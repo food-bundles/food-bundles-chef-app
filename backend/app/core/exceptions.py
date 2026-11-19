@@ -69,6 +69,48 @@ class CurrencyChangeNotAllowedError(ConflictError):
     )
 
 
+class UnknownCurrencyCodeError(AppError):
+    """A currency code that is not in the ISO 4217 table (or is a fund code)."""
+
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    error_code = "UNKNOWN_CURRENCY"
+    message = "This is not a currency code the app supports."
+
+
+class RateUnavailableError(ConflictError):
+    """No exchange rate from the rates table within the staleness window: nothing is converted."""
+
+    error_code = "RATE_UNAVAILABLE"
+    message = "No recent exchange rate is available for these currencies."
+
+
+class RateChangedError(ConflictError):
+    """The rate shown in the preview is no longer the current rate; preview again."""
+
+    error_code = "RATE_CHANGED"
+    message = (
+        "The exchange rate changed since the preview. Check the new preview and confirm again."
+    )
+
+
+class CurrencyConfirmationError(AppError):
+    """Relabelling needs the new currency code typed as confirmation."""
+
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    error_code = "CONFIRMATION_MISMATCH"
+    message = "Type the new currency code to confirm."
+
+
+class RelabelPrecisionError(ConflictError):
+    """Relabelling would need rounding (e.g. 7.99 EUR relabelled as RWF, which has no cents)."""
+
+    error_code = "RELABEL_PRECISION"
+    message = (
+        "Some prices have more decimals than the new currency allows. Fix them first, "
+        "or convert instead."
+    )
+
+
 class CatalogNotAvailableError(ConflictError):
     """Food Bundles catalogue items for a kitchen in a country Food Bundles does not serve."""
 

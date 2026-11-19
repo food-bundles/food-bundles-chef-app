@@ -8,8 +8,16 @@ import {
   createKitchen,
   updateKitchen,
   archiveKitchen,
+  previewCurrencyChange,
+  applyCurrencyChange,
 } from '@/api/kitchens-api';
-import type { KitchenCreateBody, KitchenUpdateBody, KitchenDto } from '@/api/kitchens-api';
+import type {
+  CurrencyChangeBody,
+  CurrencyChangeMode,
+  KitchenCreateBody,
+  KitchenUpdateBody,
+  KitchenDto,
+} from '@/api/kitchens-api';
 
 function useChefId() {
   return useSessionStore((s) => s.chef?.id ?? '');
@@ -73,6 +81,27 @@ export function useArchiveKitchen() {
     onSuccess: (_data, kitchenId) => {
       void qc.invalidateQueries({ queryKey: queryKeys.kitchens.list(chefId) });
       void qc.invalidateQueries({ queryKey: queryKeys.kitchens.detail(chefId, kitchenId) });
+    },
+  });
+}
+
+/** Preview a currency change (changes nothing on the server). Online only. */
+export function usePreviewCurrencyChange(kitchenId: string) {
+  return useMutation({
+    mutationFn: (body: { to_currency: string; mode: CurrencyChangeMode }) => previewCurrencyChange(kitchenId, body),
+  });
+}
+
+/**
+ * Apply a previewed currency change. Online only: it rewrites every menu price and
+ * ingredient cost at once, so every cached query is refetched afterwards.
+ */
+export function useApplyCurrencyChange(kitchenId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CurrencyChangeBody) => applyCurrencyChange(kitchenId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries();
     },
   });
 }

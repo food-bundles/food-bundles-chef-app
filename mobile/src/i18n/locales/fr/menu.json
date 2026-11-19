@@ -152,7 +152,10 @@
     "noIngredientMatch": "Aucun ingrédient ne correspond à « {{query}} ».",
     "allIngredientsInRecipe": "Tous les ingrédients sont déjà dans cette recette.",
     "createNamed": "Ajouter « {{name}} » comme nouvel ingrédient",
-    "createNew": "Ajouter un nouvel ingrédient"
+    "createNew": "Ajouter un nouvel ingrédient",
+    "lineConverted": "{{original}} au taux {{rate}} ({{date}})",
+    "lineRateUnavailable": "Coût en {{currency}} : taux indisponible",
+    "costIncomplete": "Le coût matière est incomplet : certains coûts dans une autre devise n'ont pas de taux de change récent."
   },
   "createItem": {
     "title": "Nouveau plat",

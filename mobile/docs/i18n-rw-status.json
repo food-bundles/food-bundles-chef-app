@@ -2040,7 +2040,7 @@
     },
     "kitchens.currencyLockedHint": {
       "status": "needs-review",
-      "en": "Prices depend on the currency. Changing it will need a confirmation step (coming soon)."
+      "en": "Prices depend on the currency. Use \"Change currency\" below to convert or relabel them."
     },
     "kitchens.errors.country": {
       "status": "needs-review",
@@ -2053,6 +2053,138 @@
     "kitchens.errors.timezone": {
       "status": "needs-review",
       "en": "Choose the kitchen's time zone."
+    },
+    "currencyChange.title": {
+      "status": "needs-review",
+      "en": "Change currency"
+    },
+    "currencyChange.entryTitle": {
+      "status": "needs-review",
+      "en": "Change currency"
+    },
+    "currencyChange.entrySubtitle": {
+      "status": "needs-review",
+      "en": "Now {{currency}} · convert or relabel your prices"
+    },
+    "currencyChange.entryHint": {
+      "status": "needs-review",
+      "en": "Opens a preview before anything changes"
+    },
+    "currencyChange.currentLabel": {
+      "status": "needs-review",
+      "en": "Current currency"
+    },
+    "currencyChange.newLabel": {
+      "status": "needs-review",
+      "en": "New currency"
+    },
+    "currencyChange.newHint": {
+      "status": "needs-review",
+      "en": "Choose the currency your kitchen will use"
+    },
+    "currencyChange.modeHeading": {
+      "status": "needs-review",
+      "en": "How should prices change?"
+    },
+    "currencyChange.mode.convert": {
+      "status": "needs-review",
+      "en": "Convert my prices"
+    },
+    "currencyChange.mode.relabel": {
+      "status": "needs-review",
+      "en": "Relabel only"
+    },
+    "currencyChange.modeHelp.convert": {
+      "status": "needs-review",
+      "en": "Every menu price and ingredient cost is converted at one exchange rate, shown below with its date."
+    },
+    "currencyChange.modeHelp.relabel": {
+      "status": "needs-review",
+      "en": "Use this if your prices were entered in the wrong currency. The amounts stay the same; only the currency changes."
+    },
+    "currencyChange.loading": {
+      "status": "needs-review",
+      "en": "Loading the preview"
+    },
+    "currencyChange.previewError": {
+      "status": "needs-review",
+      "en": "Couldn't load the preview. Check your connection and try again."
+    },
+    "currencyChange.rateOf": {
+      "status": "needs-review",
+      "en": "Rate of {{date}}"
+    },
+    "currencyChange.crossRate": {
+      "status": "needs-review",
+      "en": "calculated via USD"
+    },
+    "currencyChange.rateUnavailable": {
+      "status": "needs-review",
+      "en": "Rate unavailable: there is no exchange rate from the last 3 days. Try again later, or relabel instead."
+    },
+    "currencyChange.relabelPrecision": {
+      "status": "needs-review",
+      "en": "Some prices have more decimals than {{currency}} allows. Fix them first, or convert instead."
+    },
+    "currencyChange.historyTitle": {
+      "status": "needs-review",
+      "en": "This kitchen already has records"
+    },
+    "currencyChange.historyBody": {
+      "status": "needs-review",
+      "en": "{{sales}} sales, {{orders}} orders, {{stock}} stock entries and {{deliveries}} deliveries keep their original currency. Reports that mix old and new records will show both currencies."
+    },
+    "currencyChange.pricesHeading": {
+      "status": "needs-review",
+      "en": "Prices that change ({{count}})"
+    },
+    "currencyChange.noPrices": {
+      "status": "needs-review",
+      "en": "No prices to change yet."
+    },
+    "currencyChange.unitCost": {
+      "status": "needs-review",
+      "en": "cost per unit"
+    },
+    "currencyChange.beforeAfter": {
+      "status": "needs-review",
+      "en": "{{before}} → {{after}}"
+    },
+    "currencyChange.needsRounding": {
+      "status": "needs-review",
+      "en": "needs rounding"
+    },
+    "currencyChange.noRate": {
+      "status": "needs-review",
+      "en": "no rate"
+    },
+    "currencyChange.priceStepReset": {
+      "status": "needs-review",
+      "en": "Your price rounding step goes back to the default for the new currency."
+    },
+    "currencyChange.pastRecords": {
+      "status": "needs-review",
+      "en": "Past sales, orders, deliveries and stock records are not changed."
+    },
+    "currencyChange.typeToConfirm": {
+      "status": "needs-review",
+      "en": "Type {{code}} to confirm"
+    },
+    "currencyChange.applyConvert": {
+      "status": "needs-review",
+      "en": "Convert prices"
+    },
+    "currencyChange.applyRelabel": {
+      "status": "needs-review",
+      "en": "Relabel currency"
+    },
+    "currencyChange.rateChanged": {
+      "status": "needs-review",
+      "en": "The exchange rate changed. Check the new preview and confirm again."
+    },
+    "currencyChange.applyError": {
+      "status": "needs-review",
+      "en": "Couldn't change the currency. Nothing was changed."
     },
     "menu.title": {
       "status": "needs-review",
@@ -2625,6 +2757,18 @@
     "menuItem.createNew": {
       "status": "needs-review",
       "en": "Add a new ingredient"
+    },
+    "menuItem.lineConverted": {
+      "status": "needs-review",
+      "en": "{{original}} at {{rate}} ({{date}})"
+    },
+    "menuItem.lineRateUnavailable": {
+      "status": "needs-review",
+      "en": "Cost in {{currency}}: rate unavailable"
+    },
+    "menuItem.costIncomplete": {
+      "status": "needs-review",
+      "en": "Food cost is incomplete: some costs in another currency have no recent exchange rate."
     },
     "createItem.analysingDish": {
       "status": "needs-review",
@@ -4004,7 +4148,7 @@
     },
     "ingredients.costPerUnitLabel": {
       "status": "needs-review",
-      "en": "Cost per {{unit}} (RWF)"
+      "en": "Cost per {{unit}}"
     },
     "ingredients.costHint": {
       "status": "needs-review",
@@ -4033,6 +4177,14 @@
     "ingredients.levelAfter": {
       "status": "needs-review",
       "en": "Level after: {{qty}} {{unit}}"
+    },
+    "ingredients.costCurrencyLabel": {
+      "status": "needs-review",
+      "en": "Cost currency"
+    },
+    "ingredients.costCurrencyHint": {
+      "status": "needs-review",
+      "en": "Keep the currency your supplier charges in. Food cost converts it at the day's rate."
     }
   }
 }

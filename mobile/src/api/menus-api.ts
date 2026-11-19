@@ -1,4 +1,4 @@
-import type { MoneyDto } from './money-dto';
+import type { MoneyDto, RateDto } from './money-dto';
 import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
@@ -98,8 +98,15 @@ export interface RecipeCostLine {
   ingredient_name: string;
   qty_per_portion: string;
   yield_fraction: string;
+  /** As entered, in `cost_per_unit_currency` (may differ from the kitchen's). */
   cost_per_unit: string | null;
-  /** Null when the ingredient has no cost or its unit cannot be converted. */
+  cost_per_unit_currency?: string | null;
+  /** In the kitchen's currency, converted at `rate` when the currencies differ. */
+  cost_per_unit_converted?: string | null;
+  rate?: RateDto | null;
+  /** The cost is in another currency and no recent rate exists: no number is guessed. */
+  rate_unavailable?: boolean;
+  /** Null when the ingredient has no cost, no rate, or its unit cannot be converted. */
   line_cost: string | null;
 }
 
@@ -107,6 +114,10 @@ export interface RecipeCostLine {
 export interface RecipeCostDto {
   menu_item_id: string;
   total_cost: string;
+  /** The kitchen's currency. */
+  currency?: string | null;
+  /** False when a cost in another currency had no rate (the total is partial). */
+  complete?: boolean;
   lines: RecipeCostLine[];
 }
 

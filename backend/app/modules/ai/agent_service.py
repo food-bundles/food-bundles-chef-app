@@ -40,6 +40,7 @@ from app.modules.ai.schemas.agent import (
     ModelAgentTurn,
     ModelAgentTurnWire,
 )
+from app.modules.exchange_rates.costs import kitchen_unit_costs
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.service import InventoryService
 from app.modules.kitchens.models import Kitchen
@@ -125,9 +126,14 @@ async def _build_kitchen_context(
         ingredients = await IngredientRepository(db).list_for_kitchen(kitchen.id)
         known.ingredients = {str(ing.id): ing.name for ing in ingredients}
         if ingredients:
-            lines.append("\nIngredients (id | name | unit | cost per unit RWF):")
-            for ing in ingredients[:40]:
-                cost = f"{ing.cost_per_unit}" if ing.cost_per_unit is not None else "unknown"
+            # Costs converted to the kitchen's currency by code from the rates table; the
+            # model never sees or supplies an exchange rate.
+            shown = ingredients[:40]
+            unit_costs = await kitchen_unit_costs(db, kitchen, shown, kitchen_today(kitchen, now))
+            lines.append(f"\nIngredients (id | name | unit | cost per unit {kitchen.currency}):")
+            for ing in shown:
+                unit_cost = unit_costs.get(ing)
+                cost = format(unit_cost.amount.normalize(), "f") if unit_cost else "unknown"
                 lines.append(f"  - {ing.id} | {ing.name} | {ing.unit} | {cost}")
         else:
             lines.append("\nNo ingredients configured yet.")
@@ -154,14 +160,21 @@ async def _build_kitchen_context(
         sold = dict(await SalesRepository(db).item_portions_for_day(kitchen.id, today))
         recipes = RecipeService(db)
         if items:
+            cur = kitchen.currency
             lines.append(
-                "\nMenu items (id | name | price RWF | food cost per portion RWF | sold today):"
+                f"\nMenu items (id | name | price {cur} | food cost per portion {cur}"
+                " | sold today):"
             )
             for item in items[:30]:
                 try:
                     recipe_cost = await recipes.calculate_cost(kitchen, item.id)
                     has_cost = any(line.line_cost is not None for line in recipe_cost.lines)
-                    cost_text = f"{recipe_cost.total_cost}" if has_cost else "unknown"
+                    # A partial total (a cost had no exchange rate) is not given as the cost.
+                    cost_text = (
+                        f"{recipe_cost.total_cost}"
+                        if has_cost and recipe_cost.complete
+                        else "unknown"
+                    )
                 except Exception:
                     cost_text = "unknown"
                 sold_today = sold.get(item.id, 0)
