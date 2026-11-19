@@ -78,12 +78,13 @@ export function buildReviewRows(
     rows.push({
       key: makeKey(),
       name,
-      price: item.price != null && item.price > 0 ? String(item.price) : '',
+      // v2: the settled price in the kitchen's currency; v1 servers send a whole number.
+      price: item.price_money ? item.price_money.amount : item.price != null && item.price > 0 ? String(item.price) : '',
       category: item.category,
       description: item.description,
       selected: !match,
       nameConfidence: item.name_confidence,
-      priceConfidence: item.price != null ? item.price_confidence : 0,
+      priceConfidence: item.price_money || item.price != null ? item.price_confidence : 0,
       sourceText: item.source_text,
       duplicateOf: match
         ? { id: match.id, menuId: match.menu_id, name: match.name, price: match.selling_price }

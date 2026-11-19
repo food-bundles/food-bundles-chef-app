@@ -35,19 +35,31 @@ ANSWERS = {
             {
                 "name": "Brochette ",
                 "category": "main",
-                "price_text": "2.5k",
+                "price": {
+                    "text": "2.5k",
+                    "amount": "2500",
+                    "currency": None,
+                    "currency_evidence": "none",
+                    "evidence_text": None,
+                    "confidence": 0.8,
+                },
                 "description": None,
                 "name_confidence": 0.9,
-                "price_confidence": 0.8,
                 "source_text": "Brochette .... 2.5k",
             },
             {
                 "name": "Fanta",
                 "category": "drink",
-                "price_text": "Frw 1,000",
+                "price": {
+                    "text": "Frw 1,000",
+                    "amount": "1000",
+                    "currency": "RWF",
+                    "currency_evidence": "code",
+                    "evidence_text": "Frw",
+                    "confidence": 0.9,
+                },
                 "description": None,
                 "name_confidence": 0.95,
-                "price_confidence": 0.9,
                 "source_text": None,
             },
         ],
@@ -62,8 +74,15 @@ ANSWERS = {
                 "name": "Tomatoes",
                 "quantity_text": "25",
                 "unit": "kg",
-                "unit_price_text": None,
-                "line_total_text": "Frw 25,000",
+                "unit_price": None,
+                "line_total": {
+                    "text": "Frw 25,000",
+                    "amount": "25000",
+                    "currency": "RWF",
+                    "currency_evidence": "code",
+                    "evidence_text": "Frw",
+                    "confidence": 0.9,
+                },
                 "confidence": 0.9,
             }
         ],
@@ -117,7 +136,7 @@ class RecordingMetaClient:
             else "menu"
             if "menu" in text
             else "document"
-            if "delivered" in text
+            if "document" in text
             else "dish"
             if "dish" in text
             else "agent"
@@ -222,15 +241,30 @@ async def test_all_features_on_meta_path_without_anthropic_key(
     classify_budget = cfg.settings.AI_TIMEOUT_CLASSIFY_MS / 1000
     assert meta.calls[-1]["timeout"] == pytest.approx(classify_budget, abs=0.5)
 
-    # Menu extraction: deterministic RWF parsing unchanged
+    # Menu extraction (v2): "Frw 1,000" is settled; "2.5k" with no currency waits for
+    # the once-per-scan questions (decisions 5 and 6), then resolves without a model call.
     resp = await client.post(f"{base}/menu-extract", headers=headers, **_image_form())
     assert resp.status_code == 200, resp.text
-    items = resp.json()["items"]
-    assert [(i["name"], i["price"], i["category"]) for i in items] == [
-        ("Brochette", 2500, "main"),
+    menu = resp.json()
+    assert menu["prompt_version"] == "menu_extract.v2"
+    assert [(i["name"], i["price"], i["category"]) for i in menu["items"]] == [
+        ("Brochette", None, "main"),
         ("Fanta", 1000, "drink"),
     ]
+    assert [c["kind"] for c in menu["clarifications"]] == ["currency_missing", "k_suffix"]
     _assert_meta_shape(meta.calls[-1])
+    resolved = await client.post(
+        f"{base}/menu-extract/resolve",
+        headers=headers,
+        json={
+            "request_id": menu["request_id"],
+            "items": menu["model_items"],
+            "answers": {"currency": "RWF", "k_suffix": "yes"},
+        },
+    )
+    assert resolved.status_code == 200, resolved.text
+    assert [i["price"] for i in resolved.json()["items"]] == [2500, 1000]
+    assert resolved.json()["clarifications"] == []
 
     # Delivery note: unit price derived from the line total
     resp = await client.post(f"{base}/document-extract", headers=headers, **_image_form())

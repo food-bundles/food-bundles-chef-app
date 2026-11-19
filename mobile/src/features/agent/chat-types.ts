@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { clarifyOptionSchema, scanAnswersSchema } from '@/features/ai/schemas';
 import type { ActionProposal, ClarifyingQuestion } from '@/api/agent-api';
 import { imageKindSchema, type ImageKind } from '@/features/ai/schemas';
 
@@ -120,7 +121,18 @@ export const chatEntrySchema: z.ZodType<ChatEntry> = z.discriminatedUnion('type'
     type: z.literal('clarification'),
     id: z.string(),
     replyText: z.string(),
-    question: z.object({ question: z.string(), options: z.array(z.string()).nullable() }),
+    question: z.object({
+      question: z.string(),
+      options: z.array(z.string()).nullable(),
+      kind: z.string().nullable().optional(),
+      key: z.string().nullable().optional(),
+      question_key: z.string().nullable().optional(),
+      params: z.record(z.string()).nullable().optional(),
+      choices: z.array(clarifyOptionSchema).nullable().optional(),
+      preselected: z.string().nullable().optional(),
+      draft: proposalSchema.nullable().optional(),
+      answers: scanAnswersSchema.nullable().optional(),
+    }),
     answered: z.boolean().optional(),
   }),
   z.object({

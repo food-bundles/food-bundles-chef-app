@@ -36,6 +36,9 @@ SHILLING_CURRENCIES: tuple[str, ...] = ("KES", "UGX", "TZS", "SOS")
 _CURRENCY_TOKENS: dict[str, tuple[str, ...]] = {
     "us$": ("USD",), "usd": ("USD",), "ca$": ("CAD",), "c$": ("CAD",), "a$": ("AUD",),
     "au$": ("AUD",), "nz$": ("NZD",), "$": DOLLAR_CURRENCIES,
+    "dollar": DOLLAR_CURRENCIES, "dollars": DOLLAR_CURRENCIES, "bucks": DOLLAR_CURRENCIES,
+    "us dollars": ("USD",), "us dollar": ("USD",),
+    "shilling": SHILLING_CURRENCIES, "shillings": SHILLING_CURRENCIES,
     "€": ("EUR",), "eur": ("EUR",), "euro": ("EUR",), "euros": ("EUR",),
     "£": ("GBP",), "gbp": ("GBP",),
     "₦": ("NGN",), "ngn": ("NGN",), "naira": ("NGN",), "n": ("NGN",),

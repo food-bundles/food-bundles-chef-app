@@ -237,8 +237,8 @@ def test_only_the_rates_job_writes_exchange_rates() -> None:
 
 
 def test_ai_output_schemas_carry_no_rate() -> None:
-    """AI-never-supplies-a-rate test 2: no model output schema has a rate field, and a
-    "rate" a model adds anyway is dropped on validation (step 5 makes them extra=forbid)."""
+    """AI-never-supplies-a-rate test 2: no model output schema has a rate field, and the v2
+    schemas (extra="forbid") reject a "rate" a model adds anyway, so it is never used."""
     models = [
         obj
         for module in (gateway_schemas, agent_schemas)
@@ -251,16 +251,19 @@ def test_ai_output_schemas_carry_no_rate() -> None:
             assert "rate" not in field.lower(), (model, field)
             assert "exchange" not in field.lower(), (model, field)
 
-    parsed = gateway_schemas.ModelMenuItem.model_validate(
-        {
-            "name": "Burger",
-            "price_text": "$5",
-            "name_confidence": 0.9,
-            "price_confidence": 0.9,
-            "exchange_rate": 1000,
-        }
-    )
-    assert "exchange_rate" not in parsed.model_dump()
+    from pydantic import ValidationError
+
+    price = {"text": "$5", "confidence": 0.9}
+    with pytest.raises(ValidationError):
+        gateway_schemas.ModelMenuItemV2.model_validate(
+            {"name": "Burger", "price": price, "name_confidence": 0.9, "exchange_rate": 1000}
+        )
+    with pytest.raises(ValidationError):
+        gateway_schemas.ModelPrice.model_validate({**price, "rate": "1000"})
+    with pytest.raises(ValidationError):
+        gateway_schemas.ModelDocumentExtractionV2.model_validate(
+            {"kind": "receipt", "image_quality": "ok", "lines": [], "usd_rate": "1000"}
+        )
 
 
 # ── API: helpers ──────────────────────────────────────────────────────────────

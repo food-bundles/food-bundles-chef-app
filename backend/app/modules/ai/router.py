@@ -43,8 +43,10 @@ from app.modules.ai.schemas.gateway import (
     AiFeedbackRequest,
     DishAnalysisResponse,
     DocumentExtractionResponse,
+    DocumentResolveRequest,
     ImageClassificationResponse,
     MenuExtractionResponse,
+    MenuResolveRequest,
 )
 from app.modules.ai.schemas.quality_assessment import (
     QualityAssessmentRequest,
@@ -135,6 +137,19 @@ async def menu_extract(
     )
 
 
+@router.post("/menu-extract/resolve", response_model=MenuExtractionResponse)
+async def menu_extract_resolve(
+    body: MenuResolveRequest,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> MenuExtractionResponse:
+    """Re-read a scanned menu with the chef's answers to the clarifying questions. No model
+    call (not counted against the AI limits); nothing is saved."""
+    if not menu_scan_enabled():
+        raise AiDisabledError("Menu scanning is not enabled.")
+    return await AiGatewayService(db).resolve_menu(kitchen, body)
+
+
 @router.post("/dish-analyze", response_model=DishAnalysisResponse)
 async def dish_analyze(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
@@ -173,6 +188,18 @@ async def document_extract(
     return await AiGatewayService(db).extract_document(
         kitchen, data, mime, language, new_request_id(x_request_id)
     )
+
+
+@router.post("/document-extract/resolve", response_model=DocumentExtractionResponse)
+async def document_extract_resolve(
+    body: DocumentResolveRequest,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> DocumentExtractionResponse:
+    """Re-read a scanned document with the chef's answers. No model call; nothing saved."""
+    if not document_scan_enabled():
+        raise AiDisabledError("Document scanning is not enabled.")
+    return await AiGatewayService(db).resolve_document(kitchen, body)
 
 
 @router.post("/feedback", status_code=204)

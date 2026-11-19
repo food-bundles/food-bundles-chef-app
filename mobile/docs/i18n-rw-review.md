@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive". |
 | AI | AI | Kept as the English acronym. |
 
-Total keys: **1049** — status as generated: 0 approved,
-1049 needing review.
+Total keys: **1093** — status as generated: 0 approved,
+1093 needing review.
 
 ## agent (129)
 
@@ -162,7 +162,7 @@ Total keys: **1049** — status as generated: 0 approved,
 | `agent.card.discardEdit` | Discard changes | Reka impinduka | ⚠ needs review |
 | `agent.card.saveEdit` | Save changes | Bika impinduka | ⚠ needs review |
 
-## ai (34)
+## ai (78)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -200,6 +200,50 @@ Total keys: **1049** — status as generated: 0 approved,
 | `ai.photoKind.menu` | Menu | Menu | ⚠ needs review |
 | `ai.photoKind.dish` | Dish | Ifunguro | ⚠ needs review |
 | `ai.photoKind.delivery_note` | Delivery note | Urupapuro rw'ibyakiriwe | ⚠ needs review |
+| `clarify.currency_missing.question` | Prices have no currency. Which is it? | Ibiciro nta faranga bigaragaza. Ni irihe? | ⚠ needs review |
+| `clarify.currency_ambiguous.question` | "{{example}}": which currency is it? | "{{example}}": ni ayahe mafaranga? | ⚠ needs review |
+| `clarify.currency_mismatch.question` | These prices are in {{currency}}. Your kitchen uses {{kitchen_currency}}. | Ibi biciro biri mu {{currency}}. Igikoni cyawe gikoresha {{kitchen_currency}}. | ⚠ needs review |
+| `clarify.ambiguous_separator.question` | Is "{{example}}" a whole number or a decimal? | "{{example}}" ni umubare wuzuye cyangwa ufite ibice? | ⚠ needs review |
+| `clarify.k_suffix.question` | Does "{{example}}" mean {{amount}}? | "{{example}}" bivuga {{amount}}? | ⚠ needs review |
+| `clarify.ambiguous_unit.us_or_uk` | Is "{{unit}}" a US or a UK (imperial) measure? | "{{unit}}" ni igipimo cyo muri Amerika cyangwa cyo mu Bwongereza? | ⚠ needs review |
+| `clarify.ambiguous_unit.pack_size` | How much is in one "{{unit}}"? | Muri "{{unit}}" imwe harimo angahe? | ⚠ needs review |
+| `clarify.arithmetic_mismatch.line_arithmetic` | Line {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, but it says {{printed}}. | Umurongo {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, ariko handitse {{printed}}. | ⚠ needs review |
+| `clarify.arithmetic_mismatch.subtotal_mismatch` | The lines add up to {{expected}}, but the subtotal says {{printed}}. | Imirongo yose hamwe ni {{expected}}, ariko igiteranyo gito kivuga {{printed}}. | ⚠ needs review |
+| `clarify.arithmetic_mismatch.total_mismatch` | The lines, tax and fees add up to {{expected}}, but the total says {{printed}}. | Imirongo, imisoro n'amafaranga y'inyongera bingana na {{expected}}, ariko igiteranyo kivuga {{printed}}. | ⚠ needs review |
+| `clarify.arithmetic_mismatch.words_mismatch` | The total in words reads {{expected}}, but the figures say {{printed}}. | Igiteranyo cyanditse mu magambo kivuga {{expected}}, ariko imibare ivuga {{printed}}. | ⚠ needs review |
+| `clarify.unreadable_value.question` | I couldn't read the price of "{{name}}" ({{text}}). | Sinashoboye gusoma igiciro cya "{{name}}" ({{text}}). | ⚠ needs review |
+| `clarify.option.kitchen_currency` | {{currency}} (your kitchen) | {{currency}} (igikoni cyawe) | ⚠ needs review |
+| `clarify.option.currency` | {{currency}} | {{currency}} | ⚠ needs review |
+| `clarify.option.other_currency` | Other currency… | Andi mafaranga… | ⚠ needs review |
+| `clarify.option.amount` | {{amount}} | {{amount}} | ⚠ needs review |
+| `clarify.option.yes` | Yes | Yego | ⚠ needs review |
+| `clarify.option.no` | No | Oya | ⚠ needs review |
+| `clarify.option.convert` | Convert at 1 {{from}} = {{rate}} {{to}} ({{date}}) | Hindura ku 1 {{from}} = {{rate}} {{to}} ({{date}}) | ⚠ needs review |
+| `clarify.option.convert_disabled` | Convert to {{to}} | Hindura mu {{to}} | ⚠ needs review |
+| `clarify.option.change_kitchen_currency` | Change the kitchen currency to {{currency}} | Hindura ifaranga ry'igikoni ribe {{currency}} | ⚠ needs review |
+| `clarify.option.skip_prices` | Import without these prices | Injiza nta biciro | ⚠ needs review |
+| `clarify.option.type_it` | Type it | Byandike | ⚠ needs review |
+| `clarify.option.skip` | Skip | Simbuka | ⚠ needs review |
+| `clarify.option.keep_amount` | Keep {{amount}} | Gumana {{amount}} | ⚠ needs review |
+| `clarify.option.us` | US | Amerika | ⚠ needs review |
+| `clarify.option.uk` | UK (imperial) | Ubwongereza | ⚠ needs review |
+| `clarify.option.pack_size` | Size of one pack | Ibiri mu gipfunyika kimwe | ⚠ needs review |
+| `clarify.option.keep_unit` | Keep the unit as written | Gumana igipimo uko cyanditse | ⚠ needs review |
+| `clarify.option.keep_printed` | Keep as printed | Bigumane uko byanditse | ⚠ needs review |
+| `clarify.option.edit` | Edit the line | Hindura umurongo | ⚠ needs review |
+| `clarify.option.apply` | Apply | Emeza | ⚠ needs review |
+| `clarify.reason.rate_unavailable` | No exchange rate from the last 3 days. | Nta gipimo cy'ivunjisha cy'iminsi 3 ishize. | ⚠ needs review |
+| `clarify.reason.conversion_off` | Currency conversion is not available for this kitchen yet. | Guhindura amafaranga ntibirashoboka kuri iki gikoni. | ⚠ needs review |
+| `clarify.remaining_one` | {{count}} question left | Hasigaye ikibazo {{count}} | ⚠ needs review |
+| `clarify.remaining_other` | {{count}} questions left | Hasigaye ibibazo {{count}} | ⚠ needs review |
+| `clarify.packSizePlaceholder` | e.g. 50 kg | urugero: 50 kg | ⚠ needs review |
+| `clarify.packSizeInvalid` | Type a number and a unit, e.g. 50 kg. | Andika umubare n'igipimo, urugero 50 kg. | ⚠ needs review |
+| `clarify.applying` | Applying your answer… | Turimo gushyiraho igisubizo cyawe… | ⚠ needs review |
+| `clarify.pickCurrency` | Choose the currency | Hitamo ifaranga | ⚠ needs review |
+| `clarify.skipAll` | Skip the questions | Simbuka ibibazo | ⚠ needs review |
+| `clarify.skipAllHint` | Rows with an open question keep an empty price for you to type. | Imirongo ifite ikibazo kitarasubizwa izaguma nta giciro, ukacyandika. | ⚠ needs review |
+| `clarify.arithmeticFlag` | Some lines do not add up. Nothing was changed: check them before saving. | Imirongo imwe ntihura. Nta cyahinduwe: yigenzure mbere yo kubika. | ⚠ needs review |
+| `clarify.converted` | {{original}} at 1 {{from}} = {{rate}} {{to}} ({{date}}) | {{original}} ku 1 {{from}} = {{rate}} {{to}} ({{date}}) | ⚠ needs review |
 
 ## auth (32)
 

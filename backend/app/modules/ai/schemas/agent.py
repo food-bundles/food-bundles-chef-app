@@ -13,6 +13,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.modules.ai.clarifications import ClarifyOption, ScanAnswers
+
 
 class AgentRole(StrEnum):
     CHEF = "chef"
@@ -59,6 +61,9 @@ class RecordInventoryParams(BaseModel):
     unit: str = ""
     change: Literal["set", "add", "remove"]
     notes: str | None = None
+    # Set by the server when it converted the chef's unit ("3 lb" → 1.361 kg).
+    original_quantity: str | None = None
+    original_unit: str | None = None
 
 
 class CreateIngredientParams(BaseModel):
@@ -68,8 +73,23 @@ class CreateIngredientParams(BaseModel):
 
 class AddMenuItemParams(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    selling_price: Decimal = Field(..., ge=0)
+    # agent/v3: the model sends the price AS SAID ("5 dollars", "2.5k"); the server reads it
+    # and sets `selling_price` in the kitchen's currency before any action card is shown.
+    selling_price: Decimal | None = Field(default=None, ge=0)
+    selling_price_text: str | None = Field(default=None, max_length=60)
     category: Literal["main", "side", "drink", "dessert"] | None = None
+    # Set by the server only (agent_checks), never taken from the model.
+    selling_price_currency: str | None = None
+    original_price: str | None = None
+    original_currency: str | None = None
+    rate: str | None = None
+    rate_date: str | None = None
+
+    @model_validator(mode="after")
+    def _has_price(self) -> AddMenuItemParams:
+        if self.selling_price is None and not self.selling_price_text:
+            raise ValueError("add_menu_item needs selling_price_text (or selling_price)")
+        return self
 
 
 class LinkRecipeIngredientParams(BaseModel):
@@ -79,6 +99,8 @@ class LinkRecipeIngredientParams(BaseModel):
     ingredient_name: str = ""
     qty_per_portion: Decimal = Field(..., gt=0)
     unit: str = Field(..., min_length=1, max_length=30)
+    original_quantity: str | None = None
+    original_unit: str | None = None
 
 
 class OrderLineParams(BaseModel):
@@ -141,6 +163,24 @@ class ActionProposal(BaseModel):
 class ClarifyingQuestion(BaseModel):
     question: str
     options: list[str] | None = None  # optional multiple-choice suggestions
+    # agent/v3: a question the SERVER asks (price or unit unclear). The app shows it from
+    # i18n keys with tappable `choices`; the answer is sent back with `draft` in
+    # AgentRequest.resolve and finishes the proposal without another model call.
+    kind: str | None = None
+    key: str | None = None
+    question_key: str | None = None
+    params: dict[str, str] | None = None
+    choices: list[ClarifyOption] | None = None
+    preselected: str | None = None
+    draft: ActionProposal | None = None
+    answers: ScanAnswers | None = None
+
+
+class AgentResolve(BaseModel):
+    """Finish a draft proposal with the chef's answer to a server question (no model call)."""
+
+    draft: ActionProposal
+    answers: ScanAnswers
 
 
 # ── Top-level request / response ───────────────────────────────────────────────
@@ -152,6 +192,8 @@ class AgentRequest(BaseModel):
     last_confirmed_action: ActionProposal | None = None
     # Reply language selected in the app
     language: Literal["en", "fr", "rw"] = "en"
+    # Set when the chef answered a server question about a draft proposal.
+    resolve: AgentResolve | None = None
 
 
 # Params schema each action must satisfy before it reaches the chef as an action card.

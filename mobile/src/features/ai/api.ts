@@ -14,6 +14,7 @@ import {
   type DocumentExtraction,
   type ImageClassification,
   type MenuExtraction,
+  type ScanAnswers,
 } from './schemas';
 
 export interface UploadCallbacks {
@@ -146,5 +147,36 @@ export function analyzeDish(
     schema: dishAnalysisSchema,
     timeoutMs: AI_TIMEOUTS.extract,
     ...cb,
+  });
+}
+
+/**
+ * Re-read a scanned menu with the chef's answers to the server's questions. No model call
+ * (instant, not counted against AI limits); the model's rows are sent back unchanged.
+ */
+export function resolveMenu(kitchenId: string, extraction: MenuExtraction, answers: ScanAnswers): Promise<MenuExtraction> {
+  return aiJson(`/kitchens/${kitchenId}/ai/menu-extract/resolve`, menuExtractionSchema, {
+    method: 'POST',
+    body: {
+      request_id: extraction.request_id,
+      kind: extraction.kind,
+      image_quality: extraction.image_quality,
+      items: extraction.model_items,
+      answers,
+    },
+    timeoutMs: AI_TIMEOUTS.classify,
+  });
+}
+
+/** Re-read a scanned delivery note or receipt with the chef's answers (no model call). */
+export function resolveDocument(
+  kitchenId: string,
+  extraction: DocumentExtraction,
+  answers: ScanAnswers,
+): Promise<DocumentExtraction> {
+  return aiJson(`/kitchens/${kitchenId}/ai/document-extract/resolve`, documentExtractionSchema, {
+    method: 'POST',
+    body: { request_id: extraction.request_id, extraction: extraction.model_extraction, answers },
+    timeoutMs: AI_TIMEOUTS.classify,
   });
 }

@@ -23,6 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import AiDisabledError
+from app.modules.ai.agent_checks import check_proposal
+from app.modules.ai.clarifications import ScanAnswers, log_clarifications
 from app.modules.ai.gateway.core import (
     check_rate_limit,
     language_name,
@@ -30,8 +32,10 @@ from app.modules.ai.gateway.core import (
     structured_call,
     validate_image,
 )
+from app.modules.ai.gateway.scans import scan_context, table_rates
 from app.modules.ai.registry.feature_flags import assistant_enabled
 from app.modules.ai.schemas.agent import (
+    ACTION_PARAMS,
     ActionProposal,
     ActionType,
     AgentRequest,
@@ -54,7 +58,7 @@ from app.shared.kitchen_time import kitchen_now, kitchen_today
 
 logger = structlog.get_logger(__name__)
 
-AGENT_PROMPT = ("agent", "v2")
+AGENT_PROMPT = ("agent", "v3")
 # Context window guard: only the most recent turns are sent to the model.
 MAX_HISTORY_MESSAGES = 20
 MAX_MESSAGE_CHARS = 2000
@@ -67,6 +71,8 @@ class KnownIds:
     ingredients: dict[str, str] = field(default_factory=dict)
     menu_items: dict[str, str] = field(default_factory=dict)
     orders: dict[str, str] = field(default_factory=dict)
+    # Ingredient id → its unit, for converting the chef's units (agent/v3).
+    ingredient_units: dict[str, str] = field(default_factory=dict)
 
 
 # (id param, record bucket, name param to overwrite with the real name or None)
@@ -94,6 +100,21 @@ _UNKNOWN_REFERENCE_QUESTION = {
     "fr": "De quel plat, ingrédient ou commande parlez-vous ?",
     # Draft — pending native-speaker review (see mobile/docs/i18n-rw-review.md).
     "rw": "Ni iki washakaga kuvuga?",
+}
+
+
+# Shown with a server question about a price or unit (older apps show only this text).
+_SERVER_QUESTION = {
+    "en": "I need one detail before I can prepare that.",
+    "fr": "Il me manque une précision avant de préparer cette action.",
+    # Draft — pending native-speaker review (see mobile/docs/i18n-rw-review.md).
+    "rw": "Nkeneye ikindi kintu kimwe mbere yo kubitegura.",
+}
+_READY_REPLY = {
+    "en": "Here is the action to confirm.",
+    "fr": "Voici l'action à confirmer.",
+    # Draft — pending native-speaker review.
+    "rw": "Iki ni igikorwa ugomba kwemeza.",
 }
 
 
@@ -126,6 +147,7 @@ async def _build_kitchen_context(
     try:
         ingredients = await IngredientRepository(db).list_for_kitchen(kitchen.id)
         known.ingredients = {str(ing.id): ing.name for ing in ingredients}
+        known.ingredient_units = {str(ing.id): str(ing.unit) for ing in ingredients}
         if ingredients:
             # Costs converted to the kitchen's currency by code from the rates table; the
             # model never sees or supplies an exchange rate.
@@ -258,7 +280,8 @@ class AgentService:
     ) -> AgentResponse:
         if not assistant_enabled():
             raise AiDisabledError("AI assistant is not enabled.")
-        check_rate_limit(str(kitchen.id), chef_id, tz=kitchen.timezone)
+        if request.resolve is None:  # answering a server question calls no model
+            check_rate_limit(str(kitchen.id), chef_id, tz=kitchen.timezone)
 
         prompt = load_prompt(*AGENT_PROMPT)
         # Kitchen data is read now; the reply is stamped with this time ("as of 14:05").
@@ -272,6 +295,21 @@ class AgentService:
             today=now.date().isoformat(),
             kitchen_context=kitchen_context,
         )
+        if request.resolve is not None:
+            # The chef answered a server question: finish the draft, no model call.
+            draft = request.resolve.draft
+            return await self._finish_proposal(
+                kitchen,
+                request,
+                draft.action_type,
+                draft.summary,
+                draft.params,
+                request.resolve.answers,
+                _READY_REPLY[request.language],
+                known,
+                as_of,
+                request_id,
+            )
         history, user_text, image = _conversation(request)
         image_mime = validate_image(image) if image is not None else None
 
@@ -294,37 +332,17 @@ class AgentService:
         )
 
         if turn.type == "proposal" and turn.action_type is not None:
-            params, bad = resolve_references(turn.action_type, turn.params or {}, known)
-            if bad:
-                # Never show an action card for a record outside the active kitchen.
-                logger.info(
-                    "agent_proposal_rejected",
-                    reason="unknown_reference",
-                    action_type=turn.action_type.value,
-                    params=bad,
-                    request_id=request_id,
-                )
-                return AgentResponse(
-                    reply_text=_UNKNOWN_REFERENCE_REPLY[request.language],
-                    proposal=None,
-                    clarification=ClarifyingQuestion(
-                        question=_UNKNOWN_REFERENCE_QUESTION[request.language], options=None
-                    ),
-                    last_action=request.last_confirmed_action,
-                    as_of=as_of,
-                )
-            proposal = ActionProposal(
-                action_type=turn.action_type,
-                summary=turn.summary or "",
-                params=params,
-                reversible=True,
-            )
-            return AgentResponse(
-                reply_text=turn.reply_text,
-                proposal=proposal,
-                clarification=None,
-                last_action=proposal,
-                as_of=as_of,
+            return await self._finish_proposal(
+                kitchen,
+                request,
+                turn.action_type,
+                turn.summary or "",
+                turn.params or {},
+                ScanAnswers(),
+                turn.reply_text,
+                known,
+                as_of,
+                request_id,
             )
         if turn.type == "clarification" and turn.question:
             return AgentResponse(
@@ -339,5 +357,86 @@ class AgentService:
             proposal=None,
             clarification=None,
             last_action=request.last_confirmed_action,
+            as_of=as_of,
+        )
+
+    async def _finish_proposal(
+        self,
+        kitchen: Kitchen,
+        request: AgentRequest,
+        action_type: ActionType,
+        summary: str,
+        raw_params: dict[str, Any],
+        answers: ScanAnswers,
+        reply_text: str,
+        known: KnownIds,
+        as_of: str,
+        request_id: str,
+    ) -> AgentResponse:
+        """References must belong to this kitchen; prices and units are read by the server
+        (agent_checks) and may turn into ONE clarifying question with the draft kept."""
+        params, bad = resolve_references(action_type, raw_params, known)
+        if bad:
+            # Never show an action card for a record outside the active kitchen.
+            logger.info(
+                "agent_proposal_rejected",
+                reason="unknown_reference",
+                action_type=action_type.value,
+                params=bad,
+                request_id=request_id,
+            )
+            return AgentResponse(
+                reply_text=_UNKNOWN_REFERENCE_REPLY[request.language],
+                proposal=None,
+                clarification=ClarifyingQuestion(
+                    question=_UNKNOWN_REFERENCE_QUESTION[request.language], options=None
+                ),
+                last_action=request.last_confirmed_action,
+                as_of=as_of,
+            )
+        check = await check_proposal(
+            action_type,
+            params,
+            ctx=scan_context(kitchen),
+            ingredient_units=known.ingredient_units,
+            answers=answers,
+            rate_for=table_rates(self._db, kitchen),
+        )
+        if check.clarification is not None:
+            question = check.clarification
+            log_clarifications("assistant", request_id, [question])
+            return AgentResponse(
+                reply_text=reply_text,
+                proposal=None,
+                clarification=ClarifyingQuestion(
+                    question=_SERVER_QUESTION[request.language],
+                    options=None,
+                    kind=question.kind,
+                    key=question.key,
+                    question_key=question.question_key,
+                    params=question.params,
+                    choices=question.options,
+                    preselected=question.preselected,
+                    draft=ActionProposal(
+                        action_type=action_type, summary=summary, params=check.params
+                    ),
+                    answers=answers,
+                ),
+                last_action=request.last_confirmed_action,
+                as_of=as_of,
+            )
+        # Validate the finished params through the typed model once more.
+        typed = ACTION_PARAMS[action_type].model_validate(check.params)
+        proposal = ActionProposal(
+            action_type=action_type,
+            summary=summary,
+            params=typed.model_dump(mode="json", exclude_none=False),
+            reversible=True,
+        )
+        return AgentResponse(
+            reply_text=reply_text,
+            proposal=proposal,
+            clarification=None,
+            last_action=proposal,
             as_of=as_of,
         )

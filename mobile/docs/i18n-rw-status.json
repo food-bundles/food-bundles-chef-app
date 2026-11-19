@@ -654,6 +654,182 @@
       "status": "needs-review",
       "en": "Delivery note"
     },
+    "clarify.currency_missing.question": {
+      "status": "needs-review",
+      "en": "Prices have no currency. Which is it?"
+    },
+    "clarify.currency_ambiguous.question": {
+      "status": "needs-review",
+      "en": "\"{{example}}\": which currency is it?"
+    },
+    "clarify.currency_mismatch.question": {
+      "status": "needs-review",
+      "en": "These prices are in {{currency}}. Your kitchen uses {{kitchen_currency}}."
+    },
+    "clarify.ambiguous_separator.question": {
+      "status": "needs-review",
+      "en": "Is \"{{example}}\" a whole number or a decimal?"
+    },
+    "clarify.k_suffix.question": {
+      "status": "needs-review",
+      "en": "Does \"{{example}}\" mean {{amount}}?"
+    },
+    "clarify.ambiguous_unit.us_or_uk": {
+      "status": "needs-review",
+      "en": "Is \"{{unit}}\" a US or a UK (imperial) measure?"
+    },
+    "clarify.ambiguous_unit.pack_size": {
+      "status": "needs-review",
+      "en": "How much is in one \"{{unit}}\"?"
+    },
+    "clarify.arithmetic_mismatch.line_arithmetic": {
+      "status": "needs-review",
+      "en": "Line {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, but it says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.subtotal_mismatch": {
+      "status": "needs-review",
+      "en": "The lines add up to {{expected}}, but the subtotal says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.total_mismatch": {
+      "status": "needs-review",
+      "en": "The lines, tax and fees add up to {{expected}}, but the total says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.words_mismatch": {
+      "status": "needs-review",
+      "en": "The total in words reads {{expected}}, but the figures say {{printed}}."
+    },
+    "clarify.unreadable_value.question": {
+      "status": "needs-review",
+      "en": "I couldn't read the price of \"{{name}}\" ({{text}})."
+    },
+    "clarify.option.kitchen_currency": {
+      "status": "needs-review",
+      "en": "{{currency}} (your kitchen)"
+    },
+    "clarify.option.currency": {
+      "status": "needs-review",
+      "en": "{{currency}}"
+    },
+    "clarify.option.other_currency": {
+      "status": "needs-review",
+      "en": "Other currency…"
+    },
+    "clarify.option.amount": {
+      "status": "needs-review",
+      "en": "{{amount}}"
+    },
+    "clarify.option.yes": {
+      "status": "needs-review",
+      "en": "Yes"
+    },
+    "clarify.option.no": {
+      "status": "needs-review",
+      "en": "No"
+    },
+    "clarify.option.convert": {
+      "status": "needs-review",
+      "en": "Convert at 1 {{from}} = {{rate}} {{to}} ({{date}})"
+    },
+    "clarify.option.convert_disabled": {
+      "status": "needs-review",
+      "en": "Convert to {{to}}"
+    },
+    "clarify.option.change_kitchen_currency": {
+      "status": "needs-review",
+      "en": "Change the kitchen currency to {{currency}}"
+    },
+    "clarify.option.skip_prices": {
+      "status": "needs-review",
+      "en": "Import without these prices"
+    },
+    "clarify.option.type_it": {
+      "status": "needs-review",
+      "en": "Type it"
+    },
+    "clarify.option.skip": {
+      "status": "needs-review",
+      "en": "Skip"
+    },
+    "clarify.option.keep_amount": {
+      "status": "needs-review",
+      "en": "Keep {{amount}}"
+    },
+    "clarify.option.us": {
+      "status": "needs-review",
+      "en": "US"
+    },
+    "clarify.option.uk": {
+      "status": "needs-review",
+      "en": "UK (imperial)"
+    },
+    "clarify.option.pack_size": {
+      "status": "needs-review",
+      "en": "Size of one pack"
+    },
+    "clarify.option.keep_unit": {
+      "status": "needs-review",
+      "en": "Keep the unit as written"
+    },
+    "clarify.option.keep_printed": {
+      "status": "needs-review",
+      "en": "Keep as printed"
+    },
+    "clarify.option.edit": {
+      "status": "needs-review",
+      "en": "Edit the line"
+    },
+    "clarify.option.apply": {
+      "status": "needs-review",
+      "en": "Apply"
+    },
+    "clarify.reason.rate_unavailable": {
+      "status": "needs-review",
+      "en": "No exchange rate from the last 3 days."
+    },
+    "clarify.reason.conversion_off": {
+      "status": "needs-review",
+      "en": "Currency conversion is not available for this kitchen yet."
+    },
+    "clarify.remaining_one": {
+      "status": "needs-review",
+      "en": "{{count}} question left"
+    },
+    "clarify.remaining_other": {
+      "status": "needs-review",
+      "en": "{{count}} questions left"
+    },
+    "clarify.packSizePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 50 kg"
+    },
+    "clarify.packSizeInvalid": {
+      "status": "needs-review",
+      "en": "Type a number and a unit, e.g. 50 kg."
+    },
+    "clarify.applying": {
+      "status": "needs-review",
+      "en": "Applying your answer…"
+    },
+    "clarify.pickCurrency": {
+      "status": "needs-review",
+      "en": "Choose the currency"
+    },
+    "clarify.skipAll": {
+      "status": "needs-review",
+      "en": "Skip the questions"
+    },
+    "clarify.skipAllHint": {
+      "status": "needs-review",
+      "en": "Rows with an open question keep an empty price for you to type."
+    },
+    "clarify.arithmeticFlag": {
+      "status": "needs-review",
+      "en": "Some lines do not add up. Nothing was changed: check them before saving."
+    },
+    "clarify.converted": {
+      "status": "needs-review",
+      "en": "{{original}} at 1 {{from}} = {{rate}} {{to}} ({{date}})"
+    },
     "auth.welcome": {
       "status": "needs-review",
       "en": "Food Bundles Chef"

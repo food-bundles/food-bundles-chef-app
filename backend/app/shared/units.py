@@ -148,6 +148,17 @@ def parse_unit(text: str | None) -> ParsedUnit:
 _NUM = r"(\d+(?:[.,]\d+)?)"
 
 
+def parse_pack_size(text: str | None) -> tuple[Decimal, str] | None:
+    """A pack size typed by the chef: "50 kg", "24" (pieces), "2,5 l"; None if unreadable."""
+    match = re.fullmatch(r"\s*(\d+(?:[.,]\d+)?)\s*([A-Za-z. ]*)\s*", text or "")
+    if not match:
+        return None
+    size = Decimal(match.group(1).replace(",", "."))
+    if size <= 0:
+        return None
+    return size, (match.group(2).strip() or "piece")
+
+
 def _pack_size(lowered: str) -> tuple[Decimal, str] | None:
     """The printed size of a pack, or None. A number WITH a unit is a size ("50 kg bag",
     "bag 50kg", "carton (24 pcs)"); a bare number is a count of pieces only after "of", "x"

@@ -313,6 +313,34 @@ Each step has its own tests and commit, with the suite green before each.
 
 Then you verify the answers and Step 2 runs.
 
+### Build notes: step 5 (2026-11-19)
+
+- **Prompts:** `menu_extract.v2`, `document_extract.v2`, `dish_analyze.v2` and `agent.v3`, one
+  file each, used by both providers. Nothing in them is Rwanda-specific. Each model output
+  schema rejects unknown keys (`extra="forbid"`): a field such as `exchange_rate` fails
+  validation and is repaired once; it is never used.
+- **Questions are server-side and stateless.** The extract response lists the open questions,
+  biggest effect first. The app shows the first one and sends the answer with the model's
+  rows to `POST …/menu-extract/resolve` or `…/document-extract/resolve`. Those endpoints
+  re-read the scan with no model call and don't count against the AI limits. The Assistant
+  works the same way through `AgentRequest.resolve`: the draft proposal is kept and finished
+  without a second model call. Each question asked is logged as `ai_clarification
+  {feature, kind, rows, request_id}`, with no content.
+- **Deviation: there is no "Import in USD" option.** A menu price must be in the kitchen's
+  currency (`OTHER_CURRENCY_NOT_SUPPORTED`). The `currency_mismatch` options are therefore:
+  - **Convert**, at the table rate with its date. It is disabled with "rate unavailable", or
+    when conversion is off for the kitchen's country.
+  - **Change the kitchen currency.** This opens the currency-change flow.
+  - **Import without these prices.**
+- **The Assistant reads a bare number ("1500") as the kitchen's currency** and asks
+  nothing. A number with a dollar sign or the word "dollars" asks which currency first, then
+  `currency_mismatch` if it isn't the kitchen's.
+- **Documents:** every printed row is read, including subtotal, tax and total. Non-item
+  rows go to `summary` and never become delivery lines. The arithmetic is flagged, never
+  corrected. lb, oz and dozen are converted exactly, with the printed quantity and unit
+  kept. When a unit is converted, the unit price is re-based to the new unit. US/UK
+  measures and unsized packs are asked.
+
 ## 4. Photo coverage against the new targets (2026-11-19)
 
 | Target | Have | Gap |

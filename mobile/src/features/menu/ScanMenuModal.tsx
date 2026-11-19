@@ -14,7 +14,9 @@ import { SelectableChip } from '@/components/ui/SelectableChip';
 import { ThemedTextInput } from '@/components/ui/ThemedTextInput';
 import { AttachSheet, type AttachSource } from '@/features/agent/AttachSheet';
 import { AiError, newRequestId } from '@/features/ai/ai-client';
-import { classifyImage, extractMenu, sendAiFeedback, useAiFeatures, type UploadCallbacks } from '@/features/ai/api';
+import { classifyImage, extractMenu, resolveMenu, sendAiFeedback, useAiFeatures, type UploadCallbacks } from '@/features/ai/api';
+import { ClarificationCard } from '@/features/ai/ClarificationCard';
+import { applyAnswer, currentQuestion } from '@/features/ai/clarify';
 import { PhotoKindPicker, type PickableKind } from '@/features/ai/PhotoKindPicker';
 import { AiStatusPanel } from '@/features/ai/AiStatusPanel';
 import type { PreparedImage } from '@/features/ai/image-prep';
@@ -100,6 +102,10 @@ export function ScanMenuModal({
   const [importError, setImportError] = useState<string | null>(null);
   /** The classifier was unavailable: ask the chef what the photo is. */
   const [picking, setPicking] = useState(false);
+  /** A scanned page with open questions (asked one at a time before its rows are added). */
+  const [pending, setPending] = useState<MenuExtraction | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
   const skipClassifyRef = useRef(false);
 
   const runner = useCallback(
@@ -135,9 +141,41 @@ export function ScanMenuModal({
       setRoute({ kind: result.kind, uri: photo ?? '' });
       return;
     }
-    const added = buildReviewRows(result.extraction.items, menu, rows, newRequestId, result.extraction.request_id);
+    if (result.extraction.clarifications.length > 0) {
+      setPending(result.extraction);
+      return;
+    }
+    addRows(result.extraction);
+  };
+  const addRows = (extraction: MenuExtraction) => {
+    const added = buildReviewRows(extraction.items, menu, rows, newRequestId, extraction.request_id);
     setRows((prev) => [...prev, ...added]);
     setEmptyPage(added.length === 0);
+  };
+  /** The chef answered the open question: the server re-reads the page (no model call). */
+  const answerQuestion = async (key: string, value: string) => {
+    if (!pending) return;
+    setResolving(true);
+    setResolveError(null);
+    try {
+      const next = await resolveMenu(kitchenId, pending, applyAnswer(pending.answers, key, value));
+      if (next.clarifications.length > 0) {
+        setPending(next);
+      } else {
+        setPending(null);
+        addRows(next);
+      }
+    } catch {
+      setResolveError(t('ai.unavailable'));
+    } finally {
+      setResolving(false);
+    }
+  };
+  /** Skip the remaining questions: rows with an open question keep an empty price to type. */
+  const skipQuestions = () => {
+    if (!pending) return;
+    addRows(pending);
+    setPending(null);
   };
   const task = useAiTask<ScanResult>('menu', runner, applyScan);
   const { run: runTask, reset: resetTask } = task;
@@ -147,6 +185,8 @@ export function ScanMenuModal({
     setRows([]);
     setRoute(null);
     setPicking(false);
+    setPending(null);
+    setResolveError(null);
     setPhoto(null);
     setEmptyPage(false);
     setShowErrors(false);
@@ -318,6 +358,29 @@ export function ScanMenuModal({
   const scanAvailable = features.menu_scan;
 
   // ── Body ──
+  const question = currentQuestion(pending?.clarifications);
+  const questionCard = question ? (
+    <View style={styles.question}>
+      <ClarificationCard
+        clarification={question}
+        busy={resolving}
+        remaining={pending?.clarifications.length ?? 1}
+        onAnswer={(key, value) => void answerQuestion(key, value)}
+        onAction={() => {
+          // Only "change the kitchen currency" is handled outside the question flow.
+          close();
+          router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId } });
+        }}
+      />
+      {resolveError ? (
+        <Text style={[styles.summaryMuted, { color: tokens.danger }]} accessibilityRole="alert">
+          {resolveError}
+        </Text>
+      ) : null}
+      <AppButton label={t('clarify.skipAll')} variant="ghost" onPress={skipQuestions} disabled={resolving} accessibilityHint={t('clarify.skipAllHint')} />
+    </View>
+  ) : null;
+
   let body: ReactNode;
   if (rows.length > 0) {
     body = (
@@ -350,6 +413,7 @@ export function ScanMenuModal({
           </Text>
         </View>
         <Text style={[styles.estimate, { color: tokens.warningText }]}>{t('menu.scan.reviewHint')}</Text>
+        {questionCard}
 
         {busy ? (
           <AiStatusPanel state={task.state} onCancel={task.cancel} onRetry={task.retry} />
@@ -393,6 +457,8 @@ export function ScanMenuModal({
           </Card>
         ) : busy ? (
           <AiStatusPanel state={task.state} onCancel={task.cancel} onRetry={task.retry} onManual={goManual} manualLabel={t('menu.addManually')} />
+        ) : questionCard ? (
+          questionCard
         ) : picking ? (
           <Card>
             <PhotoKindPicker onPick={onPickKind} />
@@ -641,6 +707,7 @@ const styles = StyleSheet.create({
   close: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.7 },
   pad: { padding: spacing.md, gap: spacing.md },
+  question: { gap: spacing.sm },
   photo: { width: '100%', height: 180, borderRadius: radius.lg },
   card: { borderRadius: radius.lg, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
   guideIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

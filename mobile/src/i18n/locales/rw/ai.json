@@ -42,5 +42,71 @@
       "dish": "Ifunguro",
       "delivery_note": "Urupapuro rw'ibyakiriwe"
     }
+  },
+  "clarify": {
+    "currency_missing": {
+      "question": "Ibiciro nta faranga bigaragaza. Ni irihe?"
+    },
+    "currency_ambiguous": {
+      "question": "\"{{example}}\": ni ayahe mafaranga?"
+    },
+    "currency_mismatch": {
+      "question": "Ibi biciro biri mu {{currency}}. Igikoni cyawe gikoresha {{kitchen_currency}}."
+    },
+    "ambiguous_separator": {
+      "question": "\"{{example}}\" ni umubare wuzuye cyangwa ufite ibice?"
+    },
+    "k_suffix": {
+      "question": "\"{{example}}\" bivuga {{amount}}?"
+    },
+    "ambiguous_unit": {
+      "us_or_uk": "\"{{unit}}\" ni igipimo cyo muri Amerika cyangwa cyo mu Bwongereza?",
+      "pack_size": "Muri \"{{unit}}\" imwe harimo angahe?"
+    },
+    "arithmetic_mismatch": {
+      "line_arithmetic": "Umurongo {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, ariko handitse {{printed}}.",
+      "subtotal_mismatch": "Imirongo yose hamwe ni {{expected}}, ariko igiteranyo gito kivuga {{printed}}.",
+      "total_mismatch": "Imirongo, imisoro n'amafaranga y'inyongera bingana na {{expected}}, ariko igiteranyo kivuga {{printed}}.",
+      "words_mismatch": "Igiteranyo cyanditse mu magambo kivuga {{expected}}, ariko imibare ivuga {{printed}}."
+    },
+    "unreadable_value": {
+      "question": "Sinashoboye gusoma igiciro cya \"{{name}}\" ({{text}})."
+    },
+    "option": {
+      "kitchen_currency": "{{currency}} (igikoni cyawe)",
+      "currency": "{{currency}}",
+      "other_currency": "Andi mafaranga…",
+      "amount": "{{amount}}",
+      "yes": "Yego",
+      "no": "Oya",
+      "convert": "Hindura ku 1 {{from}} = {{rate}} {{to}} ({{date}})",
+      "convert_disabled": "Hindura mu {{to}}",
+      "change_kitchen_currency": "Hindura ifaranga ry'igikoni ribe {{currency}}",
+      "skip_prices": "Injiza nta biciro",
+      "type_it": "Byandike",
+      "skip": "Simbuka",
+      "keep_amount": "Gumana {{amount}}",
+      "us": "Amerika",
+      "uk": "Ubwongereza",
+      "pack_size": "Ibiri mu gipfunyika kimwe",
+      "keep_unit": "Gumana igipimo uko cyanditse",
+      "keep_printed": "Bigumane uko byanditse",
+      "edit": "Hindura umurongo",
+      "apply": "Emeza"
+    },
+    "reason": {
+      "rate_unavailable": "Nta gipimo cy'ivunjisha cy'iminsi 3 ishize.",
+      "conversion_off": "Guhindura amafaranga ntibirashoboka kuri iki gikoni."
+    },
+    "remaining_one": "Hasigaye ikibazo {{count}}",
+    "remaining_other": "Hasigaye ibibazo {{count}}",
+    "packSizePlaceholder": "urugero: 50 kg",
+    "packSizeInvalid": "Andika umubare n'igipimo, urugero 50 kg.",
+    "applying": "Turimo gushyiraho igisubizo cyawe…",
+    "pickCurrency": "Hitamo ifaranga",
+    "skipAll": "Simbuka ibibazo",
+    "skipAllHint": "Imirongo ifite ikibazo kitarasubizwa izaguma nta giciro, ukacyandika.",
+    "arithmeticFlag": "Imirongo imwe ntihura. Nta cyahinduwe: yigenzure mbere yo kubika.",
+    "converted": "{{original}} ku 1 {{from}} = {{rate}} {{to}} ({{date}})"
   }
 }

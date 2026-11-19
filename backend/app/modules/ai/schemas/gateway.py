@@ -9,14 +9,37 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.ai.clarifications import Clarification, ScanAnswers
+from app.modules.exchange_rates.schemas import RateOut
 from app.shared.schemas.money import MoneyOut
 
 ImageKind = Literal["menu", "dish", "receipt", "delivery_note", "stock_shelf", "other"]
 ImageQuality = Literal["ok", "too_dark", "blurry", "too_small"]
 MenuCategory = Literal["main", "side", "drink", "dessert"]
 Confidence = Annotated[float, Field(ge=0.0, le=1.0)]
+CurrencyEvidence = Literal["symbol", "code", "word", "context", "none"]
+PriceStatus = Literal["ok", "needs_answer", "none", "unreadable", "skipped"]
+
+
+class _ModelOutput(BaseModel):
+    """v2 model outputs reject unknown keys (e.g. an "exchange_rate" the model made up):
+    the call is repaired once, then fails, rather than silently dropping the key."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ModelPrice(_ModelOutput):
+    """One price as printed (v2). The server re-reads `text` with the deterministic parser;
+    `amount` / `currency` are the model's reading, used only as a cross-check."""
+
+    text: str = Field(min_length=1, max_length=60, description="Exactly as printed")
+    amount: str | None = Field(default=None, max_length=30, description="Decimal string or null")
+    currency: str | None = Field(default=None, max_length=3, description="ISO 4217 or null")
+    currency_evidence: CurrencyEvidence = "none"
+    evidence_text: str | None = Field(default=None, max_length=40)
+    confidence: Confidence
 
 
 # ── Feature flags ──────────────────────────────────────────────────────────────
@@ -88,15 +111,37 @@ class ModelMenuExtraction(BaseModel):
     items: list[ModelMenuItem] = Field(default_factory=list, max_length=150)
 
 
+class ModelMenuItemV2(_ModelOutput):
+    name: str = Field(min_length=1, max_length=200)
+    category: MenuCategory | None = None
+    price: ModelPrice | None = None
+    description: str | None = Field(default=None, max_length=500)
+    name_confidence: Confidence
+    source_text: str | None = Field(default=None, max_length=300)
+
+
+class ModelMenuExtractionV2(_ModelOutput):
+    kind: ImageKind
+    image_quality: ImageQuality
+    items: list[ModelMenuItemV2] = Field(default_factory=list, max_length=150)
+
+
 class MenuExtractItem(BaseModel):
     name: str
     category: MenuCategory | None
+    # Legacy: whole amount in the kitchen's currency, only when that is exact and settled.
     price: int | None
     description: str | None
     confidence: float
     name_confidence: float
     price_confidence: float
     source_text: str | None
+    # v2: the price as printed, its reading, and (when converted) the original and rate.
+    price_text: str | None = None
+    price_money: MoneyOut | None = None
+    price_original: MoneyOut | None = None
+    price_rate: RateOut | None = None
+    price_status: PriceStatus = "ok"
 
 
 class MenuExtractionResponse(BaseModel):
@@ -105,6 +150,22 @@ class MenuExtractionResponse(BaseModel):
     image_quality: ImageQuality
     request_id: str
     prompt_version: str
+    # v2: the kitchen's currency, the questions still open (ask the first one), the answers
+    # applied, and the model's rows to send back with the next answer (POST .../resolve).
+    currency: str | None = None
+    clarifications: list[Clarification] = Field(default_factory=list)
+    answers: ScanAnswers = Field(default_factory=ScanAnswers)
+    model_items: list[ModelMenuItemV2] = Field(default_factory=list)
+
+
+class MenuResolveRequest(BaseModel):
+    """Re-read a scan with the chef's answers. No model call; nothing is saved."""
+
+    request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9-]+$")
+    kind: ImageKind = "menu"
+    image_quality: ImageQuality = "ok"
+    items: list[ModelMenuItemV2] = Field(max_length=150)
+    answers: ScanAnswers
 
 
 # ── Delivery note / receipt extraction ────────────────────────────────────────
@@ -129,6 +190,27 @@ class ModelDocumentExtraction(BaseModel):
     lines: list[ModelDocumentLine] = Field(default_factory=list, max_length=100)
 
 
+class ModelDocumentLineV2(_ModelOutput):
+    """Every printed row, including subtotal / tax / fees / total rows (the server sorts
+    them by label; they never become delivery lines)."""
+
+    name: str = Field(min_length=1, max_length=200)
+    quantity_text: str | None = Field(default=None, max_length=40)
+    unit: str | None = Field(default=None, max_length=40)
+    unit_price: ModelPrice | None = None
+    line_total: ModelPrice | None = None
+    confidence: Confidence
+
+
+class ModelDocumentExtractionV2(_ModelOutput):
+    kind: ImageKind
+    image_quality: ImageQuality
+    supplier_name: str | None = Field(default=None, max_length=200)
+    document_date: str | None = Field(default=None, description="YYYY-MM-DD, or null")
+    lines: list[ModelDocumentLineV2] = Field(default_factory=list, max_length=120)
+    total_in_words: str | None = Field(default=None, max_length=300)
+
+
 class DocumentLine(BaseModel):
     name: str
     # Decimal string parsed deterministically from the text on the document; null if unreadable
@@ -138,6 +220,37 @@ class DocumentLine(BaseModel):
     unit_price: int | None
     line_total: int | None
     confidence: float
+    # v2: money in the document's (or, after conversion, the kitchen's) currency; the
+    # quantity in a converted unit with the printed one kept; the row it came from.
+    row: int | None = None
+    unit_price_money: MoneyOut | None = None
+    line_total_money: MoneyOut | None = None
+    original_quantity: str | None = None
+    original_unit: str | None = None
+    unit_status: Literal["ok", "ask", "unknown"] = "ok"
+    price_status: PriceStatus = "ok"
+
+
+class DocumentSummaryLine(BaseModel):
+    row: int
+    label: str
+    kind: str  # subtotal / tax / service / discount / tip / delivery / deposit / cash / ...
+    amount: MoneyOut | None
+
+
+class ArithmeticIssueOut(BaseModel):
+    kind: str
+    row: int | None
+    label: str | None
+    expected: str
+    printed: str
+
+
+class ArithmeticCheckOut(BaseModel):
+    status: Literal["ok", "mismatch", "not_applicable"]
+    issues: list[ArithmeticIssueOut] = Field(default_factory=list)
+    tax_included: bool = False
+    skipped: list[str] = Field(default_factory=list)
 
 
 class DocumentExtractionResponse(BaseModel):
@@ -148,6 +261,24 @@ class DocumentExtractionResponse(BaseModel):
     image_quality: ImageQuality
     request_id: str
     prompt_version: str
+    # v2
+    currency: str | None = None
+    summary: list[DocumentSummaryLine] = Field(default_factory=list)
+    subtotal: MoneyOut | None = None
+    tax: MoneyOut | None = None
+    total: MoneyOut | None = None
+    arithmetic: ArithmeticCheckOut | None = None
+    clarifications: list[Clarification] = Field(default_factory=list)
+    answers: ScanAnswers = Field(default_factory=ScanAnswers)
+    model_extraction: ModelDocumentExtractionV2 | None = None
+
+
+class DocumentResolveRequest(BaseModel):
+    """Re-read a scanned document with the chef's answers. No model call; nothing saved."""
+
+    request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9-]+$")
+    extraction: ModelDocumentExtractionV2
+    answers: ScanAnswers
 
 
 # ── Dish analysis ─────────────────────────────────────────────────────────────
@@ -171,6 +302,18 @@ class ModelDishAnalysis(BaseModel):
     category: MenuCategory | None = None
     category_confidence: Confidence
     ingredients: list[ModelDishIngredient] = Field(default_factory=list, max_length=20)
+
+
+class ModelDishIngredientV2(ModelDishIngredient):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ModelDishAnalysisV2(ModelDishAnalysis):
+    model_config = ConfigDict(extra="forbid")
+
+    ingredients: list[ModelDishIngredientV2] = Field(  # type: ignore[assignment]
+        default_factory=list, max_length=20
+    )
 
 
 class DishIngredientResponse(BaseModel):

@@ -40,6 +40,7 @@ import {
 } from '@/features/agent/ChatRows';
 import { ComposerNotice, VoiceBar } from '@/features/agent/VoiceBar';
 import type { ChatEntry } from '@/features/agent/chat-types';
+import { applyAnswer, NO_ANSWERS } from '@/features/ai/clarify';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { AI_TIMEOUTS, AiError, newRequestId } from '@/features/ai/ai-client';
 import { classifyImage, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
@@ -128,6 +129,8 @@ function confirmErrorKey(err: unknown): string {
 function cachedImage(uri: string): PreparedImage {
   return { uri, width: 0, height: 0, bytes: 0, mimeType: 'image/jpeg' };
 }
+
+type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
 
 export default function AgentScreen() {
   const { t, i18n } = useTranslation();
@@ -251,7 +254,13 @@ export default function AgentScreen() {
     }
   };
 
-  const askAgent = async (text: string, imageUri: string | null, prior: ChatEntry[], chefEntryId: string) => {
+  const askAgent = async (
+    text: string,
+    imageUri: string | null,
+    prior: ChatEntry[],
+    chefEntryId: string,
+    resolve?: AgentRequest['resolve'],
+  ) => {
     if (!kitchenId) return;
     const controller = new AbortController();
     abortRef.current = controller;
@@ -273,6 +282,7 @@ export default function AgentScreen() {
         }),
         last_confirmed_action: lastActionRef.current,
         language,
+        resolve: resolve ?? null,
       };
       const requestId = newRequestId();
       const res = await agentTurn.mutateAsync({ body, signal: controller.signal, requestId });
@@ -349,6 +359,17 @@ export default function AgentScreen() {
     ]);
     if (image && features.image_classify) await classifyAndRoute(image, text, prior, chefEntry.id);
     else await askAgent(text, image?.uri ?? null, prior, chefEntry.id);
+  };
+
+  /** The chef answered a server question (price or unit): finish the draft, no model call. */
+  const answerServerQuestion = async (entry: ClarificationEntry, key: string, value: string, label: string) => {
+    const draft = entry.question.draft;
+    if (busy || !kitchenId || !available || !draft) return;
+    const prior = entries;
+    const chefEntry: ChatEntry = { type: 'message', id: newRequestId(), role: 'chef', content: label };
+    setEntries((prev) => [...prev.map((e) => (e.id === entry.id ? { ...e, answered: true } : e)), chefEntry]);
+    const answers = applyAnswer(entry.question.answers ?? NO_ANSWERS, key, value);
+    await askAgent(label, null, prior, chefEntry.id, { draft, answers });
   };
 
   const stop = () => {
@@ -499,7 +520,15 @@ export default function AgentScreen() {
           </View>
         );
       case 'clarification':
-        return <ClarificationRow entry={item} disabled={busy || !available} onSelect={(option) => void send(option)} />;
+        return (
+          <ClarificationRow
+            entry={item}
+            disabled={busy || !available}
+            onSelect={(option) => void send(option)}
+            onAnswer={(key, value, label) => void answerServerQuestion(item, key, value, label)}
+            onAction={() => kitchenId && router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId } })}
+          />
+        );
       case 'notice':
         return <NoticeRow entry={item} onRetry={item.retryOf && !busy && available ? () => retry(item) : undefined} />;
       case 'route':

@@ -9,6 +9,8 @@ import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
 import { PhotoKindPicker, type PickableKind } from '@/features/ai/PhotoKindPicker';
 import type { ChatEntry, ImageKind } from './chat-types';
+import { ClarificationCard } from '@/features/ai/ClarificationCard';
+import { clarificationKindSchema, type Clarification } from '@/features/ai/schemas';
 
 type MessageEntry = Extract<ChatEntry, { type: 'message' }>;
 type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
@@ -77,12 +79,50 @@ export function ClarificationRow({
   entry,
   disabled,
   onSelect,
+  onAnswer,
+  onAction,
 }: {
   entry: ClarificationEntry;
   disabled: boolean;
   onSelect: (option: string) => void;
+  /** A server question (price or unit) was answered: finish the draft proposal. */
+  onAnswer?: (key: string, value: string, label: string) => void;
+  onAction?: () => void;
 }) {
   const tokens = useTheme();
+  const { t } = useTranslation();
+  const q = entry.question;
+  if (q.question_key && q.key && q.choices && q.draft) {
+    const key = q.key;
+    const clarification: Clarification = {
+      key,
+      kind: clarificationKindSchema.catch('unreadable_value').parse(q.kind),
+      question_key: q.question_key,
+      params: q.params ?? {},
+      options: q.choices,
+      preselected: q.preselected ?? null,
+      targets: [],
+    };
+    return (
+      <View style={{ alignItems: 'stretch' }}>
+        <AgentLabel />
+        {entry.replyText ? <Text style={[styles.bubbleText, { color: tokens.text }]}>{entry.replyText}</Text> : null}
+        {entry.answered ? (
+          <Text style={[styles.question, { color: tokens.textMuted }]}>{t(q.question_key, q.params ?? {})}</Text>
+        ) : (
+          <ClarificationCard
+            clarification={clarification}
+            busy={disabled}
+            onAnswer={(k, value) => {
+              const option = q.choices?.find((o) => o.value === value);
+              onAnswer?.(k, value, option ? t(option.label_key, option.params) : value);
+            }}
+            onAction={() => onAction?.()}
+          />
+        )}
+      </View>
+    );
+  }
   return (
     <View style={{ alignItems: 'flex-start' }}>
       <AgentLabel />

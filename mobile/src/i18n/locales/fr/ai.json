@@ -42,5 +42,71 @@
       "dish": "Plat",
       "delivery_note": "Bon de livraison"
     }
+  },
+  "clarify": {
+    "currency_missing": {
+      "question": "Les prix n'ont pas de devise. Laquelle est-ce ?"
+    },
+    "currency_ambiguous": {
+      "question": "« {{example}} » : de quelle devise s'agit-il ?"
+    },
+    "currency_mismatch": {
+      "question": "Ces prix sont en {{currency}}. Votre cuisine utilise {{kitchen_currency}}."
+    },
+    "ambiguous_separator": {
+      "question": "« {{example}} » est-il un nombre entier ou décimal ?"
+    },
+    "k_suffix": {
+      "question": "« {{example}} » signifie-t-il {{amount}} ?"
+    },
+    "ambiguous_unit": {
+      "us_or_uk": "« {{unit}} » est-il une mesure américaine ou britannique (impériale) ?",
+      "pack_size": "Combien contient un « {{unit}} » ?"
+    },
+    "arithmetic_mismatch": {
+      "line_arithmetic": "Ligne {{row}} ({{label}}) : {{quantity}} × {{unit_price}} = {{expected}}, mais il est écrit {{printed}}.",
+      "subtotal_mismatch": "Les lignes font {{expected}}, mais le sous-total indique {{printed}}.",
+      "total_mismatch": "Lignes, taxes et frais font {{expected}}, mais le total indique {{printed}}.",
+      "words_mismatch": "Le total en lettres indique {{expected}}, mais les chiffres disent {{printed}}."
+    },
+    "unreadable_value": {
+      "question": "Je n'ai pas pu lire le prix de « {{name}} » ({{text}})."
+    },
+    "option": {
+      "kitchen_currency": "{{currency}} (votre cuisine)",
+      "currency": "{{currency}}",
+      "other_currency": "Autre devise…",
+      "amount": "{{amount}}",
+      "yes": "Oui",
+      "no": "Non",
+      "convert": "Convertir à 1 {{from}} = {{rate}} {{to}} ({{date}})",
+      "convert_disabled": "Convertir en {{to}}",
+      "change_kitchen_currency": "Passer la devise de la cuisine en {{currency}}",
+      "skip_prices": "Importer sans ces prix",
+      "type_it": "Le saisir",
+      "skip": "Ignorer",
+      "keep_amount": "Garder {{amount}}",
+      "us": "Américaine",
+      "uk": "Britannique (impériale)",
+      "pack_size": "Contenu d'un emballage",
+      "keep_unit": "Garder l'unité telle qu'écrite",
+      "keep_printed": "Garder tel quel",
+      "edit": "Modifier la ligne",
+      "apply": "Appliquer"
+    },
+    "reason": {
+      "rate_unavailable": "Aucun taux de change des 3 derniers jours.",
+      "conversion_off": "La conversion de devises n'est pas encore disponible pour cette cuisine."
+    },
+    "remaining_one": "Encore {{count}} question",
+    "remaining_other": "Encore {{count}} questions",
+    "packSizePlaceholder": "ex. 50 kg",
+    "packSizeInvalid": "Saisissez un nombre et une unité, ex. 50 kg.",
+    "applying": "Application de votre réponse…",
+    "pickCurrency": "Choisissez la devise",
+    "skipAll": "Passer les questions",
+    "skipAllHint": "Les lignes avec une question ouverte gardent un prix vide à saisir.",
+    "arithmeticFlag": "Certaines lignes ne tombent pas juste. Rien n'a été modifié : vérifiez-les avant d'enregistrer.",
+    "converted": "{{original}} à 1 {{from}} = {{rate}} {{to}} ({{date}})"
   }
 }
