@@ -7,6 +7,7 @@ Applies the deterministic demand → order quantity pipeline:
 4. Compute purchase_quantity using stock on hand, yield, selling unit, buffer
 5. Return PurchaseSuggestion list ordered by is_low_stock desc, then name
 """
+
 from __future__ import annotations
 
 import uuid
@@ -30,6 +31,7 @@ from app.modules.menus.repository import MenuItemRepository
 from app.modules.purchasing.schemas import PurchaseSuggestion, PurchaseSuggestionsResponse
 from app.modules.recipes.repository import RecipeRepository
 from app.modules.sales.repository import SalesRepository
+from app.shared.kitchen_time import kitchen_today
 
 _ZERO = Decimal("0")
 
@@ -52,8 +54,11 @@ class PurchasingService:
 
         # For each active menu item, get last-4-week sales and recipe lines
         items = await self._item_repo.list_for_menu_all(kitchen.id)
+        today = kitchen_today(kitchen)
         for item in items:
-            weekly = await self._sales_repo.weekly_totals(kitchen.id, item.id, weeks=4)
+            weekly = await self._sales_repo.weekly_totals(
+                kitchen.id, item.id, weeks=4, reference_date=today
+            )
             if not any(total > 0 for _, total in weekly):
                 continue  # no sales history → skip this item's demand
 

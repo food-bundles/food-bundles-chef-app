@@ -176,7 +176,12 @@ async def _kitchen(client: AsyncClient, db: AsyncSession) -> tuple[str, dict]:
     headers = {"Authorization": f"Bearer {create_access_token(str(chef.id))}"}
     resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Baseline Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Baseline Kitchen",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=headers,
     )
     assert resp.status_code == 201

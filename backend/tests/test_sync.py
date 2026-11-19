@@ -6,6 +6,7 @@ Validates the QueuedMutation envelope processing:
 - Per-mutation errors don't abort the batch
 - Kitchen ownership is enforced at the sync endpoint level
 """
+
 from __future__ import annotations
 
 import uuid
@@ -22,9 +23,7 @@ async def _auth(client: AsyncClient, monkeypatch, phone: str) -> dict:
         "app.modules.authentication.service.generate_otp", lambda: "444444"
     )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
-    r = await client.post(
-        "/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "444444"}
-    )
+    r = await client.post("/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "444444"})
     return r.json()
 
 
@@ -39,7 +38,12 @@ async def test_sync_record_sale(client: AsyncClient, monkeypatch) -> None:
     kitchen = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "Sync Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "Sync Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=h,
         )
     ).json()
@@ -87,22 +91,27 @@ async def test_sync_record_sale(client: AsyncClient, monkeypatch) -> None:
     assert result["server_id"] is not None
 
 
-async def test_sync_duplicate_operation_id_skipped(
-    client: AsyncClient, monkeypatch
-) -> None:
+async def test_sync_duplicate_operation_id_skipped(client: AsyncClient, monkeypatch) -> None:
     tokens = await _auth(client, monkeypatch, "+250780003002")
     h = _h(tokens)
 
     kitchen = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "Dup Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "Dup Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=h,
         )
     ).json()
     kid = kitchen["id"]
 
-    menu = (await client.post(f"/api/v1/kitchens/{kid}/menus", json={"name": "M"}, headers=h)).json()
+    menu = (
+        await client.post(f"/api/v1/kitchens/{kid}/menus", json={"name": "M"}, headers=h)
+    ).json()
     item = (
         await client.post(
             f"/api/v1/kitchens/{kid}/menus/{menu['id']}/items",
@@ -146,7 +155,12 @@ async def test_sync_invalid_mutation_returns_failed_not_500(
     kitchen = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "Fail Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "Fail Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=h,
         )
     ).json()
@@ -179,16 +193,19 @@ async def test_sync_invalid_mutation_returns_failed_not_500(
     assert result["error_code"] == "NOT_FOUND"
 
 
-async def test_sync_wrong_kitchen_returns_403(
-    client: AsyncClient, monkeypatch
-) -> None:
+async def test_sync_wrong_kitchen_returns_403(client: AsyncClient, monkeypatch) -> None:
     tokens_a = await _auth(client, monkeypatch, "+250780003004")
     tokens_b = await _auth(client, monkeypatch, "+250780003005")
 
     kitchen_b = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "B Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "B Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=_h(tokens_b),
         )
     ).json()

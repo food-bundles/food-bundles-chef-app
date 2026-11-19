@@ -36,7 +36,12 @@ def _auth(tokens: dict) -> dict:
 async def _setup_kitchen(client: AsyncClient, tokens: dict) -> str:
     resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Test Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Test Kitchen",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=_auth(tokens),
     )
     assert resp.status_code == 201

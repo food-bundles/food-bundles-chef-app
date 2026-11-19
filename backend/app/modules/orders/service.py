@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
+    CatalogNotAvailableError,
     ConflictError,
     KitchenAccessDeniedError,
     NotFoundError,
@@ -22,6 +23,9 @@ from app.modules.orders.schemas import (
 )
 from app.shared.enums import OrderStatus
 
+# Order lines typed in by the chef rather than picked from the Food Bundles catalogue.
+MANUAL_PRODUCT_ID = "manual"
+
 
 class OrderService:
     def __init__(self, db: AsyncSession) -> None:
@@ -38,6 +42,12 @@ class OrderService:
     async def create_order(
         self, kitchen: Kitchen, chef: Chef, data: OrderCreateRequest
     ) -> OrderWithLinesResponse:
+        # Food Bundles catalogue items only where Food Bundles operates (decision 9);
+        # everywhere else, lines are manual items ("manual").
+        if not kitchen.catalog_available and any(
+            line.catalog_product_id != MANUAL_PRODUCT_ID for line in data.lines
+        ):
+            raise CatalogNotAvailableError()
         order = Order(
             kitchen_id=kitchen.id,
             chef_id=chef.id,

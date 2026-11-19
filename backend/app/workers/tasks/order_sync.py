@@ -1,4 +1,5 @@
 """Arq task: sync a submitted order to the Food Bundles platform API."""
+
 from __future__ import annotations
 
 import ssl
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import AsyncSessionFactory
+from app.modules.kitchens.repository import KitchenRepository
 from app.modules.orders.repository import OrderRepository
 from app.shared.enums import OrderStatus
 
@@ -42,6 +44,11 @@ async def _do_sync(db: AsyncSession, *, order_id: uuid.UUID, kitchen_id: uuid.UU
         return
     if order.status not in (OrderStatus.SUBMITTED, OrderStatus.CONFIRMED):
         logger.info("order_sync_skip_status", order_id=str(order_id), status=order.status)
+        return
+    kitchen = await KitchenRepository(db).get_by_id(kitchen_id)
+    if kitchen is None or not kitchen.catalog_available:
+        # Food Bundles only receives orders from kitchens in the countries it serves.
+        logger.info("order_sync_skip_country", order_id=str(order_id))
         return
 
     payload = {

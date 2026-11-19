@@ -7,8 +7,12 @@ export interface KitchenCreateBody {
   location?: string | null;
   address?: string | null;
   phone?: string | null;
-  currency?: string;
-  timezone?: string;
+  /** ISO 4217, e.g. RWF, EUR. */
+  currency: string;
+  /** IANA zone, e.g. Africa/Kigali. */
+  timezone: string;
+  /** ISO 3166-1 alpha-2. */
+  country: string;
 }
 
 export interface KitchenUpdateBody {
@@ -16,8 +20,10 @@ export interface KitchenUpdateBody {
   location?: string | null;
   address?: string | null;
   phone?: string | null;
+  /** Only accepted unchanged: a real change uses the convert / relabel flow. */
   currency?: string | null;
   timezone?: string | null;
+  country?: string | null;
 }
 
 export interface KitchenDto {
@@ -29,6 +35,9 @@ export interface KitchenDto {
   phone: string | null;
   currency: string;
   timezone: string;
+  country: string | null;
+  /** Food Bundles catalogue and catalogue requisitions are offered to this kitchen. */
+  catalog_available: boolean;
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;

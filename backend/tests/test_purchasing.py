@@ -3,6 +3,7 @@
 Validates the full flow: sales data → weighted demand → purchase_quantity.
 All expected values hand-calculated.
 """
+
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -19,9 +20,7 @@ async def _auth(client: AsyncClient, monkeypatch, phone: str) -> dict:
         "app.modules.authentication.service.generate_otp", lambda: "333333"
     )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
-    r = await client.post(
-        "/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "333333"}
-    )
+    r = await client.post("/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "333333"})
     return r.json()
 
 
@@ -29,15 +28,18 @@ def _h(tokens: dict) -> dict:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
-async def test_purchasing_suggestions_empty_kitchen(
-    client: AsyncClient, monkeypatch
-) -> None:
+async def test_purchasing_suggestions_empty_kitchen(client: AsyncClient, monkeypatch) -> None:
     tokens = await _auth(client, monkeypatch, "+250780002001")
 
     kitchen = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "Empty Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "Empty Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=_h(tokens),
         )
     ).json()
@@ -48,9 +50,7 @@ async def test_purchasing_suggestions_empty_kitchen(
     assert r.json()["suggestions"] == []
 
 
-async def test_purchasing_suggestions_with_sales_data(
-    client: AsyncClient, monkeypatch
-) -> None:
+async def test_purchasing_suggestions_with_sales_data(client: AsyncClient, monkeypatch) -> None:
     """Full pipeline: ingredient → menu → recipe line → sales → suggestion.
 
     Hand calculation:
@@ -69,7 +69,12 @@ async def test_purchasing_suggestions_with_sales_data(
     kitchen = (
         await client.post(
             "/api/v1/kitchens",
-            json={"name": "Test Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+            json={
+                "name": "Test Kitchen",
+                "currency": "RWF",
+                "timezone": "Africa/Kigali",
+                "country": "RW",
+            },
             headers=h,
         )
     ).json()

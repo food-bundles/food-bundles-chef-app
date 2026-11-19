@@ -6,7 +6,7 @@ app calls the real endpoint only after the chef confirms.
 
 Flow:
   1. Build kitchen context (stock, today's sales, menu + recipe cost, open orders),
-     stamped with the time it was read (Kigali time)
+     stamped with the time it was read (the kitchen's local time)
   2. Cap the conversation (last turns only, newest image only)
   3. Structured model call → validate → one repair attempt → typed error
 """
@@ -16,7 +16,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from typing import Any
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,11 +48,11 @@ from app.modules.orders.repository import OrderRepository
 from app.modules.recipes.service import RecipeService
 from app.modules.sales.repository import SalesRepository
 from app.shared.enums import OrderStatus
+from app.shared.kitchen_time import kitchen_now, kitchen_today
 
 logger = structlog.get_logger(__name__)
 
 AGENT_PROMPT = ("agent", "v2")
-KIGALI = ZoneInfo("Africa/Kigali")
 # Context window guard: only the most recent turns are sent to the model.
 MAX_HISTORY_MESSAGES = 20
 MAX_MESSAGE_CHARS = 2000
@@ -96,8 +96,8 @@ _UNKNOWN_REFERENCE_QUESTION = {
 
 
 def resolve_references(
-    action_type: ActionType, params: dict, known: KnownIds
-) -> tuple[dict, list[str]]:
+    action_type: ActionType, params: dict[str, Any], known: KnownIds
+) -> tuple[dict[str, Any], list[str]]:
     """Check every referenced id belongs to the active kitchen and use the real record names.
 
     Returns (params with canonical names, names of params whose ids are unknown).
@@ -114,7 +114,9 @@ def resolve_references(
     return resolved, bad
 
 
-async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[str, KnownIds]:
+async def _build_kitchen_context(
+    kitchen: Kitchen, db: AsyncSession, now: datetime | None = None
+) -> tuple[str, KnownIds]:
     """Current stock, today's sales, menu with recipe cost, and open orders — plus their ids."""
     lines: list[str] = [f"Kitchen: {kitchen.name}"]
     known = KnownIds()
@@ -148,7 +150,7 @@ async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[st
     try:
         items = await MenuItemRepository(db).list_for_menu_all(kitchen.id)
         known.menu_items = {str(item.id): item.name for item in items}
-        today = datetime.now(KIGALI).date()
+        today = kitchen_today(kitchen, now)
         sold = dict(await SalesRepository(db).item_portions_for_day(kitchen.id, today))
         recipes = RecipeService(db)
         if items:
@@ -157,9 +159,9 @@ async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[st
             )
             for item in items[:30]:
                 try:
-                    cost = await recipes.calculate_cost(kitchen, item.id)
-                    has_cost = any(line.line_cost is not None for line in cost.lines)
-                    cost_text = f"{cost.total_cost}" if has_cost else "unknown"
+                    recipe_cost = await recipes.calculate_cost(kitchen, item.id)
+                    has_cost = any(line.line_cost is not None for line in recipe_cost.lines)
+                    cost_text = f"{recipe_cost.total_cost}" if has_cost else "unknown"
                 except Exception:
                     cost_text = "unknown"
                 sold_today = sold.get(item.id, 0)
@@ -172,7 +174,8 @@ async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[st
 
     try:
         orders = await OrderRepository(db).list_for_kitchen(kitchen.id, status=None)
-        known.orders = {str(o.id): o.status.value for o in orders}
+        # status is a plain string column: normalise through the enum (".value" on a str fails).
+        known.orders = {str(o.id): OrderStatus(o.status).value for o in orders}
         active = [
             o
             for o in orders
@@ -188,7 +191,8 @@ async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[st
             lines.append("\nOpen orders:")
             for o in active[:10]:
                 lines.append(
-                    f"  - Order {o.id} status={o.status.value} delivery={o.delivery_date or 'TBD'}"
+                    f"  - Order {o.id} status={OrderStatus(o.status).value} "
+                    f"delivery={o.delivery_date or 'TBD'}"
                 )
         else:
             lines.append("\nNo open orders.")
@@ -199,10 +203,10 @@ async def _build_kitchen_context(kitchen: Kitchen, db: AsyncSession) -> tuple[st
     return "\n".join(lines), known
 
 
-def _conversation(request: AgentRequest) -> tuple[list[dict], str, bytes | None]:
+def _conversation(request: AgentRequest) -> tuple[list[dict[str, Any]], str, bytes | None]:
     """Prior turns (capped), the final user text, and the newest image if any."""
     msgs = request.messages[-MAX_HISTORY_MESSAGES:]
-    history: list[dict] = []
+    history: list[dict[str, Any]] = []
     for msg in msgs[:-1]:
         role = "user" if msg.role.value == "chef" else "assistant"
         history.append({"role": role, "content": msg.content[:MAX_MESSAGE_CHARS]})
@@ -230,11 +234,11 @@ class AgentService:
     ) -> AgentResponse:
         if not assistant_enabled():
             raise AiDisabledError("AI assistant is not enabled.")
-        check_rate_limit(str(kitchen.id), chef_id)
+        check_rate_limit(str(kitchen.id), chef_id, tz=kitchen.timezone)
 
         prompt = load_prompt(*AGENT_PROMPT)
         # Kitchen data is read now; the reply is stamped with this time ("as of 14:05").
-        now = datetime.now(KIGALI)
+        now = kitchen_now(kitchen)
         as_of = now.strftime("%H:%M")
         kitchen_context, known = await _build_kitchen_context(kitchen, self._db)
         system = prompt.render(

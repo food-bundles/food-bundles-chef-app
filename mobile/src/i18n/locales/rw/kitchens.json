@@ -48,6 +48,17 @@
     "addKitchenLabel": "Ongeraho igikoni",
     "addLocationFor": "Ongeraho aho {{name}} giherereye",
     "editKitchenLabel": "Hindura {{name}}",
-    "editArchivedLabel": "Hindura igikoni cyashyinguwe {{name}}"
+    "editArchivedLabel": "Hindura igikoni cyashyinguwe {{name}}",
+    "regionHeading": "Akarere n'amafaranga",
+    "countryLabel": "Igihugu",
+    "currencyLabel": "Ifaranga",
+    "timezoneLabel": "Isaha y'akarere",
+    "choose": "Hitamo…",
+    "currencyLockedHint": "Ibiciro bishingiye ku ifaranga. Kurihindura bizasaba kubyemeza (biraza vuba).",
+    "errors": {
+      "country": "Hitamo igihugu igikoni kirimo.",
+      "currency": "Hitamo ifaranga ibiciro byawe biriho.",
+      "timezone": "Hitamo isaha y'akarere k'igikoni."
+    }
   }
 }

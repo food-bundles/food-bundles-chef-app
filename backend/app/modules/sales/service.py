@@ -21,6 +21,7 @@ from app.modules.sales.schemas import (
     WeeklySalesSummary,
     WeeklyTotal,
 )
+from app.shared.kitchen_time import kitchen_today
 
 logger = structlog.get_logger(__name__)
 
@@ -114,7 +115,9 @@ class SalesService:
         if item is None:
             raise NotFoundError("Menu item not found in this kitchen.")
 
-        weekly = await self._repo.weekly_totals(kitchen.id, menu_item_id, weeks=weeks)
+        weekly = await self._repo.weekly_totals(
+            kitchen.id, menu_item_id, weeks=weeks, reference_date=kitchen_today(kitchen)
+        )
         return WeeklySalesSummary(
             menu_item_id=menu_item_id,
             menu_item_name=item.name,

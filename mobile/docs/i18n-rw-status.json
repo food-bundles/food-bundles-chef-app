@@ -2018,6 +2018,42 @@
       "status": "needs-review",
       "en": "Edit archived kitchen {{name}}"
     },
+    "kitchens.regionHeading": {
+      "status": "needs-review",
+      "en": "Region & money"
+    },
+    "kitchens.countryLabel": {
+      "status": "needs-review",
+      "en": "Country"
+    },
+    "kitchens.currencyLabel": {
+      "status": "needs-review",
+      "en": "Currency"
+    },
+    "kitchens.timezoneLabel": {
+      "status": "needs-review",
+      "en": "Time zone"
+    },
+    "kitchens.choose": {
+      "status": "needs-review",
+      "en": "Choose…"
+    },
+    "kitchens.currencyLockedHint": {
+      "status": "needs-review",
+      "en": "Prices depend on the currency. Changing it will need a confirmation step (coming soon)."
+    },
+    "kitchens.errors.country": {
+      "status": "needs-review",
+      "en": "Choose the kitchen's country."
+    },
+    "kitchens.errors.currency": {
+      "status": "needs-review",
+      "en": "Choose the currency your prices are in."
+    },
+    "kitchens.errors.timezone": {
+      "status": "needs-review",
+      "en": "Choose the kitchen's time zone."
+    },
     "menu.title": {
       "status": "needs-review",
       "en": "Menu"

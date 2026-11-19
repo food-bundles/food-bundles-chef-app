@@ -44,6 +44,25 @@ class ConflictError(AppError):
     message = "A conflict occurred with the current state of the resource."
 
 
+class CurrencyChangeNotAllowedError(ConflictError):
+    """A kitchen's currency changes only through the convert / relabel flow."""
+
+    error_code = "CURRENCY_CHANGE_REQUIRES_CONFIRMATION"
+    message = (
+        "Changing the kitchen currency needs the convert or relabel flow, "
+        "which shows the effect on prices first."
+    )
+
+
+class CatalogNotAvailableError(ConflictError):
+    """Food Bundles catalogue items for a kitchen in a country Food Bundles does not serve."""
+
+    error_code = "CATALOG_NOT_AVAILABLE"
+    message = (
+        "The Food Bundles catalogue is not available in this kitchen's country. Use manual items."
+    )
+
+
 class OrderOnItsWayError(ConflictError):
     """Cancel refused: the order is already on its way (status out_for_delivery)."""
 

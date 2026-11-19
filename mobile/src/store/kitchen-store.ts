@@ -12,6 +12,10 @@ function dtoToKitchen(dto: KitchenDto): Kitchen {
     seatingCapacity: undefined,
     isArchived: dto.status === 'archived',
     createdAt: dto.created_at,
+    currency: dto.currency,
+    timezone: dto.timezone,
+    country: dto.country,
+    catalogAvailable: dto.catalog_available,
   };
 }
 

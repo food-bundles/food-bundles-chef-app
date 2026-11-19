@@ -48,6 +48,17 @@
     "addKitchenLabel": "Ajouter une cuisine",
     "addLocationFor": "Ajouter un lieu pour {{name}}",
     "editKitchenLabel": "Modifier {{name}}",
-    "editArchivedLabel": "Modifier la cuisine archivée {{name}}"
+    "editArchivedLabel": "Modifier la cuisine archivée {{name}}",
+    "regionHeading": "Région et monnaie",
+    "countryLabel": "Pays",
+    "currencyLabel": "Devise",
+    "timezoneLabel": "Fuseau horaire",
+    "choose": "Choisir…",
+    "currencyLockedHint": "Les prix dépendent de la devise. La modifier demandera une étape de confirmation (bientôt).",
+    "errors": {
+      "country": "Choisissez le pays de la cuisine.",
+      "currency": "Choisissez la devise de vos prix.",
+      "timezone": "Choisissez le fuseau horaire de la cuisine."
+    }
   }
 }

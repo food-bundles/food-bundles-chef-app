@@ -242,5 +242,5 @@ class AgentResponse(BaseModel):
     reply_text: str
     # Echo last action for undo chaining
     last_action: ActionProposal | None = None
-    # Kigali time (HH:MM) the kitchen data behind this reply was read
+    # Kitchen-local time (HH:MM) the kitchen data behind this reply was read
     as_of: str | None = None

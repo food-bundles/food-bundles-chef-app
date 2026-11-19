@@ -26,13 +26,16 @@ export default function KitchenDetailScreen() {
   const archiveKitchen = useArchiveKitchen();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<KitchenFormValues>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting, isDirty } } = useForm<KitchenFormValues>({
     resolver: zodResolver(kitchenSchema),
     defaultValues: {
       name: kitchen?.name ?? '',
       address: kitchen?.address ?? '',
       cuisineType: kitchen?.cuisineType ?? '',
       seatingCapacity: kitchen?.seatingCapacity?.toString() ?? '',
+      country: kitchen?.country ?? '',
+      currency: kitchen?.currency ?? '',
+      timezone: kitchen?.timezone ?? '',
     },
   });
 
@@ -72,7 +75,13 @@ export default function KitchenDetailScreen() {
     try {
       await updateKitchen.mutateAsync({
         kitchenId: kitchen.id,
-        body: { name: values.name, address: values.address || null, location: values.cuisineType || null },
+        body: {
+          name: values.name,
+          address: values.address || null,
+          location: values.cuisineType || null,
+          country: values.country,
+          timezone: values.timezone,
+        },
       });
       router.back();
     } catch {
@@ -135,6 +144,8 @@ export default function KitchenDetailScreen() {
         photoUri={photoUri}
         onPickPhoto={showPhotoPicker}
         photoLabel={t('kitchens.changePhotoLabel')}
+        setValue={setValue}
+        currencyLocked
       >
         {kitchen.isArchived ? (
           <View style={{ paddingVertical: spacing.sm, borderRadius: radius.lg, backgroundColor: tk.surfaceSunken, alignItems: 'center' }}>

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { isCurrency } from '@/lib/money';
+import { isCountry } from '@/lib/regions';
 
 export const kitchenSchema = z.object({
   name: z
@@ -24,6 +26,10 @@ export const kitchenSchema = z.object({
       (v) => !v || parseInt(v, 10) <= 2000,
       'Seating capacity cannot exceed 2,000',
     ),
+  // Chosen by the chef (device suggestions preselected); no country is assumed.
+  country: z.string().refine((v) => isCountry(v), 'country'),
+  currency: z.string().refine((v) => isCurrency(v), 'currency'),
+  timezone: z.string().min(1, 'timezone'),
 });
 
 export type KitchenFormValues = z.infer<typeof kitchenSchema>;

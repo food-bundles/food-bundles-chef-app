@@ -223,7 +223,9 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Catalog preview list */}
+        {/* Catalog preview list: only where Food Bundles operates */}
+        {activeKitchen?.catalogAvailable ? (
+          <>
         <SectionHeader
           title={t('dashboard.catalog')}
           actionLabel={t('common.seeAll')}
@@ -268,6 +270,8 @@ export default function DashboardScreen() {
             </AppPressable>
           </View>
         )}
+          </>
+        ) : null}
 
         {/* New kitchen onboarding callouts */}
         {isNewKitchen && (

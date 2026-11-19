@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { Controller, type Control, type FieldErrors } from 'react-hook-form';
+import { Controller, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing } from '@/lib/theme';
 import type { KitchenFormValues } from './kitchen-schema';
+import { RegionFields, type RegionFieldsProps } from './RegionFields';
 
 const HERO_HEIGHT = 220;
 
@@ -24,6 +25,10 @@ export interface KitchenFormFieldsProps {
   onPickPhoto: () => void;
   photoLabel: string;
   autoFocusName?: boolean;
+  setValue: UseFormSetValue<KitchenFormValues>;
+  /** Edit screen: currency changes only through the convert / relabel flow. */
+  currencyLocked?: boolean;
+  regionSuggestions?: RegionFieldsProps['suggested'];
   /** Rendered below the fields (archive button, errors). */
   children?: ReactNode;
 }
@@ -39,6 +44,9 @@ export function KitchenFormFields({
   onPickPhoto,
   photoLabel,
   autoFocusName = false,
+  setValue,
+  currencyLocked = false,
+  regionSuggestions,
   children,
 }: KitchenFormFieldsProps) {
   const { t } = useTranslation();
@@ -182,6 +190,14 @@ export function KitchenFormFields({
             />
           </View>
         </View>
+
+        <RegionFields
+          control={control}
+          errors={errors}
+          setValue={setValue}
+          currencyLocked={currencyLocked}
+          suggested={regionSuggestions}
+        />
 
         {children}
       </View>

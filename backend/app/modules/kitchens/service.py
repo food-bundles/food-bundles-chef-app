@@ -5,7 +5,11 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import KitchenAccessDeniedError, NotFoundError
+from app.core.exceptions import (
+    CurrencyChangeNotAllowedError,
+    KitchenAccessDeniedError,
+    NotFoundError,
+)
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.repository import KitchenRepository
@@ -20,9 +24,7 @@ class KitchenService:
     async def list_kitchens(self, chef: Chef) -> list[Kitchen]:
         return await self._repo.list_for_chef(chef.id)
 
-    async def create_kitchen(
-        self, chef: Chef, data: KitchenCreateRequest
-    ) -> Kitchen:
+    async def create_kitchen(self, chef: Chef, data: KitchenCreateRequest) -> Kitchen:
         kitchen = Kitchen(
             chef_id=chef.id,
             name=data.name,
@@ -31,6 +33,7 @@ class KitchenService:
             phone=data.phone,
             currency=data.currency,
             timezone=data.timezone,
+            country=data.country,
         )
         return await self._repo.create(kitchen)
 
@@ -50,10 +53,12 @@ class KitchenService:
             kitchen.address = data.address
         if data.phone is not None:
             kitchen.phone = data.phone
-        if data.currency is not None:
-            kitchen.currency = data.currency
+        if data.currency is not None and data.currency != kitchen.currency:
+            raise CurrencyChangeNotAllowedError()
         if data.timezone is not None:
             kitchen.timezone = data.timezone
+        if data.country is not None:
+            kitchen.country = data.country
 
         return await self._repo.update(kitchen)
 

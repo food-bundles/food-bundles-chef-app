@@ -88,7 +88,9 @@ class SalesRepository:
 
         Week starts on Monday. Returns most recent week first.
         """
-        ref = reference_date or date.today()
+        if reference_date is None:
+            raise ValueError("reference_date is required: pass the kitchen's local today")
+        ref = reference_date
         # Start of the most recent complete week (last Monday)
         days_since_monday = ref.weekday()
         week_start = ref - timedelta(days=days_since_monday + 7)  # last full week

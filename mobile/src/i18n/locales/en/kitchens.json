@@ -48,6 +48,17 @@
     "addKitchenLabel": "Add a kitchen",
     "addLocationFor": "Add a location for {{name}}",
     "editKitchenLabel": "Edit {{name}}",
-    "editArchivedLabel": "Edit archived kitchen {{name}}"
+    "editArchivedLabel": "Edit archived kitchen {{name}}",
+    "regionHeading": "Region & money",
+    "countryLabel": "Country",
+    "currencyLabel": "Currency",
+    "timezoneLabel": "Time zone",
+    "choose": "Choose…",
+    "currencyLockedHint": "Prices depend on the currency. Changing it will need a confirmation step (coming soon).",
+    "errors": {
+      "country": "Choose the kitchen's country.",
+      "currency": "Choose the currency your prices are in.",
+      "timezone": "Choose the kitchen's time zone."
+    }
   }
 }

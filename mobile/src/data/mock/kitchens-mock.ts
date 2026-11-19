@@ -9,6 +9,10 @@ export const MOCK_KITCHENS: Kitchen[] = [
     cuisineType: 'Contemporary African',
     seatingCapacity: 60,
     isArchived: false,
+    currency: 'RWF',
+    timezone: 'Africa/Kigali',
+    country: 'RW',
+    catalogAvailable: true,
     createdAt: '2026-01-15T08:00:00Z',
   },
   {
@@ -19,6 +23,10 @@ export const MOCK_KITCHENS: Kitchen[] = [
     cuisineType: 'Traditional Rwandan',
     seatingCapacity: 120,
     isArchived: false,
+    currency: 'RWF',
+    timezone: 'Africa/Kigali',
+    country: 'RW',
+    catalogAvailable: true,
     createdAt: '2026-03-10T08:00:00Z',
   },
 ];

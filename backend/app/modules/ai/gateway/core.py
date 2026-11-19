@@ -29,6 +29,7 @@ from app.core.config import settings
 from app.core.exceptions import AiImageInvalidError, AiRateLimitError
 from app.modules.ai.providers.base import ImagePart, LLMRequest, Message, Tier
 from app.modules.ai.providers.router import Policy, provider_router
+from app.shared.kitchen_time import kitchen_today
 
 logger = structlog.get_logger(__name__)
 
@@ -109,14 +110,15 @@ def _over_limit(subject: str, limit: int, today: date) -> bool:
     return limit > 0 and _daily_counts.get((subject, today), 0) >= limit
 
 
-def check_rate_limit(kitchen_id: str, chef_id: str | None = None) -> None:
+def check_rate_limit(kitchen_id: str, chef_id: str | None = None, *, tz: str | None = None) -> None:
     """Enforce AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY and AI_MAX_REQUESTS_PER_CHEF_PER_DAY.
 
     0 = unlimited. A request counts against both budgets only when it passes both.
     Process-local: with several workers the effective limit is per worker.
-    Move to Redis/DB before scaling horizontally.
+    Move to Redis/DB before scaling horizontally. Days are the kitchen's local days (`tz`);
+    without a zone, UTC.
     """
-    today = date.today()
+    today = kitchen_today(tz or "UTC")
     budgets = [(f"kitchen:{kitchen_id}", settings.AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY)]
     if chef_id:
         budgets.append((f"chef:{chef_id}", settings.AI_MAX_REQUESTS_PER_CHEF_PER_DAY))

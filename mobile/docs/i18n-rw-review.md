@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive".                                        |
 | AI                | AI          | Kept as the English acronym.                                              |
 
-Total keys: **999** — status as generated: 0 approved,
-999 needing review.
+Total keys: **1008** — status as generated: 0 approved,
+1008 needing review.
 
 ## agent (129)
 
@@ -518,59 +518,68 @@ Total keys: **999** — status as generated: 0 approved,
 | `errors.boundary.body`  | The app hit an unexpected problem. Your saved data is safe. | Porogaramu yahuye n'ikibazo kitunguranye. Amakuru yawe yabitswe ari amahoro. | ⚠ needs review |
 | `errors.boundary.retry` | Try again                                                   | Ongera ugerageze                                                             | ⚠ needs review |
 
-## kitchens (49)
+## kitchens (58)
 
-| Key                               | English source                                                             | Kinyarwanda draft                                                          | Status         |
-| --------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------- |
-| `kitchens.title`                  | Kitchens                                                                   | Ibikoni                                                                    | ⚠ needs review |
-| `kitchens.yourKitchens`           | Your Kitchens                                                              | Ibikoni Byawe                                                              | ⚠ needs review |
-| `kitchens.selectKitchen`          | Select kitchen                                                             | Hitamo igataraga                                                           | ⚠ needs review |
-| `kitchens.noKitchens`             | No kitchens yet. Add your first kitchen.                                   | Nta magataraga. Ongeraho igataraga yawe rya mbere.                         | ⚠ needs review |
-| `kitchens.noKitchensTitle`        | No kitchens yet                                                            | Nta gikoni kirahari                                                        | ⚠ needs review |
-| `kitchens.noKitchensDesc`         | Create your first kitchen to start managing stock, menus, and deliveries.  | Kora igikoni cyawe cya mbere kugira ngo ucunge ububiko, menu n'ibyakiriwe. | ⚠ needs review |
-| `kitchens.createKitchen`          | Create Kitchen                                                             | Kora igikoni                                                               | ⚠ needs review |
-| `kitchens.addLocation`            | Add location                                                               | Ongeraho aho giherereye                                                    | ⚠ needs review |
-| `kitchens.address`                | Address                                                                    | Aderesi                                                                    | ⚠ needs review |
-| `kitchens.cuisine`                | Cuisine                                                                    | Ubwoko bw'Ituze                                                            | ⚠ needs review |
-| `kitchens.seating`                | Seating                                                                    | Ibibanza                                                                   | ⚠ needs review |
-| `kitchens.status`                 | Status                                                                     | Imimerere                                                                  | ⚠ needs review |
-| `kitchens.active`                 | Active                                                                     | Ikiri gukoreshwa                                                           | ⚠ needs review |
-| `kitchens.archived`               | Archived                                                                   | Ryashyiriwe mu bubiko                                                      | ⚠ needs review |
-| `kitchens.createYourKitchen`      | Create Your Kitchen                                                        | Kora igikoni cyawe                                                         | ⚠ needs review |
-| `kitchens.createHeroSub`          | Your kitchen workspace for managing stock, menus, and deliveries.          | Aho ukorera ucunga ububiko, menu n'ibyakiriwe.                             | ⚠ needs review |
-| `kitchens.kitchenNameLabel`       | Kitchen Name *                                                             | Izina ry'igikoni *                                                         | ⚠ needs review |
-| `kitchens.kitchenNamePlaceholder` | e.g. Kigali Bistro                                                         | urugero: Kigali Bistro                                                     | ⚠ needs review |
-| `kitchens.cityLabel`              | City / Location *                                                          | Umujyi / Aho giherereye *                                                  | ⚠ needs review |
-| `kitchens.cityPlaceholder`        | e.g. Kigali, Musanze, Butare                                               | urugero: Kigali, Musanze, Butare                                           | ⚠ needs review |
-| `kitchens.addressLabel`           | Address (optional)                                                         | Aderesi (si ngombwa)                                                       | ⚠ needs review |
-| `kitchens.addressPlaceholder`     | e.g. KG 7 Ave, Kigali                                                      | urugero: KG 7 Ave, Kigali                                                  | ⚠ needs review |
-| `kitchens.seatingLabel`           | Seating Capacity (optional)                                                | Imyanya yo kwicaramo (si ngombwa)                                          | ⚠ needs review |
-| `kitchens.seatingPlaceholder`     | e.g. 40                                                                    | urugero: 40                                                                | ⚠ needs review |
-| `kitchens.createError`            | Failed to create kitchen. Please try again.                                | Gukora igikoni byanze. Ongera ugerageze.                                   | ⚠ needs review |
-| `kitchens.createButton`           | Create Kitchen                                                             | Kora igikoni                                                               | ⚠ needs review |
-| `kitchens.archiveKitchen`         | Archive Kitchen                                                            | Shyingura igikoni                                                          | ⚠ needs review |
-| `kitchens.isArchived`             | This kitchen is archived.                                                  | Iki gikoni cyashyinguwe.                                                   | ⚠ needs review |
-| `kitchens.saveError`              | Failed to save changes. Please try again.                                  | Kubika impinduka byanze. Ongera ugerageze.                                 | ⚠ needs review |
-| `kitchens.saving`                 | Saving…                                                                    | Birimo kubikwa…                                                            | ⚠ needs review |
-| `kitchens.saveButton`             | Save Changes                                                               | Bika impinduka                                                             | ⚠ needs review |
-| `kitchens.archiveDialogTitle`     | Archive Kitchen?                                                           | Gushyingura igikoni?                                                       | ⚠ needs review |
-| `kitchens.archiveDialogMessage`   | This kitchen will be hidden from your workspace. You can restore it later. | Iki gikoni kizahishwa aho ukorera. Ushobora kukigarura nyuma.              | ⚠ needs review |
-| `kitchens.archiveConfirm`         | Archive                                                                    | Shyingura                                                                  | ⚠ needs review |
-| `kitchens.photoPermissionTitle`   | Photo access needed                                                        | Uruhushya rw'amafoto rurakenewe                                            | ⚠ needs review |
-| `kitchens.photoPermissionBody`    | Allow access to your camera or photos to add a kitchen photo.              | Emera kamera cyangwa amafoto kugira ngo wongereho ifoto y'igikoni.         | ⚠ needs review |
-| `kitchens.photoTitle`             | Kitchen photo                                                              | Ifoto y'igikoni                                                            | ⚠ needs review |
-| `kitchens.photoSource`            | Take a photo or choose one from your gallery.                              | Fata ifoto cyangwa uhitemo imwe mu mafoto yawe.                            | ⚠ needs review |
-| `kitchens.addPhotoLabel`          | Add a kitchen photo                                                        | Ongeraho ifoto y'igikoni                                                   | ⚠ needs review |
-| `kitchens.notFound`               | Kitchen not found.                                                         | Igikoni ntikibonetse.                                                      | ⚠ needs review |
-| `kitchens.noChanges`              | No changes to save.                                                        | Nta mpinduka zo kubika.                                                    | ⚠ needs review |
-| `kitchens.detailsEyebrow`         | Kitchen details                                                            | Ibisobanuro by'igikoni                                                     | ⚠ needs review |
-| `kitchens.changePhotoLabel`       | Change kitchen photo                                                       | Hindura ifoto y'igikoni                                                    | ⚠ needs review |
-| `kitchens.archiveError`           | Couldn't archive the kitchen. Try again.                                   | Gushyingura igikoni byanze. Ongera ugerageze.                              | ⚠ needs review |
-| `kitchens.selectorLabel`          | Choose the active kitchen                                                  | Hitamo igikoni ukoresha                                                    | ⚠ needs review |
-| `kitchens.addKitchenLabel`        | Add a kitchen                                                              | Ongeraho igikoni                                                           | ⚠ needs review |
-| `kitchens.addLocationFor`         | Add a location for {{name}}                                                | Ongeraho aho {{name}} giherereye                                           | ⚠ needs review |
-| `kitchens.editKitchenLabel`       | Edit {{name}}                                                              | Hindura {{name}}                                                           | ⚠ needs review |
-| `kitchens.editArchivedLabel`      | Edit archived kitchen {{name}}                                             | Hindura igikoni cyashyinguwe {{name}}                                      | ⚠ needs review |
+| Key                               | English source                                                                          | Kinyarwanda draft                                                             | Status         |
+| --------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------- |
+| `kitchens.title`                  | Kitchens                                                                                | Ibikoni                                                                       | ⚠ needs review |
+| `kitchens.yourKitchens`           | Your Kitchens                                                                           | Ibikoni Byawe                                                                 | ⚠ needs review |
+| `kitchens.selectKitchen`          | Select kitchen                                                                          | Hitamo igataraga                                                              | ⚠ needs review |
+| `kitchens.noKitchens`             | No kitchens yet. Add your first kitchen.                                                | Nta magataraga. Ongeraho igataraga yawe rya mbere.                            | ⚠ needs review |
+| `kitchens.noKitchensTitle`        | No kitchens yet                                                                         | Nta gikoni kirahari                                                           | ⚠ needs review |
+| `kitchens.noKitchensDesc`         | Create your first kitchen to start managing stock, menus, and deliveries.               | Kora igikoni cyawe cya mbere kugira ngo ucunge ububiko, menu n'ibyakiriwe.    | ⚠ needs review |
+| `kitchens.createKitchen`          | Create Kitchen                                                                          | Kora igikoni                                                                  | ⚠ needs review |
+| `kitchens.addLocation`            | Add location                                                                            | Ongeraho aho giherereye                                                       | ⚠ needs review |
+| `kitchens.address`                | Address                                                                                 | Aderesi                                                                       | ⚠ needs review |
+| `kitchens.cuisine`                | Cuisine                                                                                 | Ubwoko bw'Ituze                                                               | ⚠ needs review |
+| `kitchens.seating`                | Seating                                                                                 | Ibibanza                                                                      | ⚠ needs review |
+| `kitchens.status`                 | Status                                                                                  | Imimerere                                                                     | ⚠ needs review |
+| `kitchens.active`                 | Active                                                                                  | Ikiri gukoreshwa                                                              | ⚠ needs review |
+| `kitchens.archived`               | Archived                                                                                | Ryashyiriwe mu bubiko                                                         | ⚠ needs review |
+| `kitchens.createYourKitchen`      | Create Your Kitchen                                                                     | Kora igikoni cyawe                                                            | ⚠ needs review |
+| `kitchens.createHeroSub`          | Your kitchen workspace for managing stock, menus, and deliveries.                       | Aho ukorera ucunga ububiko, menu n'ibyakiriwe.                                | ⚠ needs review |
+| `kitchens.kitchenNameLabel`       | Kitchen Name *                                                                          | Izina ry'igikoni *                                                            | ⚠ needs review |
+| `kitchens.kitchenNamePlaceholder` | e.g. Kigali Bistro                                                                      | urugero: Kigali Bistro                                                        | ⚠ needs review |
+| `kitchens.cityLabel`              | City / Location *                                                                       | Umujyi / Aho giherereye *                                                     | ⚠ needs review |
+| `kitchens.cityPlaceholder`        | e.g. Kigali, Musanze, Butare                                                            | urugero: Kigali, Musanze, Butare                                              | ⚠ needs review |
+| `kitchens.addressLabel`           | Address (optional)                                                                      | Aderesi (si ngombwa)                                                          | ⚠ needs review |
+| `kitchens.addressPlaceholder`     | e.g. KG 7 Ave, Kigali                                                                   | urugero: KG 7 Ave, Kigali                                                     | ⚠ needs review |
+| `kitchens.seatingLabel`           | Seating Capacity (optional)                                                             | Imyanya yo kwicaramo (si ngombwa)                                             | ⚠ needs review |
+| `kitchens.seatingPlaceholder`     | e.g. 40                                                                                 | urugero: 40                                                                   | ⚠ needs review |
+| `kitchens.createError`            | Failed to create kitchen. Please try again.                                             | Gukora igikoni byanze. Ongera ugerageze.                                      | ⚠ needs review |
+| `kitchens.createButton`           | Create Kitchen                                                                          | Kora igikoni                                                                  | ⚠ needs review |
+| `kitchens.archiveKitchen`         | Archive Kitchen                                                                         | Shyingura igikoni                                                             | ⚠ needs review |
+| `kitchens.isArchived`             | This kitchen is archived.                                                               | Iki gikoni cyashyinguwe.                                                      | ⚠ needs review |
+| `kitchens.saveError`              | Failed to save changes. Please try again.                                               | Kubika impinduka byanze. Ongera ugerageze.                                    | ⚠ needs review |
+| `kitchens.saving`                 | Saving…                                                                                 | Birimo kubikwa…                                                               | ⚠ needs review |
+| `kitchens.saveButton`             | Save Changes                                                                            | Bika impinduka                                                                | ⚠ needs review |
+| `kitchens.archiveDialogTitle`     | Archive Kitchen?                                                                        | Gushyingura igikoni?                                                          | ⚠ needs review |
+| `kitchens.archiveDialogMessage`   | This kitchen will be hidden from your workspace. You can restore it later.              | Iki gikoni kizahishwa aho ukorera. Ushobora kukigarura nyuma.                 | ⚠ needs review |
+| `kitchens.archiveConfirm`         | Archive                                                                                 | Shyingura                                                                     | ⚠ needs review |
+| `kitchens.photoPermissionTitle`   | Photo access needed                                                                     | Uruhushya rw'amafoto rurakenewe                                               | ⚠ needs review |
+| `kitchens.photoPermissionBody`    | Allow access to your camera or photos to add a kitchen photo.                           | Emera kamera cyangwa amafoto kugira ngo wongereho ifoto y'igikoni.            | ⚠ needs review |
+| `kitchens.photoTitle`             | Kitchen photo                                                                           | Ifoto y'igikoni                                                               | ⚠ needs review |
+| `kitchens.photoSource`            | Take a photo or choose one from your gallery.                                           | Fata ifoto cyangwa uhitemo imwe mu mafoto yawe.                               | ⚠ needs review |
+| `kitchens.addPhotoLabel`          | Add a kitchen photo                                                                     | Ongeraho ifoto y'igikoni                                                      | ⚠ needs review |
+| `kitchens.notFound`               | Kitchen not found.                                                                      | Igikoni ntikibonetse.                                                         | ⚠ needs review |
+| `kitchens.noChanges`              | No changes to save.                                                                     | Nta mpinduka zo kubika.                                                       | ⚠ needs review |
+| `kitchens.detailsEyebrow`         | Kitchen details                                                                         | Ibisobanuro by'igikoni                                                        | ⚠ needs review |
+| `kitchens.changePhotoLabel`       | Change kitchen photo                                                                    | Hindura ifoto y'igikoni                                                       | ⚠ needs review |
+| `kitchens.archiveError`           | Couldn't archive the kitchen. Try again.                                                | Gushyingura igikoni byanze. Ongera ugerageze.                                 | ⚠ needs review |
+| `kitchens.selectorLabel`          | Choose the active kitchen                                                               | Hitamo igikoni ukoresha                                                       | ⚠ needs review |
+| `kitchens.addKitchenLabel`        | Add a kitchen                                                                           | Ongeraho igikoni                                                              | ⚠ needs review |
+| `kitchens.addLocationFor`         | Add a location for {{name}}                                                             | Ongeraho aho {{name}} giherereye                                              | ⚠ needs review |
+| `kitchens.editKitchenLabel`       | Edit {{name}}                                                                           | Hindura {{name}}                                                              | ⚠ needs review |
+| `kitchens.editArchivedLabel`      | Edit archived kitchen {{name}}                                                          | Hindura igikoni cyashyinguwe {{name}}                                         | ⚠ needs review |
+| `kitchens.regionHeading`          | Region & money                                                                          | Akarere n'amafaranga                                                          | ⚠ needs review |
+| `kitchens.countryLabel`           | Country                                                                                 | Igihugu                                                                       | ⚠ needs review |
+| `kitchens.currencyLabel`          | Currency                                                                                | Ifaranga                                                                      | ⚠ needs review |
+| `kitchens.timezoneLabel`          | Time zone                                                                               | Isaha y'akarere                                                               | ⚠ needs review |
+| `kitchens.choose`                 | Choose…                                                                                 | Hitamo…                                                                       | ⚠ needs review |
+| `kitchens.currencyLockedHint`     | Prices depend on the currency. Changing it will need a confirmation step (coming soon). | Ibiciro bishingiye ku ifaranga. Kurihindura bizasaba kubyemeza (biraza vuba). | ⚠ needs review |
+| `kitchens.errors.country`         | Choose the kitchen's country.                                                           | Hitamo igihugu igikoni kirimo.                                                | ⚠ needs review |
+| `kitchens.errors.currency`        | Choose the currency your prices are in.                                                 | Hitamo ifaranga ibiciro byawe biriho.                                         | ⚠ needs review |
+| `kitchens.errors.timezone`        | Choose the kitchen's time zone.                                                         | Hitamo isaha y'akarere k'igikoni.                                             | ⚠ needs review |
 
 ## menu (204)
 

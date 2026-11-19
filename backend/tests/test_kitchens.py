@@ -1,4 +1,5 @@
 """Kitchen CRUD and ownership isolation tests."""
+
 from __future__ import annotations
 
 import pytest
@@ -8,7 +9,6 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _get_tokens(client: AsyncClient, monkeypatch, phone: str) -> dict:
-
     monkeypatch.setattr(
         "app.modules.authentication.service.generate_otp", lambda: "222222"
     )  # pin the random OTP for the test
@@ -36,7 +36,12 @@ async def test_create_kitchen(client: AsyncClient, monkeypatch) -> None:
     tokens = await _get_tokens(client, monkeypatch, "+250780001002")
     resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Mama's Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Mama's Kitchen",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=_auth(tokens),
     )
     assert resp.status_code == 201
@@ -50,7 +55,12 @@ async def test_get_kitchen(client: AsyncClient, monkeypatch) -> None:
     tokens = await _get_tokens(client, monkeypatch, "+250780001003")
     create_resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Kigali Bites", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Kigali Bites",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=_auth(tokens),
     )
     kitchen_id = create_resp.json()["id"]
@@ -64,7 +74,7 @@ async def test_update_kitchen(client: AsyncClient, monkeypatch) -> None:
     tokens = await _get_tokens(client, monkeypatch, "+250780001004")
     create_resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Old Name", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={"name": "Old Name", "currency": "RWF", "timezone": "Africa/Kigali", "country": "RW"},
         headers=_auth(tokens),
     )
     kitchen_id = create_resp.json()["id"]
@@ -82,7 +92,12 @@ async def test_archive_kitchen(client: AsyncClient, monkeypatch) -> None:
     tokens = await _get_tokens(client, monkeypatch, "+250780001005")
     create_resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "To Archive", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "To Archive",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=_auth(tokens),
     )
     kitchen_id = create_resp.json()["id"]
@@ -103,7 +118,12 @@ async def test_kitchen_ownership_isolation(client: AsyncClient, monkeypatch) -> 
 
     create_resp = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Chef B Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Chef B Kitchen",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=_auth(tokens_b),
     )
     kitchen_id = create_resp.json()["id"]

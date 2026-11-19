@@ -12,6 +12,7 @@ import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitch
 import { KitchenFormFields } from '@/features/kitchens/KitchenFormFields';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize } from '@/lib/theme';
+import { deviceRegionDefaults } from '@/lib/regions';
 
 export default function CreateKitchenScreen() {
   const { t } = useTranslation();
@@ -19,10 +20,20 @@ export default function CreateKitchenScreen() {
   const insets = useSafeAreaInsets();
   const createKitchen = useCreateKitchen();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  // Device suggestions; the chef confirms or changes them. Nothing defaults to one country.
+  const [region] = useState(deviceRegionDefaults);
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<KitchenFormValues>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<KitchenFormValues>({
     resolver: zodResolver(kitchenSchema),
-    defaultValues: { name: '', address: '', cuisineType: '', seatingCapacity: '' },
+    defaultValues: {
+      name: '',
+      address: '',
+      cuisineType: '',
+      seatingCapacity: '',
+      country: region.country ?? '',
+      currency: region.currency ?? '',
+      timezone: region.timezone ?? '',
+    },
   });
 
   const pickPhoto = async (fromCamera: boolean) => {
@@ -48,7 +59,14 @@ export default function CreateKitchenScreen() {
 
   const onSubmit = async (values: KitchenFormValues) => {
     try {
-      await createKitchen.mutateAsync({ name: values.name, address: values.address || null, location: values.cuisineType || null });
+      await createKitchen.mutateAsync({
+        name: values.name,
+        address: values.address || null,
+        location: values.cuisineType || null,
+        country: values.country,
+        currency: values.currency,
+        timezone: values.timezone,
+      });
       router.replace('/(app)/(tabs)');
     } catch {
       // createKitchen.isError renders the inline message below the fields
@@ -80,6 +98,8 @@ export default function CreateKitchenScreen() {
         onPickPhoto={showPhotoPicker}
         photoLabel={t('kitchens.addPhotoLabel')}
         autoFocusName
+        setValue={setValue}
+        regionSuggestions={region}
       >
         {createKitchen.isError ? (
           <Text style={{ color: tk.danger, fontSize: fontSize.sm, textAlign: 'center' }} accessibilityRole="alert">

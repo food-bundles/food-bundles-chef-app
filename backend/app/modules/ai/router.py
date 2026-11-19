@@ -56,6 +56,7 @@ from app.modules.ai.schemas.transcription import (
 )
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
+from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.service import KitchenService
 
 logger = structlog.get_logger(__name__)
@@ -67,7 +68,7 @@ async def _get_kitchen(
     kitchen_id: uuid.UUID,
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
-):
+) -> Kitchen:
     svc = KitchenService(db)
     return await svc.get_kitchen(current_chef, kitchen_id)
 
@@ -78,7 +79,7 @@ MAX_AUDIO_BYTES = 3 * 1024 * 1024
 
 
 @router.get("/features", response_model=AiFeaturesResponse)
-async def ai_features(kitchen=Depends(_get_kitchen)) -> AiFeaturesResponse:
+async def ai_features(kitchen: Kitchen = Depends(_get_kitchen)) -> AiFeaturesResponse:
     """Remote kill switches: which AI features the app may offer right now."""
     return AiFeaturesResponse(
         image_classify=image_classify_enabled(),
@@ -103,14 +104,14 @@ async def classify_image(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> ImageClassificationResponse:
     """Decide what a photo shows (menu, dish, receipt, delivery note, stock shelf, other)."""
     if not image_classify_enabled():
         raise AiDisabledError("Image classification is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).classify(kitchen, data, mime, new_request_id(x_request_id))
 
@@ -120,14 +121,14 @@ async def menu_extract(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> MenuExtractionResponse:
     """Extract menu items for chef review. Nothing is saved — the app imports confirmed rows."""
     if not menu_scan_enabled():
         raise AiDisabledError("Menu scanning is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).extract_menu(
         kitchen, data, mime, language, new_request_id(x_request_id)
@@ -140,14 +141,14 @@ async def dish_analyze(
     language: AppLanguage = Form("en"),
     name_hint: str | None = Form(default=None, max_length=120),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> DishAnalysisResponse:
     """Suggest dish name, category and ingredients; price range is computed from real costs."""
     if not dish_analysis_enabled():
         raise AiDisabledError("Dish analysis is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).analyze_dish(
         kitchen, data, mime, language, name_hint, new_request_id(x_request_id)
@@ -159,7 +160,7 @@ async def document_extract(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentExtractionResponse:
@@ -167,7 +168,7 @@ async def document_extract(
     reviews the lines in Log Delivery and confirms them there."""
     if not document_scan_enabled():
         raise AiDisabledError("Document scanning is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).extract_document(
         kitchen, data, mime, language, new_request_id(x_request_id)
@@ -177,7 +178,7 @@ async def document_extract(
 @router.post("/feedback", status_code=204)
 async def ai_feedback(
     body: AiFeedbackRequest,
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
 ) -> Response:
     """Record what the chef did with an AI result (confirmed, edited, rejected, imported).
 
@@ -202,7 +203,7 @@ async def assess_quality(
     expected_unit: str = Form(...),
     image: UploadFile = File(..., description="JPEG or PNG, max 1 MB"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
 ) -> QualityAssessmentResponse:
     """Advisory quality assessment for a delivery item photo.
 
@@ -257,7 +258,7 @@ async def assess_quality(
 async def transcribe_audio(
     language: str = Form(default="rw"),
     audio: UploadFile = File(..., description="WAV or M4A audio file"),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
 ) -> TranscriptionResponse:
     """Speech-to-text for optional chef dictation.
@@ -272,7 +273,7 @@ async def transcribe_audio(
     # (e.g. Kinyarwanda to an English-only model).
     if language not in transcription_languages():
         raise AiDisabledError(f"Voice input is not available for '{language}' yet.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     # 60 s of AAC voice is well under 2 MB; anything larger is not a push-to-talk clip.
     audio_bytes = await audio.read(MAX_AUDIO_BYTES + 1)
     if len(audio_bytes) > MAX_AUDIO_BYTES:
@@ -308,7 +309,7 @@ async def transcribe_audio(
 async def agent_turn(
     body: AgentRequest,
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:

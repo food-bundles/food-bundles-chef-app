@@ -39,7 +39,12 @@ async def _auth_headers(db: AsyncSession) -> dict:
 async def _potato_and_chips(client: AsyncClient, headers: dict) -> tuple[str, str, str]:
     kitchen = await client.post(
         "/api/v1/kitchens",
-        json={"name": "Stock Kitchen", "currency": "RWF", "timezone": "Africa/Kigali"},
+        json={
+            "name": "Stock Kitchen",
+            "currency": "RWF",
+            "timezone": "Africa/Kigali",
+            "country": "RW",
+        },
         headers=headers,
     )
     assert kitchen.status_code == 201

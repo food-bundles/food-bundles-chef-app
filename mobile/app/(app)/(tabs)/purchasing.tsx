@@ -51,7 +51,9 @@ export default function PurchasingScreen() {
   const createOrder = useCreateOrder();
   const [refreshing, setRefreshing] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [tab, setTab] = useState<Tab>('catalog');
+  const catalogAvailable = activeKitchen?.catalogAvailable ?? false;
+  // Kitchens outside Food Bundles' countries order manual items only: no catalogue tab.
+  const [tab, setTab] = useState<Tab>(catalogAvailable ? 'catalog' : 'orders');
   const [catalogQuery, setCatalogQuery] = useState('');
   const [orderError, setOrderError] = useState<string | null>(null);
 
@@ -179,7 +181,11 @@ export default function PurchasingScreen() {
       </View>
 
       <View className="flex-row border-b border-surface-200 dark:border-surface-800" accessibilityRole="tablist">
-        {([['catalog', t('purchasing.catalog')], ['orders', t('purchasing.orders')]] as [Tab, string][]).map(([key, label]) => (
+        {(
+          (catalogAvailable
+            ? [['catalog', t('purchasing.catalog')], ['orders', t('purchasing.orders')]]
+            : [['orders', t('purchasing.orders')]]) as [Tab, string][]
+        ).map(([key, label]) => (
           <AppPressable
             key={key}
             onPress={() => setTab(key)}
@@ -194,7 +200,7 @@ export default function PurchasingScreen() {
         ))}
       </View>
 
-      {tab === 'catalog' && (
+      {tab === 'catalog' && catalogAvailable && (
         <View className="flex-1">
           {cartCount > 0 ? <KeyboardActionBar actions={checkoutActions} visible={keyboardVisible} /> : null}
           <View className="px-4 py-3">

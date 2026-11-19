@@ -178,6 +178,21 @@ class Settings(BaseSettings):
 
     # Food Bundles catalog
     FOOD_BUNDLES_CATALOG_PROVIDER: Literal["mock", "live"] = "mock"
+    # Countries (ISO 3166-1 alpha-2) Food Bundles serves: only kitchens there see the
+    # catalogue and can order catalogue items (decision 9, 2026-11-19). JSON list in env.
+    FOOD_BUNDLES_COUNTRIES: list[str] = ["RW"]
+    # Local hour (kitchen time zone) for the daily low-stock push reminder.
+    LOW_STOCK_REMINDER_LOCAL_HOUR: int = 7
+    # Default step (major units) for suggested selling prices per currency; other currencies
+    # use their smallest unit. A kitchen can override its own step (decision 7, 2026-11-19).
+    PRICE_ROUNDING_STEPS: dict[str, str] = {
+        "RWF": "100",
+        "UGX": "500",
+        "KES": "10",
+        "NGN": "50",
+        "USD": "0.50",
+        "EUR": "0.50",
+    }
     FOOD_BUNDLES_API_URL: str = ""
     FOOD_BUNDLES_API_KEY: SecretStr = SecretStr("")
 
