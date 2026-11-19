@@ -255,8 +255,8 @@ class CurrencyChangeService:
         if mode == "convert":
             if rate is None:
                 return None, None
-            # A computed amount: rounded to the new currency's smallest unit (half up).
-            return Money.rounded(apply_rate(before, rate).amount, to).amount, None
+            # Converted once, half-even, to the new currency's smallest unit (apply_rate).
+            return apply_rate(before, rate).amount, None
         try:
             return Money.of(before, to).amount, None
         except InexactAmountError:

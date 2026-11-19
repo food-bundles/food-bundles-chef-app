@@ -19,7 +19,6 @@ from app.domain.calculations import (
     convert_quantity,
     parse_quantity,
     parse_rwf_price,
-    round_up_price,
     unit_price_from_total,
 )
 from app.modules.ai.gateway.core import (
@@ -47,6 +46,8 @@ from app.modules.exchange_rates.costs import KitchenUnitCosts, kitchen_unit_cost
 from app.modules.ingredients.models import Ingredient
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.kitchens.models import Kitchen
+from app.shared.money import Money, price_step, round_up_to_step
+from app.shared.schemas.money import MoneyOut
 
 CLASSIFY_PROMPT = ("classify_image", "v1")
 MENU_PROMPT = ("menu_extract", "v1")
@@ -282,7 +283,7 @@ class AiGatewayService:
         # table; the model never sees or supplies a rate.
         unit_costs = await kitchen_unit_costs(self._db, kitchen, [m[0] for m in matched])
         price, reason = _price_from_costs(
-            matched, total=len(result.ingredients), unit_costs=unit_costs
+            matched, total=len(result.ingredients), unit_costs=unit_costs, kitchen=kitchen
         )
         return DishAnalysisResponse(
             kind=result.kind,
@@ -302,9 +303,14 @@ class AiGatewayService:
 
 
 def _price_from_costs(
-    matched: list[tuple[Ingredient, Decimal, str]], total: int, unit_costs: KitchenUnitCosts
+    matched: list[tuple[Ingredient, Decimal, str]],
+    total: int,
+    unit_costs: KitchenUnitCosts,
+    kitchen: Kitchen,
 ) -> tuple[DishPrice | None, str | None]:
-    """Deterministic price range: ingredient cost per portion ÷ target food-cost share."""
+    """Deterministic price range in the kitchen's currency: ingredient cost per portion
+    ÷ target food-cost share, rounded UP to the kitchen's price step (decision 7: the
+    kitchen's own step, else the per-currency default, else the smallest unit)."""
     if total == 0:
         return None, "no_ingredients"
     cost = Decimal("0")
@@ -323,11 +329,18 @@ def _price_from_costs(
 
     low_share = Decimal(str(settings.AI_TARGET_FOOD_COST_LOW))
     high_share = Decimal(str(settings.AI_TARGET_FOOD_COST_HIGH))
+    currency = str(kitchen.currency)
+    step = price_step(currency, settings.PRICE_ROUNDING_STEPS, kitchen.price_step)
+    # A higher food-cost share means a lower price, and vice versa.
+    low = Money.rounded(round_up_to_step(cost / high_share, step), currency)
+    high = Money.rounded(round_up_to_step(cost / low_share, step), currency)
     return (
         DishPrice(
-            # A higher food-cost share means a lower price, and vice versa.
-            low=round_up_price(cost / high_share),
-            high=round_up_price(cost / low_share),
+            low=float(low.amount),
+            high=float(high.amount),
+            currency=currency,
+            low_money=MoneyOut(**low.to_api()),
+            high_money=MoneyOut(**high.to_api()),
             cost_per_portion=float(cost.quantize(Decimal("0.01"))),
             food_cost_low_pct=int(low_share * 100),
             food_cost_high_pct=int(high_share * 100),

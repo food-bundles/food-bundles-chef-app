@@ -1,5 +1,6 @@
 import type { ActionProposal } from '@/api/agent-api';
-import { formatDate, formatQuantity, formatRWF, localISODate } from '@/lib/format';
+import { formatDate, formatQuantity, formatRWF } from '@/lib/format';
+import { activeKitchenToday } from '@/features/kitchens/kitchen-today';
 
 /**
  * Turns an action proposal into what the action card shows. Everything here is
@@ -70,7 +71,7 @@ function orderRef(orderId: unknown): string {
 }
 
 function dayLabel(iso: string, t: Translate, lang: string): string {
-  if (!iso || iso === localISODate()) return t('agent.card.today');
+  if (!iso || iso === activeKitchenToday()) return t('agent.card.today');
   return formatDate(`${iso}T12:00:00`, lang);
 }
 

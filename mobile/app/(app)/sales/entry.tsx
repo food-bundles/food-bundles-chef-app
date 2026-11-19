@@ -9,7 +9,8 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { QuantitySelector } from '@/components/ui/QuantitySelector';
 import { Snackbar } from '@/components/ui/Snackbar';
 import { detectAnomaly } from '@/domain/anomaly';
-import { formatDate, formatRWF, localISODate } from '@/lib/format';
+import { formatDate, formatRWF } from '@/lib/format';
+import { useKitchenToday } from '@/features/kitchens/kitchen-today';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, radius } from '@/lib/theme';
 
@@ -25,7 +26,7 @@ export default function SalesEntryScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [snack, setSnack] = useState<string | null>(null);
 
-  const today = localISODate();
+  const today = useKitchenToday();
   const hasAny = Object.values(quantities).some((q) => q > 0);
 
   // Soft warning for items whose revenue is far above/below the other entries (shared median helper).

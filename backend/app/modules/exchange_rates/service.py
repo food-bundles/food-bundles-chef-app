@@ -11,9 +11,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from typing import Any
 
 from sqlalchemy import select
@@ -41,6 +41,9 @@ class Rate:
     rate_date: date
     source: str
     cross: bool
+    # Unrounded legs: 1 base = numerator / denominator quote (USD→quote, USD→base).
+    numerator: Decimal = field(default=Decimal(1), compare=False, repr=False)
+    denominator: Decimal = field(default=Decimal(1), compare=False, repr=False)
 
     def to_api(self) -> dict[str, Any]:
         return {
@@ -102,7 +105,7 @@ class ExchangeRateService:
         *,
         places: int | None = None,
     ) -> Converted:
-        """Convert at the table's rate. Rounded ROUND_HALF_UP to the target currency's minor
+        """Convert at the table's rate. Rounded once, half-even, to the target currency's minor
         units, or to `places` decimals (unit costs keep 6). Raises RateUnavailableError."""
         rate = await self.get_rate(from_currency, to_currency, on_date)
         return apply_rate(amount, rate, places=places)
@@ -141,16 +144,20 @@ class ExchangeRateService:
         legs_found = {q: value for q, (_day, value) in newest[source].items()}
         usd_to_base = legs_found.get(base, Decimal(1))
         usd_to_quote = legs_found.get(quote, Decimal(1))
-        value = (usd_to_quote / usd_to_base).quantize(RATE_PLACES, rounding=ROUND_HALF_UP)
-        if value <= 0:
+        if usd_to_base <= 0 or usd_to_quote <= 0:
             return None
+        # The shown rate is rounded to 12 places; conversion uses the unrounded legs.
+        value = (usd_to_quote / usd_to_base).quantize(RATE_PLACES, rounding=ROUND_HALF_EVEN)
         cross = BASE_CURRENCY not in (base, quote)
-        return Rate(base, quote, value, rate_date, source, cross)
+        return Rate(base, quote, value, rate_date, source, cross, usd_to_quote, usd_to_base)
 
 
 def apply_rate(amount: Decimal, rate: Rate, *, places: int | None = None) -> Converted:
+    """Convert at `rate`. Rounding rule (2026-11-19): ROUND_HALF_EVEN to the target
+    currency's minor unit (or `places`, e.g. 6 for unit costs), applied ONCE at the end on
+    amount x USD→quote ÷ USD→base; no intermediate amount or rate is rounded first.
+    Suggested selling prices then apply the per-currency price step (decision 7)."""
     decimals = minor_units(rate.quote) if places is None else places
-    converted = (Decimal(amount) * rate.rate).quantize(
-        Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP
-    )
+    exact = Decimal(amount) * rate.numerator / rate.denominator
+    converted = exact.quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_EVEN)
     return Converted(Decimal(amount), rate.base, converted, rate.quote, rate)

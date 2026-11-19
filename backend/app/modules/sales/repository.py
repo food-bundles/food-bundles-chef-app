@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, timedelta
-from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,12 +21,16 @@ class SalesRepository:
         sale_date: date,
         portions_sold: int,
         recorded_by: uuid.UUID | None,
+        unit_price_minor: int | None = None,
+        unit_price_currency: str | None = None,
     ) -> DailySaleRecord:
-        """Insert or update portions_sold for the given day."""
+        """Insert or update portions_sold for the given day, with the price at that time."""
         existing = await self._get_exact(kitchen_id, menu_item_id, sale_date)
         if existing is not None:
             existing.portions_sold = portions_sold
             existing.recorded_by = recorded_by
+            existing.unit_price_minor = unit_price_minor
+            existing.unit_price_currency = unit_price_currency
             await self._db.flush()
             await self._db.refresh(existing)
             return existing
@@ -38,6 +41,8 @@ class SalesRepository:
             sale_date=sale_date,
             portions_sold=portions_sold,
             recorded_by=recorded_by,
+            unit_price_minor=unit_price_minor,
+            unit_price_currency=unit_price_currency,
         )
         self._db.add(record)
         await self._db.flush()
@@ -65,17 +70,25 @@ class SalesRepository:
 
     async def day_totals_with_price(
         self, kitchen_id: uuid.UUID, sale_date: date
-    ) -> list[tuple[int, Decimal]]:
-        """(portions_sold, current selling_price) for every item sold on `sale_date`."""
+    ) -> list[tuple[int, int | None, str | None]]:
+        """(portions_sold, unit price in minor units, currency) for every item sold on
+        `sale_date`: the price recorded with the sale, else the item's current price."""
         result = await self._db.execute(
-            select(DailySaleRecord.portions_sold, MenuItem.selling_price)
+            select(
+                DailySaleRecord.portions_sold,
+                func.coalesce(DailySaleRecord.unit_price_minor, MenuItem.selling_price_minor),
+                func.coalesce(DailySaleRecord.unit_price_currency, MenuItem.selling_price_currency),
+            )
             .join(MenuItem, MenuItem.id == DailySaleRecord.menu_item_id)
             .where(
                 DailySaleRecord.kitchen_id == kitchen_id,
                 DailySaleRecord.sale_date == sale_date,
             )
         )
-        return [(int(p), Decimal(price)) for p, price in result.all()]
+        return [
+            (int(p), int(minor) if minor is not None else None, currency)
+            for p, minor, currency in result.all()
+        ]
 
     async def weekly_totals(
         self,

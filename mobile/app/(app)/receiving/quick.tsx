@@ -23,7 +23,8 @@ import type { DocumentExtraction } from '@/features/ai/schemas';
 import { createOrder, submitOrder, confirmOrder } from '@/api/orders-api';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
 import { queryKeys } from '@/api/query-keys';
-import { formatTime, localISODate, toAppLanguage } from '@/lib/format';
+import { formatTime, toAppLanguage } from '@/lib/format';
+import { activeKitchenToday } from '@/features/kitchens/kitchen-today';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { CatalogProductDto } from '@/api/catalog-api';
@@ -219,7 +220,7 @@ export default function QuickReceiveScreen() {
       const order = await createOrder(
         activeKitchen.id,
         {
-          delivery_date: localISODate(),
+          delivery_date: activeKitchenToday(),
           notes: supplierName.trim()
             ? t('receiving.supplierNote', { supplier: supplierName.trim() })
             : t('receiving.walkInNote'),

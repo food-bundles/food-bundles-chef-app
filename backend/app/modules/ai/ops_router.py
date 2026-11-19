@@ -12,12 +12,15 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, Response
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.database import get_db
 from app.core.exceptions import ForbiddenError, NotFoundError, UnauthorizedError
 from app.modules.ai.providers import health
 from app.modules.ai.providers.killswitch import kill_switch
 from app.modules.ai.providers.router import provider_router
+from app.modules.exchange_rates.health import RatesHealthResponse, rates_health
 
 router = APIRouter(prefix="/ai", tags=["ai-ops"])
 
@@ -111,3 +114,14 @@ async def set_kill_switch(provider: ProviderName, body: KillSwitchRequest) -> Re
     """Turn a provider off (or back on) for every instance within ~5 s, without a deploy."""
     await kill_switch.set(provider, body.on)
     return Response(status_code=204)
+
+
+@router.get(
+    "/rates-health",
+    response_model=RatesHealthResponse,
+    dependencies=[Depends(require_ops_token)],
+)
+async def exchange_rates_health(db: AsyncSession = Depends(get_db)) -> RatesHealthResponse:
+    """Exchange-rate feed: last successful fetch per source, the age of the rate in use per
+    kitchen currency, and the currencies with no usable rate (ops token, like /ai/health)."""
+    return await rates_health(db)

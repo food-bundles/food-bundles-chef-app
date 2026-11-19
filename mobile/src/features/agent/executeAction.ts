@@ -12,7 +12,7 @@ import { createOrder, submitOrder, cancelOrder } from '@/api/orders-api';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
 import { addRecipeLine, createMenu, createMenuItem, listMenus, MENU_ITEM_CATEGORIES } from '@/api/menus-api';
 import { ApiError } from '@/api/errors';
-import { localISODate } from '@/lib/format';
+import { activeKitchenToday } from '@/features/kitchens/kitchen-today';
 import type { ActionProposal } from '@/api/agent-api';
 
 type Params = Record<string, unknown>;
@@ -44,7 +44,7 @@ export async function executeAction(kitchenId: string, proposal: ActionProposal,
         kitchenId,
         {
           menu_item_id: str(p, 'menu_item_id'),
-          sale_date: str(p, 'date') || localISODate(),
+          sale_date: str(p, 'date') || activeKitchenToday(),
           portions_sold: Math.round(num(p, 'portions_sold')),
         },
         opts,

@@ -18,6 +18,7 @@ import { ProductIcon } from '@/components/ui/ProductIcon';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useTodaySales } from '@/features/sales/useSales';
 import { formatQuantity, formatRWF } from '@/lib/format';
+import { formatSalesTotal } from '@/features/sales/sales-total';
 
 export default function DashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -163,7 +164,7 @@ export default function DashboardScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <KPITile
-              value={formatRWF(todaySales?.revenue ?? 0, i18n.language)}
+              value={formatSalesTotal(todaySales, activeKitchen?.currency ?? 'RWF', i18n.language)}
               label={t('dashboard.sales')}
               sublabel={t('dashboard.salesToday', { count: todaySales?.portions ?? 0 })}
               icon={<ClipboardList size={18} color={colors.brand[500]} strokeWidth={2} />}

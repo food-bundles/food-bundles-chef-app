@@ -17,21 +17,16 @@ section 3.
 | 8 | Time zones | Use the **kitchen's** time zone everywhere (Assistant "today", reports, daily totals, scheduled jobs, stock days); no hard-coded Kigali. Tests with a kitchen in another time zone across midnight. Done in build step 1 |
 | 9 | Food Bundles catalogue | Shown (catalogue and requisition-from-catalogue) only for kitchens in countries Food Bundles serves: config list, default `["RW"]`; other kitchens use manual items |
 
-### Exchange-rate licence check (terms pages read 2026-11-19)
+### Exchange-rate licence check
 
-| | [ExchangeRate-API](https://www.exchangerate-api.com/terms) | [Open Exchange Rates](https://openexchangerates.org/terms) | [Frankfurter](https://frankfurter.dev/license/) |
-|---|---|---|---|
-| Commercial use | **Yes**: "both Free Plan and paid … accounts are suitable for either commercial or personal use" | **Not confirmed**: the public terms forbid commercial use of the *site* by consumers and defer paid plans to a separate Service Agreement that is not public | **Yes** for blended rates: "Frankfurter's own calculation and free to use"; per-provider endpoints follow each central bank's terms |
-| Showing rates to end users | Allowed for "your end purposes"; forbidden only to offer "programmatic or automatic access to exchange rate data" (we don't: rates appear only inside conversions) | Not addressed publicly; "must not profit directly from the sale or provision of information" | Allowed (public reference data) |
-| Attribution | None on paid plans (the keyless open endpoint asks for a link; we use a key) | None stated publicly | None required |
-| Caching / storing | "store & re-use any data retrieved … caching is for customer end-use only" | Not stated publicly | No quotas; self-hosting supported |
-| Coverage RWF, NGN, KES, UGX, EUR, USD | **All six** listed, none with special notes | 200+ currencies (all six) | All six; RWF/KES/UGX from the National Bank of Rwanda and the Central Bank of Kenya, NGN from the Central Bank of Nigeria |
-| Update frequency (plan we'd use) | Pro ($10/month): every 60 minutes | Developer ($12/month): hourly | Daily reference rates (no weekend rates) |
-| Warranty | None; "informational or illustrative purposes", not for actual transactions | None | None ("as is") |
-| **Result** | **Passes** → primary | Cannot pass without the private agreement | **Passes** → fallback |
+See **[exchange-rate-licences.md](exchange-rate-licences.md)** (terms re-read 2026-11-19, with
+links and verbatim quotes). In short: ExchangeRate-API Pro remains the proposed primary,
+**after written confirmation** that showing the rate next to a conversion inside our app is
+allowed ("your end purposes"; its terms forbid re-distribution). Frankfurter is the fallback
+and, until a key is bought, the only source.
 
 Our use (food cost, showing an imported menu's converted prices, cross-kitchen reports) is
-informational, which matches ExchangeRate-API's disclaimer. Paying suppliers is out of scope.
+informational, which matches every provider's disclaimer. Paying suppliers is out of scope.
 **Scope change:** the app serves kitchens in any country. Every AI and pricing feature must
 handle any currency, number format, unit and language, and ask the chef when something is
 ambiguous. Rwanda becomes one supported case with no special handling. Step 2 (eval parity)
@@ -111,7 +106,10 @@ ISO 4217 code**, using each currency's decimal places.
   | Ingredient cost per unit (e.g. per gram) and computed food cost | `NUMERIC(18,6)` + currency | A unit cost is often a fraction of the smallest coin (0.35 RWF per g); rounding it to minor units would distort recipe costs |
 
   Rounding to minor units happens only at the boundary (display, totals, invoices), with
-  ROUND_HALF_UP.
+  ROUND_HALF_UP. **Conversions** (review item A3, 2026-11-19) round **ROUND_HALF_EVEN** to
+  the target currency's minor unit (6 places for unit costs), **once, at the end**, on
+  amount × USD→target ÷ USD→source; no intermediate amount or rate is rounded first.
+  Suggested selling prices then round UP to the price step (decision 7).
 - **API contract.** Money is a JSON object with a decimal **string**, never a float:
   `{"amount": "7.99", "currency": "USD"}` (`"amount": "3500"` for RWF). For one release the
   old fields (`selling_price: "3500.00"`) stay alongside the new ones, so installed app
@@ -189,7 +187,7 @@ date; the original currency is kept unless the chef chooses to convert):
 | Supplier or catalogue prices in another currency | Keep the original amount and currency on the line | Converted value shown next to it for food-cost purposes, with rate and date |
 | Food cost (recipe cost) | Kitchen currency | Ingredient costs in another currency use that day's rate; without a rate the cost shows "rate unavailable" rather than a wrong number |
 | Cross-kitchen reports (kitchens in different currencies) | Each kitchen in its own currency | Optional reporting currency chosen by the chef, at the report date's rate, rate shown |
-| Sales | Never converted | |
+| Sales | Never converted. Each sale keeps the price and currency it was recorded at; daily totals are one subtotal per currency (never added across currencies, e.g. after a currency change), and the Assistant gets the same subtotals | |
 
 ### c. Extraction changes (menu, dish price suggestions, documents)
 

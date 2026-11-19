@@ -19,7 +19,7 @@ export type ChatEntry =
       imageUri?: string;
       /** The message carried a photo (kept after restart, when the file may be gone). */
       hadImage?: boolean;
-      /** Kigali time (HH:MM) the kitchen data behind an answer was read. */
+      /** Kitchen-local time (HH:MM) the kitchen data behind an answer was read. */
       asOf?: string | null;
     }
   | {

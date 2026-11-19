@@ -47,7 +47,7 @@ export interface AgentResponse {
   clarification: ClarifyingQuestion | null;
   reply_text: string;
   last_action: ActionProposal | null;
-  /** Kigali time (HH:MM) the kitchen data behind this reply was read. */
+  /** Kitchen-local time (HH:MM) the kitchen data behind this reply was read. */
   as_of?: string | null;
 }
 

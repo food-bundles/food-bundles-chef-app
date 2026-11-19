@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +47,9 @@ class PurchasingService:
         self._sales_repo = SalesRepository(db)
         self._item_repo = MenuItemRepository(db)
 
-    async def get_suggestions(self, kitchen: Kitchen) -> PurchaseSuggestionsResponse:
+    async def get_suggestions(
+        self, kitchen: Kitchen, now: datetime | None = None
+    ) -> PurchaseSuggestionsResponse:
         ingredients = await self._ingredient_repo.list_for_kitchen(kitchen.id, active_only=True)
         if not ingredients:
             return PurchaseSuggestionsResponse(kitchen_id=kitchen.id, suggestions=[])
@@ -57,7 +60,7 @@ class PurchasingService:
 
         # For each active menu item, get last-4-week sales and recipe lines
         items = await self._item_repo.list_for_menu_all(kitchen.id)
-        today = kitchen_today(kitchen)
+        today = kitchen_today(kitchen, now)  # the kitchen's own calendar day
         for item in items:
             weekly = await self._sales_repo.weekly_totals(
                 kitchen.id, item.id, weeks=4, reference_date=today

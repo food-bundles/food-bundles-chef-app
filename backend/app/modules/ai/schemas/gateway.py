@@ -11,6 +11,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from app.shared.schemas.money import MoneyOut
+
 ImageKind = Literal["menu", "dish", "receipt", "delivery_note", "stock_shelf", "other"]
 ImageQuality = Literal["ok", "too_dark", "blurry", "too_small"]
 MenuCategory = Literal["main", "side", "drink", "dessert"]
@@ -180,8 +182,13 @@ class DishIngredientResponse(BaseModel):
 
 
 class DishPrice(BaseModel):
-    low: int
-    high: int
+    # In the kitchen's currency, rounded up to its price step. `low`/`high` stay numbers
+    # for installed app versions; `*_money` carry the exact amount and currency.
+    low: float
+    high: float
+    currency: str = "RWF"
+    low_money: MoneyOut | None = None
+    high_money: MoneyOut | None = None
     cost_per_portion: float
     food_cost_low_pct: int
     food_cost_high_pct: int

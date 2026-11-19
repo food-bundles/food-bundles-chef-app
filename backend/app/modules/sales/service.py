@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 import structlog
@@ -22,6 +22,7 @@ from app.modules.sales.schemas import (
     WeeklyTotal,
 )
 from app.shared.kitchen_time import kitchen_today
+from app.shared.money import Money
 
 logger = structlog.get_logger(__name__)
 
@@ -60,6 +61,8 @@ class SalesService:
             sale_date=data.sale_date,
             portions_sold=data.portions_sold,
             recorded_by=chef_id,
+            unit_price_minor=item.selling_price_minor,
+            unit_price_currency=item.selling_price_currency,
         )
 
         delta = Decimal(data.portions_sold - previous)
@@ -110,13 +113,14 @@ class SalesService:
         kitchen: Kitchen,
         menu_item_id: uuid.UUID,
         weeks: int = 4,
+        now: datetime | None = None,
     ) -> WeeklySalesSummary:
         item = await self._item_repo.get_by_id_and_kitchen(menu_item_id, kitchen.id)
         if item is None:
             raise NotFoundError("Menu item not found in this kitchen.")
 
         weekly = await self._repo.weekly_totals(
-            kitchen.id, menu_item_id, weeks=weeks, reference_date=kitchen_today(kitchen)
+            kitchen.id, menu_item_id, weeks=weeks, reference_date=kitchen_today(kitchen, now)
         )
         return WeeklySalesSummary(
             menu_item_id=menu_item_id,
@@ -124,13 +128,21 @@ class SalesService:
             weeks=[WeeklyTotal(week_start=ws, total_portions=total) for ws, total in weekly],
         )
 
-    async def daily_revenue(self, kitchen: Kitchen, day: date) -> tuple[int, Decimal]:
-        """Portions and revenue for one day, priced at each item's current selling price.
+    async def daily_revenue(self, kitchen: Kitchen, day: date) -> tuple[int, list[Money]]:
+        """Portions and revenue for one day, as one subtotal PER CURRENCY.
 
-        Sales records do not snapshot the price, so a price changed later in the day
-        re-prices that day's portions — acceptable for a same-day dashboard figure.
+        Each sale is priced at the price recorded with it (older records: the item's
+        current price). Amounts in different currencies are never added together: a
+        kitchen whose currency changed during the day gets two subtotals, kitchen
+        currency first.
         """
         rows = await self._repo.day_totals_with_price(kitchen.id, day)
-        portions = sum(p for p, _ in rows)
-        revenue = sum((Decimal(p) * price for p, price in rows), _ZERO)
-        return portions, revenue.quantize(Decimal("1"))
+        portions = sum(p for p, _, _ in rows)
+        by_currency: dict[str, int] = {}
+        for p, minor, currency in rows:
+            if minor is None or not currency:
+                continue
+            by_currency[currency] = by_currency.get(currency, 0) + p * minor
+        subtotals = [Money(minor, code) for code, minor in by_currency.items()]
+        subtotals.sort(key=lambda m: (m.currency != kitchen.currency, m.currency))
+        return portions, subtotals

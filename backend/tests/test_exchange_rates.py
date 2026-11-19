@@ -556,3 +556,129 @@ async def test_relabel_needs_typed_confirmation_and_never_rounds(
     # PATCH still cannot change the currency directly.
     patch = await client.patch(f"/api/v1/kitchens/{kid}", json={"currency": "EUR"}, headers=headers)
     assert patch.status_code == 409
+
+
+# ── Rounding rule: half-even to the target's minor unit, once, at the end ─────
+
+
+async def test_eur_to_rwf_rounds_half_even(db: AsyncSession) -> None:
+    await _seed(db, DAY, {"EUR": "0.8", "RWF": "1450"})  # 1 EUR = 1812.5 RWF
+    svc = ExchangeRateService(db)
+    assert (await svc.convert(D("0.20"), "EUR", "RWF", DAY)).amount == D("362")  # 362.5
+    assert (await svc.convert(D("0.60"), "EUR", "RWF", DAY)).amount == D("1088")  # 1087.5
+
+
+async def test_rwf_to_usd_rounds_half_even(db: AsyncSession) -> None:
+    await _seed(db, DAY, {"RWF": "1000"})
+    svc = ExchangeRateService(db)
+    assert (await svc.convert(D("25"), "RWF", "USD", DAY)).amount == D("0.02")  # 0.025
+    assert (await svc.convert(D("35"), "RWF", "USD", DAY)).amount == D("0.04")  # 0.035
+
+
+async def test_usd_to_ngn_rounds_half_even(db: AsyncSession) -> None:
+    await _seed(db, DAY, {"NGN": "1355.5"})
+    svc = ExchangeRateService(db)
+    assert (await svc.convert(D("0.03"), "USD", "NGN", DAY)).amount == D("40.66")  # 40.665
+    assert (await svc.convert(D("0.01"), "USD", "NGN", DAY)).amount == D("13.56")  # 13.555
+
+
+async def test_cross_conversion_rounds_once_not_per_step(db: AsyncSession) -> None:
+    """0.01 EUR via USD: rounding the USD amount first (0.03) would give 30 RWF."""
+    await _seed(db, DAY, {"EUR": "0.3", "RWF": "1000"})
+    converted = await ExchangeRateService(db).convert(D("0.01"), "EUR", "RWF", DAY)
+    assert converted.amount == D("33")  # 33.33…, rounded once
+
+
+async def test_unit_costs_keep_six_places_half_even(db: AsyncSession) -> None:
+    await _seed(db, DAY, {"EUR": "0.5"})
+    svc = ExchangeRateService(db)
+    tie = await svc.convert(D("0.000005"), "USD", "EUR", DAY, places=6)
+    assert tie.amount == D("0.000002")  # 0.0000025 → even
+    tie = await svc.convert(D("0.000007"), "USD", "EUR", DAY, places=6)
+    assert tie.amount == D("0.000004")  # 0.0000035 → even
+
+
+def test_suggested_dish_price_uses_the_currency_price_step() -> None:
+    """Suggested prices: converted cost ÷ food-cost share, then UP to the price step."""
+    from types import SimpleNamespace
+
+    from app.core.config import settings
+    from app.modules.ai.gateway.service import _price_from_costs
+    from app.modules.exchange_rates.costs import KitchenUnitCosts, UnitCost
+
+    ing = SimpleNamespace(id=uuid.uuid4(), unit="kg", yield_fraction=D("1"))
+    high_share = D(str(settings.AI_TARGET_FOOD_COST_HIGH))
+
+    def suggest(currency: str, cost: str, kitchen_step: D | None = None) -> tuple[D, D]:
+        costs = KitchenUnitCosts(
+            currency, DAY, {ing.id: UnitCost(D(cost), currency, D(cost), currency, None)}, set()
+        )
+        kitchen = SimpleNamespace(currency=currency, price_step=kitchen_step)
+        price, _ = _price_from_costs([(ing, D("1"), "kg")], 1, costs, kitchen)
+        assert price is not None
+        assert price.currency == currency
+        assert price.low_money is not None
+        return D(price.low_money.amount), D(str(price.low))
+
+    eur, eur_number = suggest("EUR", "2.10")
+    assert eur % D("0.50") == 0
+    assert eur >= D("2.10") / high_share
+    assert eur_number == eur
+    rwf, _ = suggest("RWF", "1234")
+    assert rwf % 100 == 0
+    assert rwf >= D("1234") / high_share
+    rwf_own_step, _ = suggest("RWF", "1234", kitchen_step=D("50"))
+    assert rwf_own_step % 50 == 0
+    jpy, _ = suggest("JPY", "333")  # no configured step: the smallest unit (1 yen)
+    assert jpy == (D("333") / high_share).to_integral_value(rounding="ROUND_CEILING")
+
+
+# ── A2: rates health ──────────────────────────────────────────────────────────
+
+
+async def test_rates_health_reports_sources_ages_and_missing_currencies(
+    client: AsyncClient, db: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core import config as cfg
+    from app.modules.exchange_rates.health import rates_health, warn_unavailable_currencies
+    from pydantic import SecretStr
+
+    await _kitchen(client, db, "RWF", "Africa/Kigali", "RW")
+    kid, headers = await _kitchen(client, db, "EUR", "Europe/Paris", "FR")
+    await _ingredient(client, kid, headers, "Vanilla", "4.00", "MGA")  # no rate for MGA
+    await _seed(db, DAY - timedelta(days=2), {"RWF": "1477.34", "EUR": "0.91"})
+
+    report = await rates_health(db, today=DAY)
+    by_code = {c.currency: c for c in report.currencies}
+    assert by_code["RWF"].age_days == 2
+    assert by_code["RWF"].source == SOURCE_FRANKFURTER
+    assert by_code["MGA"].rate_date is None
+    assert report.missing == ["MGA"]
+    assert report.oldest_rate_age_days == 2
+    assert report.healthy is False
+    frank = next(s for s in report.sources if s.source == SOURCE_FRANKFURTER)
+    assert frank.newest_rate_date == DAY - timedelta(days=2)
+    assert frank.last_success_at is not None
+    assert frank.rates_on_newest_date == 2
+
+    stale = await rates_health(db, today=DAY + timedelta(days=2))  # 4 days old: too old
+    assert set(stale.missing) == {"EUR", "MGA", "RWF"}
+
+    monkeypatch.setattr(cfg.settings, "AI_OPS_TOKEN", SecretStr("ops-secret-token"))
+    assert (await client.get("/api/v1/ai/rates-health", headers=headers)).status_code == 401
+    ok = await client.get("/api/v1/ai/rates-health", headers={"X-Ops-Token": "ops-secret-token"})
+    assert ok.status_code == 200
+    assert {"sources", "currencies", "missing", "oldest_rate_age_days"} <= ok.json().keys()
+    assert "MGA" in await warn_unavailable_currencies(db)
+
+
+def test_rates_job_runs_in_the_worker_schedule() -> None:
+    """The worker (`arq app.workers.scheduler.WorkerSettings`, the compose `worker`
+    service) schedules the rates job; the API process does not run crons."""
+    from app.workers.scheduler import WorkerSettings
+    from app.workers.tasks.exchange_rates import refresh_exchange_rates
+
+    jobs = [job for job in WorkerSettings.cron_jobs if job.coroutine is refresh_exchange_rates]
+    assert len(jobs) == 1
+    assert jobs[0].hour == {1, 13}
+    assert jobs[0].minute == 15

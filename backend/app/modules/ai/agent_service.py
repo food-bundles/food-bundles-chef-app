@@ -48,6 +48,7 @@ from app.modules.menus.repository import MenuItemRepository
 from app.modules.orders.repository import OrderRepository
 from app.modules.recipes.service import RecipeService
 from app.modules.sales.repository import SalesRepository
+from app.modules.sales.service import SalesService
 from app.shared.enums import OrderStatus
 from app.shared.kitchen_time import kitchen_now, kitchen_today
 
@@ -180,6 +181,16 @@ async def _build_kitchen_context(
                 sold_today = sold.get(item.id, 0)
                 row = f"{item.id} | {item.name} | {item.selling_price} | {cost_text} | {sold_today}"
                 lines.append(f"  - {row}")
+            # Revenue is computed here per currency; the model must never add currencies.
+            _portions, subtotals = await SalesService(db).daily_revenue(kitchen, today)
+            if subtotals:
+                parts = "; ".join(f"{m.amount} {m.currency}" for m in subtotals)
+                note = (
+                    " (different currencies: do not add them together)"
+                    if len(subtotals) > 1
+                    else ""
+                )
+                lines.append(f"\nRevenue today, per currency{note}: {parts}")
         else:
             lines.append("\nNo menu items.")
     except Exception:
