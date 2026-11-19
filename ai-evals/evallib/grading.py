@@ -32,7 +32,11 @@ def match_names(
 ) -> dict[int, int]:
     """One-to-one matching expected[i] -> actual[j]: best similarity first, pairs >= threshold."""
     pairs = sorted(
-        ((similarity(e, a), i, j) for i, e in enumerate(expected) for j, a in enumerate(actual)),
+        (
+            (similarity(e, a), i, j)
+            for i, e in enumerate(expected)
+            for j, a in enumerate(actual)
+        ),
         reverse=True,
     )
     out: dict[int, int] = {}
@@ -207,7 +211,9 @@ def detect_language(text: str) -> str:
     """Heuristic EN/FR/RW detector from function words. 'unknown' when the evidence is weak
     (fewer than 2 hits, or a tie); those replies are listed for manual review."""
     words = normalise(text).split()
-    scores = {lang: sum(1 for w in words if w in vocab) for lang, vocab in _WORDS.items()}
+    scores = {
+        lang: sum(1 for w in words if w in vocab) for lang, vocab in _WORDS.items()
+    }
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
     (best, top), (_, second) = ranked[0], ranked[1]
     if top < 2 or top == second:
@@ -221,7 +227,12 @@ def detect_language(text: str) -> str:
 def grade_classify(expected_kind: str, body: dict[str, Any] | None) -> dict[str, Any]:
     """Exact label. 'classify_unavailable' counts as wrong (the chef has to pick)."""
     if body is None:
-        return {"valid": False, "correct": False, "unavailable": False, "confidence": None}
+        return {
+            "valid": False,
+            "correct": False,
+            "unavailable": False,
+            "confidence": None,
+        }
     unavailable = body.get("status") == "classify_unavailable"
     return {
         "valid": True,
@@ -240,7 +251,11 @@ def calibration(records: Sequence[tuple[float, bool]], bins: int = 5) -> dict[st
     table, ece = [], 0.0
     for b in range(bins):
         lo, hi = b / bins, (b + 1) / bins
-        rows = [(c, ok) for c, ok in records if (lo <= c < hi) or (b == bins - 1 and c == 1.0)]
+        rows = [
+            (c, ok)
+            for c, ok in records
+            if (lo <= c < hi) or (b == bins - 1 and c == 1.0)
+        ]
         if not rows:
             continue
         acc = sum(ok for _, ok in rows) / len(rows)
@@ -260,24 +275,56 @@ def calibration(records: Sequence[tuple[float, bool]], bins: int = 5) -> dict[st
 # ── Menu ──────────────────────────────────────────────────────────────────────
 
 
-def grade_menu(expected_items: Sequence[dict], body: dict[str, Any] | None) -> dict[str, Any]:
-    """Item names: normalised fuzzy match ≥ 0.9, one-to-one. Price: exact integer RWF
+UNGRADED = {"unreadable"}
+
+
+def gradable(value: Any) -> bool:
+    """False for 'unreadable' answer-key values (the reviewer cannot read them in the photo):
+    those are left out of scoring. Prices in any currency ARE scored (amount + currency is the
+    Step 2a answer-key format)."""
+    return not (isinstance(value, str) and value in UNGRADED)
+
+
+def _readable(entries: Sequence[dict]) -> tuple[list[int], int]:
+    """Indexes of entries with a readable name, and how many entries are unreadable."""
+    readable = [i for i, e in enumerate(entries) if gradable(e.get("name"))]
+    return readable, len(entries) - len(readable)
+
+
+def _precision(matched: int, returned: int, unreadable: int) -> float | None:
+    """Unmatched returned items up to the number of unreadable expected entries are not
+    held against precision: the model may have read what the reviewer could not."""
+    return _rate(matched, max(matched, returned - unreadable))
+
+
+def grade_menu(
+    expected_items: Sequence[dict], body: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Item names: normalised fuzzy match >= 0.9, one-to-one. Price: exact integer RWF
     (expected null must come back null). Category: exact, only where the expectation sets one.
-    Unmatched expected items count as wrong price and wrong category."""
+    Unmatched expected items count as wrong price and wrong category. Entries named
+    'unreadable' and prices marked 'unreadable' are left out of scoring."""
     if body is None:
         return {"valid": False}
     actual = body.get("items") or []
-    pairs = match_names([e["name"] for e in expected_items], [a.get("name", "") for a in actual])
+    readable, unreadable = _readable(expected_items)
+    names = [expected_items[i]["name"] for i in readable]
+    found = match_names(names, [a.get("name", "") for a in actual])
+    pairs = {readable[k]: j for k, j in found.items()}
+    priced = [i for i in readable if gradable(expected_items[i].get("price"))]
     price_ok = sum(
-        1 for i, j in pairs.items() if actual[j].get("price") == expected_items[i].get("price")
+        1
+        for i in priced
+        if i in pairs
+        and actual[pairs[i]].get("price") == expected_items[i].get("price")
     )
-    with_cat = [i for i, e in enumerate(expected_items) if e.get("category")]
+    with_cat = [i for i in readable if expected_items[i].get("category")]
     cat_ok = sum(
         1
         for i in with_cat
-        if i in pairs and actual[pairs[i]].get("category") == expected_items[i]["category"]
+        if i in pairs
+        and actual[pairs[i]].get("category") == expected_items[i]["category"]
     )
-    misses = [expected_items[i]["name"] for i in range(len(expected_items)) if i not in pairs]
     wrong_price = [
         {
             "name": expected_items[i]["name"],
@@ -285,18 +332,19 @@ def grade_menu(expected_items: Sequence[dict], body: dict[str, Any] | None) -> d
             "got": actual[j].get("price"),
         }
         for i, j in pairs.items()
-        if actual[j].get("price") != expected_items[i].get("price")
+        if i in priced and actual[j].get("price") != expected_items[i].get("price")
     ]
     return {
         "valid": True,
-        "expected": len(expected_items),
+        "expected": len(readable),
+        "unreadable_expected": unreadable,
         "returned": len(actual),
         "matched": len(pairs),
-        "recall": _rate(len(pairs), len(expected_items)),
-        "precision": _rate(len(pairs), len(actual)),
-        "price_accuracy": _rate(price_ok, len(expected_items)),
+        "recall": _rate(len(pairs), len(readable)),
+        "precision": _precision(len(pairs), len(actual), unreadable),
+        "price_accuracy": _rate(price_ok, len(priced)),
         "category_accuracy": _rate(cat_ok, len(with_cat)),
-        "missed": misses,
+        "missed": [expected_items[i]["name"] for i in readable if i not in pairs],
         "wrong_price": wrong_price,
     }
 
@@ -305,7 +353,9 @@ def grade_menu(expected_items: Sequence[dict], body: dict[str, Any] | None) -> d
 
 
 def grade_dish(
-    expected_ingredients: Sequence[str], body: dict[str, Any] | None, kitchen: dict[str, str]
+    expected_ingredients: Sequence[str],
+    body: dict[str, Any] | None,
+    kitchen: dict[str, str],
 ) -> dict[str, Any]:
     """Ingredient precision and recall. A suggested ingredient linked to a kitchen ingredient
     (ingredient_id) is read as that ingredient's name; otherwise its own name. Names match with
@@ -314,12 +364,20 @@ def grade_dish(
     if body is None:
         return {"valid": False}
     suggested = body.get("ingredients") or []
-    names = [kitchen.get(str(s.get("ingredient_id")), s.get("name", "")) for s in suggested]
+    names = [
+        kitchen.get(str(s.get("ingredient_id")), s.get("name", "")) for s in suggested
+    ]
     pairs = match_names(list(expected_ingredients), names)
     kitchen_names = {normalise(n): i for i, n in kitchen.items()}
-    expected_in_kitchen = [e for e in expected_ingredients if normalise(e) in kitchen_names]
-    linked_ids = {str(s.get("ingredient_id")) for s in suggested if s.get("ingredient_id")}
-    linked = sum(1 for e in expected_in_kitchen if kitchen_names[normalise(e)] in linked_ids)
+    expected_in_kitchen = [
+        e for e in expected_ingredients if normalise(e) in kitchen_names
+    ]
+    linked_ids = {
+        str(s.get("ingredient_id")) for s in suggested if s.get("ingredient_id")
+    }
+    linked = sum(
+        1 for e in expected_in_kitchen if kitchen_names[normalise(e)] in linked_ids
+    )
     return {
         "valid": True,
         "precision": _rate(len(pairs), len(suggested)),
@@ -334,40 +392,54 @@ def grade_dish(
 # ── Delivery note / receipt ───────────────────────────────────────────────────
 
 
-def grade_document(expected_lines: Sequence[dict], body: dict[str, Any] | None) -> dict[str, Any]:
-    """Line items matched by name (fuzzy ≥ 0.9). Quantity: exact number. Prices: unit price and
-    line total each exact where the expectation gives them (both must match when both are given)."""
+def grade_document(
+    expected_lines: Sequence[dict], body: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Line items matched by name (fuzzy >= 0.9). Quantity: exact number. Prices: unit price and
+    line total each exact where the expectation gives them (both must match when both are given).
+    Lines named 'unreadable' and values marked 'unreadable' are left out of scoring."""
     if body is None:
         return {"valid": False}
     actual = body.get("lines") or []
-    pairs = match_names([e["name"] for e in expected_lines], [a.get("name", "") for a in actual])
+    readable, unreadable = _readable(expected_lines)
+    found = match_names(
+        [expected_lines[i]["name"] for i in readable],
+        [a.get("name", "") for a in actual],
+    )
+    pairs = {readable[k]: j for k, j in found.items()}
+    counted_qty = [i for i in readable if gradable(expected_lines[i].get("quantity"))]
     qty_ok = sum(
         1
-        for i, j in pairs.items()
-        if to_decimal(actual[j].get("quantity")) == to_decimal(expected_lines[i].get("quantity"))
+        for i in counted_qty
+        if i in pairs
+        and to_decimal(actual[pairs[i]].get("quantity"))
+        == to_decimal(expected_lines[i].get("quantity"))
     )
-    priced = [
-        i
-        for i, e in enumerate(expected_lines)
-        if e.get("unit_price") is not None or e.get("line_total") is not None
-    ]
+    price_keys = ("unit_price", "line_total")
+
+    def keys_for(i: int) -> list[str]:
+        e = expected_lines[i]
+        return [k for k in price_keys if e.get(k) is not None and gradable(e.get(k))]
+
+    priced = [i for i in readable if keys_for(i)]
 
     def price_ok(i: int) -> bool:
         if i not in pairs:
             return False
-        e, a = expected_lines[i], actual[pairs[i]]
+        a = actual[pairs[i]]
         return all(
-            e.get(k) is None or to_decimal(a.get(k)) == to_decimal(e.get(k))
-            for k in ("unit_price", "line_total")
+            to_decimal(a.get(k)) == to_decimal(expected_lines[i].get(k))
+            for k in keys_for(i)
         )
 
     return {
         "valid": True,
-        "line_recall": _rate(len(pairs), len(expected_lines)),
-        "line_precision": _rate(len(pairs), len(actual)),
-        "quantity_accuracy": _rate(qty_ok, len(expected_lines)),
+        "unreadable_expected": unreadable,
+        "line_recall": _rate(len(pairs), len(readable)),
+        "line_precision": _precision(len(pairs), len(actual), unreadable),
+        "quantity_accuracy": _rate(qty_ok, len(counted_qty)),
         "price_accuracy": _rate(sum(1 for i in priced if price_ok(i)), len(priced)),
-        "missed": [e["name"] for i, e in enumerate(expected_lines) if i not in pairs],
+        "missed": [expected_lines[i]["name"] for i in readable if i not in pairs],
     }
 
 
@@ -417,7 +489,9 @@ def grade_assistant(
         params = proposal.get("params") or {}
         checks["action"] = action == expect.get("action_type")
         checks["params_valid"] = bool(action) and params_validator(action, params)
-        checks["params"] = not params_match(expect.get("params", {}), params) if action else False
+        checks["params"] = (
+            not params_match(expect.get("params", {}), params) if action else False
+        )
     if want == "clarification":
         question = clar.get("question") or ""
         checks["one_question"] = (
@@ -425,13 +499,19 @@ def grade_assistant(
         )
     else:
         checks["one_question"] = got != "clarification"
-    text = " ".join(filter(None, [(body or {}).get("reply_text"), clar.get("question")]))
+    text = " ".join(
+        filter(None, [(body or {}).get("reply_text"), clar.get("question")])
+    )
     language = detect_language(text) if text else "unknown"
-    checks["language"] = None if language == "unknown" or refused else language == case["language"]
+    checks["language"] = (
+        None if language == "unknown" or refused else language == case["language"]
+    )
     extra = invented_numbers(text, allowed_numbers) if not refused else []
     checks["grounded"] = not extra
     if expect.get("mentions_any"):
-        checks["mentions"] = any(normalise(m) in normalise(text) for m in expect["mentions_any"])
+        checks["mentions"] = any(
+            normalise(m) in normalise(text) for m in expect["mentions_any"]
+        )
     passed = all(v for v in checks.values() if v is not None)
     return {
         "valid": True,

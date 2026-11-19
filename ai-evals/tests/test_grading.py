@@ -20,8 +20,12 @@ D = Decimal
 
 def test_fuzzy_name_match_threshold() -> None:
     assert grading.similarity("Brochette de chèvre", "brochette de chevre") == 1.0
-    assert grading.similarity("Isombe na umuceri", "Isombe na umuceli") >= 0.9  # one typo
-    assert grading.similarity("Chips", "Chips (frites)") < 0.9  # extra words: not a match
+    assert (
+        grading.similarity("Isombe na umuceri", "Isombe na umuceli") >= 0.9
+    )  # one typo
+    assert (
+        grading.similarity("Chips", "Chips (frites)") < 0.9
+    )  # extra words: not a match
 
 
 def test_match_names_is_one_to_one_best_first() -> None:
@@ -66,13 +70,15 @@ def test_detect_language(text: str, lang: str) -> None:
 
 
 def test_classify_exact_label_and_unavailable_is_wrong() -> None:
-    assert grading.grade_classify("menu", {"status": "ok", "kind": "menu", "confidence": 0.9})[
-        "correct"
-    ]
-    assert not grading.grade_classify("menu", {"status": "ok", "kind": "dish", "confidence": 0.9})[
-        "correct"
-    ]
-    unavailable = grading.grade_classify("menu", {"status": "classify_unavailable", "kind": None})
+    assert grading.grade_classify(
+        "menu", {"status": "ok", "kind": "menu", "confidence": 0.9}
+    )["correct"]
+    assert not grading.grade_classify(
+        "menu", {"status": "ok", "kind": "dish", "confidence": 0.9}
+    )["correct"]
+    unavailable = grading.grade_classify(
+        "menu", {"status": "classify_unavailable", "kind": None}
+    )
     assert unavailable["unavailable"]
     assert not unavailable["correct"]
 
@@ -104,7 +110,9 @@ def test_menu_grading_name_price_category() -> None:
     g = grading.grade_menu(expected, body)
     assert g["recall"] == pytest.approx(2 / 3)
     assert g["precision"] == pytest.approx(2 / 3)
-    assert g["price_accuracy"] == pytest.approx(1 / 3)  # Fanta price wrong, Isombe missed
+    assert g["price_accuracy"] == pytest.approx(
+        1 / 3
+    )  # Fanta price wrong, Isombe missed
     assert g["category_accuracy"] == 1.0  # both expected categories right
     assert g["missed"] == ["Isombe"]
     assert grading.grade_menu(expected, None) == {"valid": False}
@@ -128,8 +136,20 @@ def test_dish_grading_uses_kitchen_names_for_linked_ingredients() -> None:
 
 def test_document_grading_quantity_and_prices() -> None:
     expected = [
-        {"name": "Tomatoes", "quantity": 25, "unit": "kg", "unit_price": 1000, "line_total": 25000},
-        {"name": "Onions", "quantity": 10, "unit": "kg", "unit_price": None, "line_total": None},
+        {
+            "name": "Tomatoes",
+            "quantity": 25,
+            "unit": "kg",
+            "unit_price": 1000,
+            "line_total": 25000,
+        },
+        {
+            "name": "Onions",
+            "quantity": 10,
+            "unit": "kg",
+            "unit_price": None,
+            "line_total": None,
+        },
     ]
     body = {
         "lines": [
@@ -278,3 +298,76 @@ def test_assistant_invalid_params_fail() -> None:
     )
     assert g["checks"]["params_valid"] is False
     assert not g["passed"]
+
+
+# ── unreadable values are left out of scoring ───────────────────────
+
+
+def test_menu_skips_unreadable_names_and_prices() -> None:
+    expected = [
+        {"name": "Tea", "price": "unreadable", "category": "drink"},
+        {"name": "Latte", "price": "unreadable", "category": "drink"},
+        {"name": "Mocha", "price": 2000, "category": "drink"},
+        {"name": "unreadable", "price": "unreadable", "category": None},
+    ]
+    body = {
+        "items": [
+            {"name": "Tea", "price": 1500, "category": "drink"},
+            {"name": "Latte", "price": None, "category": "drink"},
+            {"name": "Mocha", "price": 2000, "category": "drink"},
+            {
+                "name": "Sahlep",
+                "price": 2500,
+                "category": "drink",
+            },  # what the reviewer could not read
+        ]
+    }
+    g = grading.grade_menu(expected, body)
+    assert g["recall"] == 1.0  # the unreadable entry is not expected to be found
+    assert g["precision"] == 1.0  # Sahlep is not held against precision
+    assert g["price_accuracy"] == 1.0  # only Mocha's price is graded
+    assert g["unreadable_expected"] == 1
+
+
+def test_document_skips_unreadable_quantity_and_totals() -> None:
+    expected = [
+        {
+            "name": "Adan oil",
+            "quantity": "unreadable",
+            "unit_price": 2150,
+            "line_total": 8600,
+        },
+        {
+            "name": "Hot Sauce",
+            "quantity": 1,
+            "unit_price": None,
+            "line_total": "unreadable",
+        },
+    ]
+    body = {
+        "lines": [
+            {
+                "name": "Adan oil",
+                "quantity": "6",
+                "unit_price": 2150,
+                "line_total": 8600,
+            },
+            {
+                "name": "Hot Sauce",
+                "quantity": "1",
+                "unit_price": None,
+                "line_total": None,
+            },
+        ]
+    }
+    g = grading.grade_document(expected, body)
+    assert g["quantity_accuracy"] == 1.0  # oil quantity not graded
+    assert g["price_accuracy"] == 1.0  # Hot Sauce has no gradable price
+    assert g["line_recall"] == 1.0
+
+
+def test_gradable() -> None:
+    assert grading.gradable(0)
+    assert grading.gradable(None)
+    assert not grading.gradable("unreadable")
+    assert grading.gradable("non_rwf")  # other currencies are scored, never skipped

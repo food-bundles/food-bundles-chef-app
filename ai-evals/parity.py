@@ -87,8 +87,18 @@ COMMON_ENV = {
 # ── Cases ─────────────────────────────────────────────────────────────────────
 
 
-def load_image_cases() -> dict[str, list[dict[str, Any]]]:
-    """cases/<feature>/<id>/{image.jpg, expected.json} → {feature: [case, ...]} (validated)."""
+STATUS_COUNTS: dict[str, int] = defaultdict(int)
+
+
+def load_image_cases(include_drafts: bool = False) -> dict[str, list[dict[str, Any]]]:
+    """cases/<feature>/<id>/{image.jpg, expected.json} → {feature: [case, ...]} (validated).
+
+    Only answer keys with "status": "verified" are used (a missing status counts as draft);
+    `include_drafts` adds "draft" ones for planning and dry runs. "excluded" is never used.
+    STATUS_COUNTS records how many cases of each status were found.
+    """
+    STATUS_COUNTS.clear()
+    wanted = {"verified", "draft"} if include_drafts else {"verified"}
     out: dict[str, list[dict[str, Any]]] = {f: [] for f in IMAGE_FEATURES}
     for feature in IMAGE_FEATURES:
         folder = CASES / feature
@@ -110,8 +120,16 @@ def load_image_cases() -> dict[str, list[dict[str, Any]]]:
             problem = validate_expected(feature, expected)
             if problem:
                 raise SystemExit(f"{expected_file}: {problem}")
+            status = expected.get("status", "draft")
+            STATUS_COUNTS[status] += 1
+            if status not in wanted:
+                continue
             out[feature].append(
-                {"id": f"{feature}/{case_dir.name}", "image": image, "expected": expected}
+                {
+                    "id": f"{feature}/{case_dir.name}",
+                    "image": image,
+                    "expected": expected,
+                }
             )
     return out
 
@@ -119,6 +137,8 @@ def load_image_cases() -> dict[str, list[dict[str, Any]]]:
 def validate_expected(feature: str, e: dict[str, Any]) -> str | None:
     if "kind" not in e:
         return "missing 'kind'"
+    if e.get("status", "draft") not in ("draft", "verified", "excluded"):
+        return "status must be draft, verified or excluded"
     if feature == "menu" and not isinstance(e.get("items"), list):
         return "menu cases need 'items': [{name, price, category}]"
     if feature == "dish" and not isinstance(e.get("ingredients"), list):
@@ -131,7 +151,9 @@ def validate_expected(feature: str, e: dict[str, Any]) -> str | None:
 def load_assistant_cases() -> list[dict[str, Any]]:
     path = CASES / "assistant" / "cases.jsonl"
     return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
 
 
@@ -192,7 +214,9 @@ def estimate_call(feature: str, arm: str) -> float:
             if feature == "classify"
             else settings.ANTHROPIC_MODEL_STANDARD
         )
-    return catalog.cost_usd(model, Usage(input_tokens=tokens_in, output_tokens=tokens_out))
+    return catalog.cost_usd(
+        model, Usage(input_tokens=tokens_in, output_tokens=tokens_out)
+    )
 
 
 def call_counts(images: dict[str, list], assistant: list[dict]) -> dict[str, int]:
@@ -210,22 +234,29 @@ def call_counts(images: dict[str, list], assistant: list[dict]) -> dict[str, int
 
 
 def cmd_plan(args: argparse.Namespace) -> int:
-    images = load_image_cases()
+    images = load_image_cases(include_drafts=args.include_drafts)
     assistant = load_assistant_cases()
     counts = call_counts(images, assistant)
     if args.assume_images:
         n_menu, n_dish, n_doc, n_junk = (int(x) for x in args.assume_images.split(","))
         counts.update(
-            classify=n_menu + n_dish + n_doc + n_junk, menu=n_menu, dish=n_dish, document=n_doc
+            classify=n_menu + n_dish + n_doc + n_junk,
+            menu=n_menu,
+            dish=n_dish,
+            document=n_doc,
         )
     print("# Phase 8 parity plan\n")
-    print("## Image cases (cases/<feature>/<id>/)\n")
+    found = ", ".join(f"{k} {v}" for k, v in sorted(STATUS_COUNTS.items())) or "none"
+    used = "verified + draft" if args.include_drafts else "verified only"
+    print(f"## Image cases (cases/<feature>/<id>/): found {found}; using {used}\n")
     for feature in IMAGE_FEATURES:
         rows = images[feature]
         print(f"- {feature}: {len(rows)} case(s)")
         for c in rows:
             e = c["expected"]
-            counted = {"menu": "items", "dish": "ingredients", "document": "lines"}.get(feature)
+            counted = {"menu": "items", "dish": "ingredients", "document": "lines"}.get(
+                feature
+            )
             detail = f"{len(e[counted])} {counted}" if counted else f"kind={e['kind']}"
             print(
                 f"  - {c['id']}: kind={e['kind']}, {detail}, "
@@ -236,8 +267,14 @@ def cmd_plan(args: argparse.Namespace) -> int:
     print("|---|---|---|---|")
     for c in assistant:
         exp = c["expect"]
-        what = exp["type"] + (f" {exp['action_type']}" if exp.get("action_type") else "")
-        extras = [k for k in ("params", "mentions_any", "no_data", "out_of_domain") if exp.get(k)]
+        what = exp["type"] + (
+            f" {exp['action_type']}" if exp.get("action_type") else ""
+        )
+        extras = [
+            k
+            for k in ("params", "mentions_any", "no_data", "out_of_domain")
+            if exp.get(k)
+        ]
         if exp.get("params"):
             what += " " + json.dumps(exp["params"], ensure_ascii=False)
         elif extras:
@@ -274,10 +311,18 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + ("-dry" if args.dry_run else "")
+    if args.include_drafts and not args.dry_run:
+        raise SystemExit(
+            "--include-drafts is for dry runs only: real runs grade verified answers only"
+        )
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + (
+        "-dry" if args.dry_run else ""
+    )
     run_dir = (args.out / f"parity-{run_id}").resolve()
     run_dir.mkdir(parents=True)
-    (run_dir / "ledger.json").write_text(json.dumps({"spent_usd": 0.0, "by_arm": {}, "stopped": None}))
+    (run_dir / "ledger.json").write_text(
+        json.dumps({"spent_usd": 0.0, "by_arm": {}, "stopped": None})
+    )
     meta = {
         "run_id": run_id,
         "runs": args.runs,
@@ -290,7 +335,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     (run_dir / "run.json").write_text(json.dumps(meta, indent=2))
     for arm in args.arms:
         env = {**os.environ, **COMMON_ENV, **ARMS[arm]}
-        env["DATABASE_URL"] = f"sqlite+aiosqlite:///{(run_dir / f'{arm}.db').as_posix()}"
+        env["DATABASE_URL"] = (
+            f"sqlite+aiosqlite:///{(run_dir / f'{arm}.db').as_posix()}"
+        )
         env["PYTHONIOENCODING"] = "utf-8"
         # backend/.env holds the provider keys; a process-level variable would shadow it.
         if not args.keep_env_key:
@@ -312,11 +359,16 @@ def cmd_run(args: argparse.Namespace) -> int:
         ]
         if args.dry_run:
             cmd.append("--dry-run")
+        if args.include_drafts:
+            cmd.append("--include-drafts")
         print(f"== arm {arm}", flush=True)
         code = subprocess.run(cmd, env=env, cwd=BACKEND).returncode  # noqa: S603 (own script)
         ledger = json.loads((run_dir / "ledger.json").read_text())
         arm_usd = ledger.get("by_arm", {}).get(arm, 0.0)
-        print(f"   exit {code}; arm ${arm_usd:.4f}; total ${ledger['spent_usd']:.4f}", flush=True)
+        print(
+            f"   exit {code}; arm ${arm_usd:.4f}; total ${ledger['spent_usd']:.4f}",
+            flush=True,
+        )
         if ledger.get("stopped"):
             print(f"   BUDGET STOP: {ledger['stopped']}", flush=True)
             break
@@ -361,7 +413,9 @@ def cmd_worker(args: argparse.Namespace) -> int:
     engine.echo = False
     import logging
 
-    logging.disable(logging.INFO)  # keep the eval output readable (no SQL/HTTP debug lines)
+    logging.disable(
+        logging.INFO
+    )  # keep the eval output readable (no SQL/HTTP debug lines)
     arm, run_dir = args.arm, Path(args.run_dir)
     features = [f for f in args.features if f in ARM_FEATURES[arm]]
     recorder = _Recorder()
@@ -465,7 +519,11 @@ def cmd_worker(args: argparse.Namespace) -> int:
             if resp.status_code == 200:
                 body = parsed
             else:
-                code = (parsed.get("error") or {}).get("code") if isinstance(parsed, dict) else None
+                code = (
+                    (parsed.get("error") or {}).get("code")
+                    if isinstance(parsed, dict)
+                    else None
+                )
         except ValueError:
             pass
         charge(calls)
@@ -477,9 +535,12 @@ def cmd_worker(args: argparse.Namespace) -> int:
 
     def call_fields(calls: list[dict[str, Any]], wall_ms: float) -> dict[str, Any]:
         return {
-            "latency_ms": sum(c.get("latency_ms") or 0 for c in calls) or round(wall_ms),
+            "latency_ms": sum(c.get("latency_ms") or 0 for c in calls)
+            or round(wall_ms),
             "wall_ms": round(wall_ms),
-            "provider": ",".join(sorted({c.get("provider_served") or "-" for c in calls})),
+            "provider": ",".join(
+                sorted({c.get("provider_served") or "-" for c in calls})
+            ),
             "model": ",".join(sorted({c.get("model") or "-" for c in calls})),
             "outcomes": [c.get("outcome") for c in calls],
             "input_tokens": sum(c.get("input_tokens") or 0 for c in calls),
@@ -488,7 +549,7 @@ def cmd_worker(args: argparse.Namespace) -> int:
             "cost_usd": sum(float(c.get("cost_usd") or 0) for c in calls),
         }
 
-    images = load_image_cases()
+    images = load_image_cases(include_drafts=args.include_drafts)
     assistant = load_assistant_cases()
     stopped = False
     for run in range(1, args.runs + 1):
@@ -509,7 +570,9 @@ def cmd_worker(args: argparse.Namespace) -> int:
                             "agent",
                             "assistant",
                             json={"messages": history, "language": case["language"]},
-                            headers={"X-Request-ID": f"parity-{arm}-{case['id']}-{run}"},
+                            headers={
+                                "X-Request-ID": f"parity-{arm}-{case['id']}-{run}"
+                            },
                         )
                         calls_all += calls
                         wall_total += wall
@@ -574,7 +637,13 @@ def cmd_worker(args: argparse.Namespace) -> int:
                 if not budget_ok(feature):
                     stopped = True
                     break
-                files = {"image": (case["image"].name, case["image"].read_bytes(), "image/jpeg")}
+                files = {
+                    "image": (
+                        case["image"].name,
+                        case["image"].read_bytes(),
+                        "image/jpeg",
+                    )
+                }
                 lang = case["expected"].get("language", "en")
                 path = {
                     "classify": "classify-image",
@@ -614,7 +683,12 @@ def cmd_worker(args: argparse.Namespace) -> int:
                     }
                 )
     write(
-        {"arm": arm, "feature": "assistant", "case": "_decode", "decode_stats": dict(decode_stats)}
+        {
+            "arm": arm,
+            "feature": "assistant",
+            "case": "_decode",
+            "decode_stats": dict(decode_stats),
+        }
     )
     out.close()
     return 0
@@ -783,9 +857,15 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         from evallib.grading import calibration
 
         out["accuracy"] = _mean([1.0 if x["correct"] else 0.0 for x in g])
-        out["unavailable_rate"] = _mean([1.0 if x.get("unavailable") else 0.0 for x in g])
+        out["unavailable_rate"] = _mean(
+            [1.0 if x.get("unavailable") else 0.0 for x in g]
+        )
         cal = calibration(
-            [(x["confidence"], x["correct"]) for x in g if x.get("confidence") is not None]
+            [
+                (x["confidence"], x["correct"])
+                for x in g
+                if x.get("confidence") is not None
+            ]
         )
         out["brier"], out["ece"] = cal["brier"], cal["ece"]
     elif feature == "menu":
@@ -815,11 +895,14 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         out["language_unknown"] = sum(1 for x in g if x.get("language") == "unknown")
         out["grounded"] = check("grounded")
         writes = [r for r in rows if r["case"] == "_writes"]
-        out["unconfirmed_writes"] = sum(1 for r in writes if r.get("unconfirmed_writes"))
+        out["unconfirmed_writes"] = sum(
+            1 for r in writes if r.get("unconfirmed_writes")
+        )
         decode = next((r["decode_stats"] for r in rows if r["case"] == "_decode"), {})
         if decode.get("params_string"):
             out["params_decode_fail_rate"] = (
-                decode.get("params_decode_fail", 0) + decode.get("params_validation_fail", 0)
+                decode.get("params_decode_fail", 0)
+                + decode.get("params_validation_fail", 0)
             ) / decode["params_string"]
         out["decode_stats"] = decode
     return out
@@ -843,7 +926,13 @@ def case_scores(rows: list[dict[str, Any]]) -> dict[str, float]:
             score = _mean([g.get("precision"), g.get("recall")]) or 0.0
         else:
             score = (
-                _mean([g.get("line_recall"), g.get("quantity_accuracy"), g.get("price_accuracy")])
+                _mean(
+                    [
+                        g.get("line_recall"),
+                        g.get("quantity_accuracy"),
+                        g.get("price_accuracy"),
+                    ]
+                )
                 or 0.0
             )
         per[r["case"]].append(score)
@@ -893,9 +982,18 @@ def cmd_report(args: argparse.Namespace) -> int:
         "|---|---|---|",
     ]
     for arm in arms:
-        calls = sum(len([r for r in rs if not r["case"].startswith("_")]) for (a, _), rs in rows_by.items() if a == arm)
-        lines.append(f"| {arm} | ${ledger.get('by_arm', {}).get(arm, 0.0):.4f} | {calls} |")
-    lines += [f"| **total** | **${ledger['spent_usd']:.4f}** of ${meta['budget_usd']:.2f} cap | |", ""]
+        calls = sum(
+            len([r for r in rs if not r["case"].startswith("_")])
+            for (a, _), rs in rows_by.items()
+            if a == arm
+        )
+        lines.append(
+            f"| {arm} | ${ledger.get('by_arm', {}).get(arm, 0.0):.4f} | {calls} |"
+        )
+    lines += [
+        f"| **total** | **${ledger['spent_usd']:.4f}** of ${meta['budget_usd']:.2f} cap | |",
+        "",
+    ]
     for feature in FEATURES:
         sums = {arm: summarise(rows_by.get((arm, feature), [])) for arm in arms}
         sums = {a: s for a, s in sums.items() if s}
@@ -909,7 +1007,11 @@ def cmd_report(args: argparse.Namespace) -> int:
             "|---|" + "---|" * len(sums),
         ]
         for k in keys:
-            lines.append(f"| {k} | " + " | ".join(_fmt(k, s.get(k)) for s in sums.values()) + " |")
+            lines.append(
+                f"| {k} | "
+                + " | ".join(_fmt(k, s.get(k)) for s in sums.values())
+                + " |"
+            )
         budget_setting = BUDGETS_S[feature]
         budget_s = getattr(settings, budget_setting) / (
             1 if budget_setting.endswith("SECONDS") else 1000
@@ -1005,7 +1107,13 @@ def main() -> int:
     p.add_argument("--runs", type=int, default=3)
     p.add_argument("--budget-usd", type=float, default=25.0)
     p.add_argument(
-        "--assume-images", help="estimate with N menu,dish,document,junk images (e.g. 30,20,10,10)"
+        "--assume-images",
+        help="estimate with N menu,dish,document,junk images (e.g. 30,20,10,10)",
+    )
+    p.add_argument(
+        "--include-drafts",
+        action="store_true",
+        help="also list and price draft answer keys",
     )
     r = sub.add_parser("run")
     r.add_argument("--runs", type=int, default=3)
@@ -1014,7 +1122,14 @@ def main() -> int:
     r.add_argument("--features", type=lambda s: s.split(","), default=list(FEATURES))
     r.add_argument("--dry-run", action="store_true")
     r.add_argument(
-        "--keep-env-key", action="store_true", help="use ANTHROPIC_API_KEY from the environment"
+        "--include-drafts",
+        action="store_true",
+        help="dry runs only: also use draft answer keys",
+    )
+    r.add_argument(
+        "--keep-env-key",
+        action="store_true",
+        help="use ANTHROPIC_API_KEY from the environment",
     )
     r.add_argument("--out", type=Path, default=ROOT / "results")
     w = sub.add_parser("worker")
@@ -1024,12 +1139,16 @@ def main() -> int:
     w.add_argument("--budget-usd", type=float, default=25.0)
     w.add_argument("--features", type=lambda s: s.split(","), default=list(FEATURES))
     w.add_argument("--dry-run", action="store_true")
+    w.add_argument("--include-drafts", action="store_true")
     rep = sub.add_parser("report")
     rep.add_argument("run_dir")
     args = parser.parse_args()
-    return {"plan": cmd_plan, "run": cmd_run, "worker": cmd_worker, "report": cmd_report}[args.cmd](
-        args
-    )
+    return {
+        "plan": cmd_plan,
+        "run": cmd_run,
+        "worker": cmd_worker,
+        "report": cmd_report,
+    }[args.cmd](args)
 
 
 if __name__ == "__main__":

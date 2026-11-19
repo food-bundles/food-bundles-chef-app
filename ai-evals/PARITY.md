@@ -36,6 +36,12 @@ python -m pytest ai-evals/tests                                  # grader unit t
 
 ## Grading rules (automatic)
 
+Only answer keys with `"status": "verified"` are graded (see `cases/README.md` for the
+draft → review → verified flow). Values a reviewer marked `"unreadable"` (cannot be read)
+are left out of scoring; prices in any currency are scored. An expected item or line
+named `"unreadable"` is left out of recall, and up to that many unmatched returned items are
+not held against precision (added 2026-11-19 for the real photo set).
+
 All graders are pure functions in `evallib/grading.py`, unit-tested in `tests/test_grading.py`.
 
 **Common to every feature**
