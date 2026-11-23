@@ -13,7 +13,9 @@ Flow:
 
 from __future__ import annotations
 
+import asyncio
 import base64
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -30,10 +32,12 @@ from app.modules.ai.gateway.core import (
     language_name,
     load_prompt,
     structured_call,
+    structured_stream,
     validate_image,
 )
 from app.modules.ai.gateway.scans import scan_context, table_rates
 from app.modules.ai.registry.feature_flags import assistant_enabled
+from app.modules.ai.streaming import ReplyTextExtractor
 from app.modules.ai.schemas.agent import (
     ACTION_PARAMS,
     ActionProposal,
@@ -277,7 +281,10 @@ class AgentService:
         request: AgentRequest,
         request_id: str,
         chef_id: str | None = None,
+        turn_call: Callable[..., Awaitable[ModelAgentTurn]] | None = None,
     ) -> AgentResponse:
+        """One Assistant turn. `turn_call` replaces the model call (Step 1b streaming passes
+        a streaming caller); everything before and after it is the same."""
         if not assistant_enabled():
             raise AiDisabledError("AI assistant is not enabled.")
         if request.resolve is None:  # answering a server question calls no model
@@ -313,7 +320,7 @@ class AgentService:
         history, user_text, image = _conversation(request)
         image_mime = validate_image(image) if image is not None else None
 
-        turn = await structured_call(
+        turn = await (turn_call or structured_call)(
             feature="assistant",
             prompt=prompt,
             system=system,
@@ -440,3 +447,55 @@ class AgentService:
             last_action=proposal,
             as_of=as_of,
         )
+
+
+    async def run_stream(
+        self,
+        kitchen: Kitchen,
+        chef_name: str,
+        request: AgentRequest,
+        request_id: str,
+        chef_id: str | None = None,
+    ) -> AsyncIterator[tuple[str, Any]]:
+        """Step 1b: yields ("delta", text) while the reply streams, then ("done", AgentResponse).
+
+        Errors are raised as the usual typed errors (the endpoint turns them into an SSE
+        `error` event). After the first delta a failure is AiStreamInterruptedError.
+        """
+        queue: asyncio.Queue[str] = asyncio.Queue()
+        extractor = ReplyTextExtractor()
+
+        def on_delta(raw: str) -> None:
+            text = extractor.feed(raw)
+            if text:
+                queue.put_nowait(text)
+
+        async def streaming_call(**kwargs: Any) -> ModelAgentTurn:
+            return await structured_stream(
+                **kwargs,
+                ttft_seconds=settings.AI_TIMEOUT_CHAT_TTFT_MS / 1000,
+                on_delta=on_delta,
+            )
+
+        task = asyncio.create_task(
+            self.run(
+                kitchen=kitchen,
+                chef_name=chef_name,
+                request=request,
+                request_id=request_id,
+                chef_id=chef_id,
+                turn_call=streaming_call,
+            )
+        )
+        try:
+            while not task.done() or not queue.empty():
+                getter = asyncio.ensure_future(queue.get())
+                done, _ = await asyncio.wait({getter, task}, return_when=asyncio.FIRST_COMPLETED)
+                if getter in done:
+                    yield ("delta", getter.result())
+                else:
+                    getter.cancel()
+            yield ("done", task.result())
+        finally:
+            if not task.done():
+                task.cancel()

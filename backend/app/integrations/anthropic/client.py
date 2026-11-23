@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import time
+from collections.abc import AsyncIterator
 from typing import Any
 
 import structlog
@@ -34,6 +35,7 @@ from app.modules.ai.providers.base import (
     ProviderError,
     ProviderNetwork,
     ProviderOverloaded,
+    StreamChunk,
     ProviderRateLimited,
     ProviderRefusal,
     ProviderTimeout,
@@ -198,4 +200,53 @@ class AnthropicProvider:
             latency_ms=round((time.monotonic() - started) * 1000),
             finish_reason=stop_reason,
             usage=usage,
+        )
+
+
+    async def stream(self, request: LLMRequest, timeout_seconds: float) -> AsyncIterator[StreamChunk]:
+        """Stream text deltas (Messages API streaming), then one chunk with the final result.
+
+        Same parameters as `generate`. A refusal is raised at the end (the router never
+        routes a refusal to another provider); SDK errors map to typed provider errors.
+        """
+        model = catalog.anthropic_model(request.tier)
+        params = build_params(request, model)
+        started = time.monotonic()
+        try:
+            async with self._sdk_client().messages.stream(
+                **params, timeout=max(1.0, timeout_seconds)
+            ) as stream:
+                async for text in stream.text_stream:
+                    if text:
+                        yield StreamChunk(text=text)
+                response = await stream.get_final_message()
+        except ProviderError:
+            raise
+        except Exception as exc:  # SDK errors → typed provider errors
+            raise map_sdk_error(exc) from None
+        raw_usage = getattr(response, "usage", None)
+        usage = Usage(
+            input_tokens=int(getattr(raw_usage, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(raw_usage, "output_tokens", 0) or 0),
+            cached_tokens=int(getattr(raw_usage, "cache_read_input_tokens", 0) or 0),
+            cache_write_tokens=int(getattr(raw_usage, "cache_creation_input_tokens", 0) or 0),
+        )
+        stop_reason = str(getattr(response, "stop_reason", "") or "")
+        if stop_reason == "refusal":
+            error = ProviderRefusal("anthropic refusal")
+            error.usage = usage  # type: ignore[attr-defined]
+            raise error
+        text = next(
+            (b.text for b in getattr(response, "content", []) if getattr(b, "type", "") == "text"),
+            "",
+        )
+        yield StreamChunk(
+            final=LLMResult(
+                text=text,
+                provider=self.name,
+                model=str(getattr(response, "model", model) or model),
+                latency_ms=round((time.monotonic() - started) * 1000),
+                finish_reason=stop_reason,
+                usage=usage,
+            )
         )

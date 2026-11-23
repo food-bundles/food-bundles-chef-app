@@ -161,3 +161,11 @@ class ProviderSchemaError(ProviderError):
 
 class ProviderUnexpected(ProviderError):  # noqa: N818 — named by failure kind
     kind = "unexpected"
+
+
+@dataclass
+class StreamChunk:
+    """One piece of a streamed answer. The last chunk carries `final` (full text, usage)."""
+
+    text: str = ""
+    final: LLMResult | None = None

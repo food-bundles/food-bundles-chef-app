@@ -17,9 +17,9 @@ import asyncio
 import json
 import random
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field, replace
-from typing import Generic, Literal, TypeVar
+from typing import Generic, Literal, TypeVar, cast
 
 import structlog
 from app.core.config import settings
@@ -29,6 +29,7 @@ from app.core.exceptions import (
     AiPrimaryFailedError,
     AiProviderError,
     AiRefusedError,
+    AiStreamInterruptedError,
     AiTimeoutError,
     AiUnavailableError,
 )
@@ -41,9 +42,11 @@ from app.modules.ai.providers.base import (
     ProviderError,
     ProviderSchemaError,
     ProviderTimeout,
+    StreamChunk,
     Usage,
 )
 from app.modules.ai.providers.breaker import CircuitBreaker
+from app.modules.ai.providers.canary import Canary, canary
 from app.modules.ai.providers.killswitch import KillSwitch, kill_switch
 from app.modules.ai.providers.spend import SpendTracker, spend_tracker
 from pydantic import ValidationError
@@ -91,12 +94,14 @@ class ProviderRouter:
         *,
         spend: SpendTracker | None = None,
         kill: KillSwitch | None = None,
+        canary_gate: Canary | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._providers = providers
         self._spend = spend or spend_tracker
         self._kill = kill or kill_switch
+        self._canary = canary_gate or canary
         self._sleep = sleep
         self._clock = clock
         self._breakers: dict[str, CircuitBreaker] = {}
@@ -162,11 +167,17 @@ class ProviderRouter:
             request = replace(request, tier=catalog.cheaper_tier(request.tier))
 
         order = self.order(policy)
+        # Step 3 canary: kitchens and features outside it are served by Meta only.
+        outside_canary = "anthropic" in order and not await self._canary.includes(
+            request.kitchen_id, request.feature
+        )
+        if outside_canary:
+            order = ["meta"]
         candidates: list[str] = []
         # skip_reason: the primary was never called (no_key, disabled, kill_switch,
         # budget, breaker_open). fallback_reason: it was called and failed. Kept apart
         # so the fallback-rate alert counts real failovers only.
-        skip_reason: str | None = None
+        skip_reason: str | None = "canary" if outside_canary else None
         fallback_reason: str | None = None
         for name in order:
             reason = await self.skip_reason(name, decision.action)
@@ -419,6 +430,237 @@ class ProviderRouter:
             outcome=outcome,
             repaired=repaired,
         )
+
+
+    # ── streaming (Step 1b) ────────────────────────────────────────────────────
+
+    async def stream(
+        self,
+        request: LLMRequest,
+        *,
+        parse: Callable[[str], T],
+        budget_seconds: float,
+        ttft_seconds: float,
+        policy: Policy = "default",
+    ) -> AsyncIterator[StreamEvent[T]]:
+        """Stream one answer: `delta` events with raw text, then one `done` with the value.
+
+        Failover happens ONLY before the first chunk reaches the caller (time to first
+        token is `ttft_seconds`, fallback included). After that, a failure raises
+        AiStreamInterruptedError: the other provider is never asked to finish an answer
+        the chef has already started reading. A refusal is never routed elsewhere.
+        """
+        started = self._clock()
+        deadline = started + budget_seconds
+        ttft_deadline = started + min(ttft_seconds, budget_seconds)
+        decision = await self._spend.check(request.kitchen_id)
+        if decision.action == "block":
+            self._log(request, started, outcome="budget_blocked", attempted=[], billed=[])
+            raise AiBudgetExceededError()
+        if decision.action == "cheaper_tier":
+            request = replace(request, tier=catalog.cheaper_tier(request.tier))
+
+        order = self.order(policy)
+        outside_canary = "anthropic" in order and not await self._canary.includes(
+            request.kitchen_id, request.feature
+        )
+        if outside_canary:
+            order = ["meta"]
+        skip_reason: str | None = "canary" if outside_canary else None
+        candidates: list[str] = []
+        for name in order:
+            reason = await self.skip_reason(name, decision.action)
+            if reason is None:
+                candidates.append(name)
+            elif skip_reason is None:
+                skip_reason = reason
+
+        attempted: list[str] = []
+        billed: list[_Billed] = []
+        fallback_reason: str | None = None
+        last_error: ProviderError | None = None
+        try:
+            for index, name in enumerate(candidates):
+                breaker = self.breaker(name)
+                if not breaker.allow():
+                    skip_reason = skip_reason or "breaker_open"
+                    continue
+                attempted.append(name)
+                entry = _Billed(provider=name, model="")
+                billed.append(entry)
+                is_last = index == len(candidates) - 1
+                now = self._clock()
+                wait = (
+                    max(0.0, deadline - now)
+                    if is_last
+                    else max(0.0, (ttft_deadline - now) * settings.AI_PRIMARY_BUDGET_SHARE)
+                )
+                chunks = _stream_of(self.providers()[name], request, max(1.0, deadline - now))
+                failure: ProviderError | None = None
+                try:
+                    first = await asyncio.wait_for(chunks.__anext__(), timeout=wait)
+                except StopAsyncIteration:
+                    failure = ProviderSchemaError(f"{name} returned an empty stream")
+                except TimeoutError:
+                    failure = ProviderTimeout(f"{name} gave no first token in time")
+                except ProviderError as exc:
+                    failure = exc
+                if failure is not None:
+                    await _close(chunks)
+                    last_error = failure
+                    usage = getattr(failure, "usage", None)
+                    if isinstance(usage, Usage):
+                        entry.usage.add(usage)
+                    if failure.counts_for_breaker:
+                        breaker.record_failure()
+                    else:
+                        breaker.release()
+                    health.record_failure(name, failure.kind)
+                    if failure.kind == "auth":
+                        logger.critical("ai_provider_auth_failed", provider=name)
+                    if not failure.failover:
+                        raise failure
+                    fallback_reason = fallback_reason or failure.kind
+                    continue
+
+                # Committed: text reaches the chef from here on. No failover any more.
+                parts: list[str] = []
+                final: LLMResult | None = None
+                chunk: StreamChunk = first
+                try:
+                    while True:
+                        if chunk.final is not None:
+                            final = chunk.final
+                        if chunk.text:
+                            parts.append(chunk.text)
+                            yield StreamEvent(kind="delta", text=chunk.text, provider=name)
+                        try:
+                            chunk = await asyncio.wait_for(
+                                chunks.__anext__(), timeout=max(0.1, deadline - self._clock())
+                            )
+                        except StopAsyncIteration:
+                            break
+                except (ProviderError, TimeoutError) as exc:
+                    await _close(chunks)
+                    kind = exc.kind if isinstance(exc, ProviderError) else "timeout"
+                    usage = getattr(exc, "usage", None)
+                    if isinstance(usage, Usage):
+                        entry.usage.add(usage)
+                    if kind == "refused":
+                        breaker.release()
+                        self._log(
+                            request, started, outcome="refused", attempted=attempted,
+                            billed=billed, served=name,
+                        )  # fmt: skip
+                        raise AiRefusedError() from None
+                    breaker.record_failure()
+                    health.record_failure(name, kind)
+                    self._log(
+                        request, started, outcome="interrupted", attempted=attempted,
+                        billed=billed, served=name, fallback_reason=fallback_reason,
+                    )  # fmt: skip
+                    raise AiStreamInterruptedError() from None
+
+                if final is not None:
+                    entry.model = final.model
+                    entry.usage.add(final.usage)
+                raw = final.text if final is not None and final.text else "".join(parts)
+                try:
+                    value = parse(raw)
+                except _PARSE_ERRORS:
+                    breaker.record_failure()
+                    health.record_failure(name, "schema_fail")
+                    self._log(
+                        request, started, outcome="schema_fail", attempted=attempted,
+                        billed=billed, served=name, fallback_reason=fallback_reason,
+                    )  # fmt: skip
+                    raise AiStreamInterruptedError() from None
+                breaker.record_success()
+                health.record_success(name, final.latency_ms if final else 0)
+                is_primary = name == order[0]
+                served_fallback = None if is_primary else fallback_reason
+                served_skip = None if is_primary or fallback_reason else skip_reason
+                outcome = (
+                    "fallback" if served_fallback else "primary_skipped" if served_skip else "success"
+                )
+                self._log(
+                    request,
+                    started,
+                    outcome=outcome,
+                    attempted=attempted,
+                    billed=billed,
+                    served=name,
+                    model=entry.model or None,
+                    fallback_reason=served_fallback,
+                    skip_reason=served_skip,
+                )
+                yield StreamEvent(kind="done", value=value, provider=name)
+                return
+        except ProviderError as exc:
+            self._log(
+                request,
+                started,
+                outcome="refused" if exc.kind == "refused" else exc.kind,
+                attempted=attempted,
+                billed=billed,
+                fallback_reason=fallback_reason,
+                skip_reason=skip_reason,
+                level="error" if exc.kind == "bad_request" else "info",
+            )
+            if exc.kind == "refused":
+                raise AiRefusedError() from None
+            raise AiProviderError(f"{request.feature} request rejected by provider") from None
+        finally:
+            await self._record_spend(request.kitchen_id, billed)
+
+        both = len(attempted) > 1 or not attempted
+        self._log(
+            request,
+            started,
+            outcome="both_failed" if both else (last_error.kind if last_error else "both_failed"),
+            attempted=attempted,
+            billed=billed,
+            fallback_reason=fallback_reason,
+            skip_reason=skip_reason,
+        )
+        if both or last_error is None:
+            raise AiUnavailableError()
+        if last_error.kind == "timeout":
+            raise AiTimeoutError()
+        raise AiProviderError(f"{request.feature} provider error")
+
+
+
+@dataclass
+class StreamEvent(Generic[T]):
+    """`delta`: raw text as it arrives; `done`: the parsed value (last event)."""
+
+    kind: Literal["delta", "done"]
+    text: str = ""
+    provider: str = ""
+    value: T | None = None
+
+
+async def _single_chunk(provider: LLMProvider, request: LLMRequest, timeout: float) -> AsyncIterator[StreamChunk]:
+    """Providers without streaming (Meta): the whole answer is the first and only chunk."""
+    result = await asyncio.wait_for(provider.generate(request, timeout), timeout=timeout + _DEADLINE_GRACE_SECONDS)
+    yield StreamChunk(text=result.text, final=result)
+
+
+def _stream_of(provider: LLMProvider, request: LLMRequest, timeout: float) -> AsyncIterator[StreamChunk]:
+    streamer = getattr(provider, "stream", None)
+    if streamer is not None:
+        return cast(AsyncIterator[StreamChunk], streamer(request, timeout))
+    return _single_chunk(provider, request, timeout)
+
+
+async def _close(chunks: AsyncIterator[StreamChunk]) -> None:
+    closer = getattr(chunks, "aclose", None)
+    if closer is not None:
+        try:
+            await closer()
+        except Exception:  # noqa: S110  # nosec B110 — closing a broken stream is best effort
+            pass
 
 
 provider_router = ProviderRouter()

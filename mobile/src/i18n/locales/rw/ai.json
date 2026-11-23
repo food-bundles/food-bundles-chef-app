@@ -26,7 +26,8 @@
       "auth": "Igihe cyawe cyarangiye — ongera winjire.",
       "server": "Hari ikitagenze neza — ongera ugerageze.",
       "too_small": "Menu cyangwa urupapuro ni bito cyane ku ifoto — egera hafi.",
-      "refused": "Sinshobora kugufasha kuri ibyo. Gerageza kubaza ibijyanye na menu, ububiko, ibyagurishijwe cyangwa ibyakiriwe."
+      "refused": "Sinshobora kugufasha kuri ibyo. Gerageza kubaza ibijyanye na menu, ububiko, ibyagurishijwe cyangwa ibyakiriwe.",
+      "interrupted": "Igisubizo cyahagaze. Kanda Ongera ugerageze kugira ngo wongere ubaze."
     },
     "consent": {
       "title": "Ubufasha bwa AI ku mafoto n'amajwi",

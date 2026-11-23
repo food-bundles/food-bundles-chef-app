@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive". |
 | AI | AI | Kept as the English acronym. |
 
-Total keys: **1160** — status as generated: 0 approved,
-1160 needing review.
+Total keys: **1161** — status as generated: 0 approved,
+1161 needing review.
 
 ## agent (130)
 
@@ -163,7 +163,7 @@ Total keys: **1160** — status as generated: 0 approved,
 | `agent.card.saveEdit` | Save changes | Bika impinduka | ⚠ needs review |
 | `agent.card.converted` | Converted | Byahinduwe | ⚠ needs review |
 
-## ai (78)
+## ai (79)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -191,6 +191,7 @@ Total keys: **1160** — status as generated: 0 approved,
 | `ai.errors.server` | Something went wrong — try again. | Hari ikitagenze neza — ongera ugerageze. | ⚠ needs review |
 | `ai.errors.too_small` | The menu or document is too small in the photo — move closer. | Menu cyangwa urupapuro ni bito cyane ku ifoto — egera hafi. | ⚠ needs review |
 | `ai.errors.refused` | I can't help with that. Try asking about your menu, stock, sales or deliveries. | Sinshobora kugufasha kuri ibyo. Gerageza kubaza ibijyanye na menu, ububiko, ibyagurishijwe cyangwa ibyakiriwe. | ⚠ needs review |
+| `ai.errors.interrupted` | Response interrupted. Tap Retry to ask again. | Igisubizo cyahagaze. Kanda Ongera ugerageze kugira ngo wongere ubaze. | ⚠ needs review |
 | `ai.consent.title` | AI help with photos and voice | Ubufasha bwa AI ku mafoto n'amajwi | ⚠ needs review |
 | `ai.consent.body` | Photos and voice clips you send are processed by an AI service to read menus, dishes and delivery notes. Food Bundles does not keep them after processing. Nothing is saved without your confirmation. | Amafoto n'amajwi wohereza asesengurwa na serivisi ya AI kugira ngo isome menu, amafunguro n'impapuro z'ibyakiriwe. Food Bundles ntibibika nyuma yo kubisesengura. Nta kibikwa utabyemeje. | ⚠ needs review |
 | `ai.consent.accept` | Continue | Komeza | ⚠ needs review |

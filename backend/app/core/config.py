@@ -110,6 +110,11 @@ class Settings(BaseSettings):
     AI_FALLBACK_PROVIDER: Literal["anthropic", "meta", "none"] = "meta"
     ANTHROPIC_API_KEY: SecretStr = SecretStr("")
     ANTHROPIC_ENABLED: bool = True
+    # Step 3 canary (docs/canary-plan.md). Defaults keep today's behaviour (every kitchen,
+    # every feature, every country). Outside the canary a request is served by Meta only.
+    AI_ANTHROPIC_CANARY_PERCENT: int = 100
+    AI_ANTHROPIC_CANARY_FEATURES: list[str] = []
+    AI_ANTHROPIC_CANARY_COUNTRIES: list[str] = []
     # Model IDs live here only. Verified against the Claude model list on 2026-11-18.
     ANTHROPIC_MODEL_FAST: str = "claude-haiku-5-5"
     ANTHROPIC_MODEL_STANDARD: str = "claude-sonnet-5-5"

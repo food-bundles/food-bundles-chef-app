@@ -232,8 +232,11 @@ export function PickRow({ entry, onPick }: { entry: PickEntry; onPick: (entry: P
   );
 }
 
-/** Three pulsing dots while the assistant works; "Still working…" after 10 s. */
-export function TypingIndicator({ slow }: { slow: boolean }) {
+/**
+ * Three pulsing dots while the assistant works; "Still working…" after 10 s. While the reply
+ * streams (Step 1b), the text so far is shown above the dots.
+ */
+export function TypingIndicator({ slow, text }: { slow: boolean; text?: string }) {
   const { t } = useTranslation();
   const tokens = useTheme();
   const reduceMotion = useReduceMotion();
@@ -258,12 +261,15 @@ export function TypingIndicator({ slow }: { slow: boolean }) {
     <View style={{ alignItems: 'flex-start' }} accessibilityLiveRegion="polite" accessibilityLabel={slow ? t('agent.stillWorking') : t('agent.thinking')}>
       <AgentLabel />
       <View style={[styles.bubble, styles.typing, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border, borderWidth: 1, borderBottomLeftRadius: 4 }]}>
+        {text ? <Text style={[styles.bubbleText, { color: tokens.text }]}>{text}</Text> : null}
         <View style={styles.dots}>
           {[0, 1, 2].map((i) => (
             <Animated.View key={i} style={[styles.dot, { backgroundColor: tokens.textMuted, opacity: dotOpacity(i) }]} />
           ))}
         </View>
-        <Text style={[styles.typingText, { color: tokens.textMuted }]}>{slow ? t('agent.stillWorking') : t('agent.thinking')}</Text>
+        {text ? null : (
+          <Text style={[styles.typingText, { color: tokens.textMuted }]}>{slow ? t('agent.stillWorking') : t('agent.thinking')}</Text>
+        )}
       </View>
     </View>
   );

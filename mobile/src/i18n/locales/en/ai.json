@@ -26,7 +26,8 @@
       "auth": "Your session expired — sign in again.",
       "server": "Something went wrong — try again.",
       "too_small": "The menu or document is too small in the photo — move closer.",
-      "refused": "I can't help with that. Try asking about your menu, stock, sales or deliveries."
+      "refused": "I can't help with that. Try asking about your menu, stock, sales or deliveries.",
+      "interrupted": "Response interrupted. Tap Retry to ask again."
     },
     "consent": {
       "title": "AI help with photos and voice",
