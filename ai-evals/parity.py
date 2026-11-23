@@ -318,9 +318,10 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    if args.include_drafts and not args.dry_run:
+    if args.include_drafts and not args.dry_run and not args.unverified_keys:
         raise SystemExit(
-            "--include-drafts is for dry runs only: real runs grade verified answers only"
+            "--include-drafts is for dry runs only: real runs grade verified answers only "
+            "(add --unverified-keys to run on draft keys and mark accuracy as provisional)"
         )
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + (
         "-dry" if args.dry_run else ""
@@ -338,6 +339,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "features": args.features,
         "dry_run": args.dry_run,
         "label": args.label,
+        "unverified_keys": bool(args.unverified_keys and args.include_drafts),
         "started": datetime.now(UTC).isoformat(),
     }
     (run_dir / "run.json").write_text(json.dumps(meta, indent=2))
@@ -872,6 +874,13 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "p50_ms": _pct(lat, 50),
         "p95_ms": _pct(lat, 95),
         "cost_per_call": _mean([r["cost_usd"] for r in calls]),
+        # Provider behaviour, independent of the answer keys.
+        "refusal_rate": _mean(
+            [1.0 if "refused" in (r.get("outcomes") or []) else 0.0 for r in calls]
+        ),
+        "repaired_rate": _mean(
+            [1.0 if "repaired" in (r.get("outcomes") or []) else 0.0 for r in calls]
+        ),
     }
     if feature == "classify":
         from evallib.grading import calibration
@@ -1041,6 +1050,17 @@ def cmd_report(args: argparse.Namespace) -> int:
             if meta.get("label")
             else []
         ),
+        *(
+            [
+                "> **ANSWER KEYS UNVERIFIED.** Draft keys were used. Key-independent metrics "
+                "(schema-valid, refusals, fallback, latency, cost, Assistant clarify kinds "
+                "and unconfirmed writes) are reliable. **Accuracy metrics are PROVISIONAL "
+                "— keys unverified.** GO/NO-GO: **PENDING KEY VERIFICATION**.",
+                "",
+            ]
+            if meta.get("unverified_keys")
+            else []
+        ),
         f"Runs per case: {meta['runs']} · arms: {', '.join(arms)} · "
         f"spent ${ledger['spent_usd']:.4f} of ${meta['budget_usd']:.2f}"
         + (f" · **stopped: {ledger['stopped']}**" if ledger.get("stopped") else "")
@@ -1074,18 +1094,35 @@ def cmd_report(args: argparse.Namespace) -> int:
             for k in next(iter(sums.values()))
             if k not in ("decode_stats", "clarify_by_kind")
         ]
-        lines += [
-            f"## {feature}",
-            "",
-            "| metric | " + " | ".join(sums) + " |",
-            "|---|" + "---|" * len(sums),
-        ]
-        for k in keys:
-            lines.append(
-                f"| {k} | "
-                + " | ".join(_fmt(k, s.get(k)) for s in sums.values())
-                + " |"
-            )
+        lines += [f"## {feature}", ""]
+        unverified = bool(meta.get("unverified_keys"))
+        groups = (
+            [
+                ("(a) Key-independent", [k for k in keys if _key_independent(feature, k)]),
+                (
+                    "(b) Accuracy: PROVISIONAL — keys unverified",
+                    [k for k in keys if not _key_independent(feature, k)],
+                ),
+            ]
+            if unverified
+            else [("", keys)]
+        )
+        for title, group in groups:
+            if not group:
+                continue
+            if title:
+                lines += [f"**{title}**", ""]
+            lines += [
+                "| metric | " + " | ".join(sums) + " |",
+                "|---|" + "---|" * len(sums),
+            ]
+            for k in group:
+                lines.append(
+                    f"| {k} | "
+                    + " | ".join(_fmt(k, s.get(k)) for s in sums.values())
+                    + " |"
+                )
+            lines.append("")
         kinds = sorted({k for s in sums.values() for k in s.get("clarify_by_kind", {})})
         if kinds:
             lines += [
@@ -1140,6 +1177,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             rec = recommend_budget_s(feature, s.get("p95_ms"), meta_s.get("p95_ms"))
             if rec:
                 bar.append(f"recommended budget {rec} s")
+            if meta.get("unverified_keys"):
+                bar.append("accuracy comparisons PROVISIONAL; GO/NO-GO PENDING KEY VERIFICATION")
             lines.append(f"- **{arm}**: " + "; ".join(bar))
         if "claude-low" in sums and "claude-medium" in sums:
             lo, med = sums["claude-low"], sums["claude-medium"]
@@ -1169,6 +1208,42 @@ def cmd_report(args: argparse.Namespace) -> int:
     (run_dir / "report.md").write_text(report, encoding="utf-8")
     print(report)
     return 0
+
+
+# Metrics that don't depend on the answer keys (reliable even when keys are drafts).
+_KEY_INDEPENDENT = {
+    "n",
+    "calls",
+    "schema_valid",
+    "refusals",
+    "refusal_rate",
+    "repaired_rate",
+    "unavailable_rate",
+    "language_unknown",
+    "errors",
+    "error_rate",
+    "fallbacks",
+    "fallback_rate",
+    "p50_ms",
+    "p95_ms",
+    "cost_per_call",
+    "cost_usd",
+    "unconfirmed_writes",
+    "params_valid",
+    "params_decode_fail_rate",
+    "one_question",
+    "language",
+    "grounded",
+    "clarify_kind",
+}
+
+
+def _key_independent(feature: str, key: str) -> bool:
+    """Image-feature accuracy comes from the draft keys; Assistant expectations are
+    written cases (not photo keys), so their checks stay key-independent."""
+    if key in _KEY_INDEPENDENT:
+        return True
+    return feature == "assistant" and not key.endswith("accuracy")
 
 
 def _ok(passed: bool) -> str:
@@ -1224,6 +1299,12 @@ def main() -> int:
     )
     r.add_argument("--out", type=Path, default=ROOT / "results")
     r.add_argument("--label", help='marks the report, e.g. "preliminary"')
+    r.add_argument(
+        "--unverified-keys",
+        action="store_true",
+        help="with --include-drafts: allow a real run on draft keys; accuracy is marked "
+        "provisional and GO/NO-GO pending key verification",
+    )
     w = sub.add_parser("worker")
     w.add_argument("--arm", required=True, choices=list(ARMS))
     w.add_argument("--run-dir", required=True)
