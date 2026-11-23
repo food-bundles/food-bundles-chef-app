@@ -16,7 +16,11 @@ from app.modules.authentication.schemas import (
 from app.modules.authentication.service import AuthenticationService
 from app.modules.chefs.models import Chef
 from app.modules.chefs.repository import ChefRepository
-from app.modules.chefs.schemas import ChefProfileResponse, PushTokenRequest
+from app.modules.chefs.schemas import (
+    ChefProfileResponse,
+    ChefProfileUpdateRequest,
+    PushTokenRequest,
+)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -66,6 +70,26 @@ async def logout(
 async def get_me(
     current_chef: Chef = Depends(get_current_chef),
 ) -> ChefProfileResponse:
+    return ChefProfileResponse.model_validate(current_chef)
+
+
+@router.patch("/me", response_model=ChefProfileResponse)
+async def update_me(
+    body: ChefProfileUpdateRequest,
+    current_chef: Chef = Depends(get_current_chef),
+    db: AsyncSession = Depends(get_db),
+) -> ChefProfileResponse:
+    """Update the authenticated chef's name, email or language."""
+    changes = body.model_dump(exclude_unset=True)
+    if "name" in changes:
+        name = (changes["name"] or "").strip()
+        current_chef.name = name or None
+    if "email" in changes:
+        current_chef.email = changes["email"] or None
+    if changes.get("preferred_locale"):
+        current_chef.preferred_locale = changes["preferred_locale"]
+    repo = ChefRepository(db)
+    await repo.update(current_chef)
     return ChefProfileResponse.model_validate(current_chef)
 
 

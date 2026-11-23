@@ -1,3 +1,4 @@
+import { FEATURES } from '@/constants/features';
 import { useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -100,6 +101,7 @@ export default function HomeScreen() {
         onMenu={() => router.push('/(app)/menu')}
         onProfile={() => router.push('/(app)/profile')}
         onSwitch={() => router.push('/(app)/kitchens')}
+        onAssistant={FEATURES.assistant ? () => router.push('/(app)/agent') : undefined}
       />
       <ScrollView
         contentContainerStyle={styles.content}

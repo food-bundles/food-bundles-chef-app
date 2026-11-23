@@ -11,8 +11,8 @@ function flag(value: string | undefined, fallback: boolean): boolean {
 }
 
 export const FEATURES = {
-  /** Kitchen Assistant chat: Profile → Assistant. Off by default (not in the spec). */
-  assistant: flag(process.env.EXPO_PUBLIC_FEATURE_ASSISTANT, false),
+  /** Kitchen Assistant chat: Home header button and Profile → Assistant. On by default. */
+  assistant: flag(process.env.EXPO_PUBLIC_FEATURE_ASSISTANT, true),
   /** Delivery tracking map in receiving. Off (not in the spec). */
   deliveryMap: flag(process.env.EXPO_PUBLIC_FEATURE_DELIVERY_MAP, false),
 } as const;

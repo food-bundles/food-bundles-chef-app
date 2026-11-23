@@ -4,7 +4,7 @@
  */
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Truck, User, UtensilsCrossed } from 'lucide-react-native';
+import { Sparkles, Truck, User, UtensilsCrossed } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppPressable } from '@/components/ui/AppPressable';
@@ -22,10 +22,12 @@ export interface HomeHeaderProps {
   onMenu: () => void;
   onProfile: () => void;
   onSwitch: () => void;
+  /** Opens the Kitchen Assistant; the button is hidden when not given. */
+  onAssistant?: () => void;
 }
 
 /** "KITCHEN" + name, the menu & recipes icon, the profile icon and Switch. */
-export function HomeHeader({ kitchenName, onMenu, onProfile, onSwitch }: HomeHeaderProps) {
+export function HomeHeader({ kitchenName, onMenu, onProfile, onSwitch, onAssistant }: HomeHeaderProps) {
   const { t } = useTranslation();
   const tk = useTheme();
   return (
@@ -36,6 +38,16 @@ export function HomeHeader({ kitchenName, onMenu, onProfile, onSwitch }: HomeHea
           {kitchenName}
         </Text>
       </View>
+      {onAssistant ? (
+        <AppPressable
+          onPress={onAssistant}
+          accessibilityRole="button"
+          accessibilityLabel={t('agent.openAssistant')}
+          style={({ pressed }) => [styles.iconButton, { backgroundColor: tk.primaryTint }, pressed && styles.pressed]}
+        >
+          <Sparkles size={22} color={tk.primary} strokeWidth={2} />
+        </AppPressable>
+      ) : null}
       <AppPressable
         onPress={onMenu}
         accessibilityRole="button"

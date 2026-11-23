@@ -387,7 +387,6 @@ export default function ReceiveScreen() {
         </AppPressable>
         <Text style={[styles.note, { color: tk.textMuted }]}>{t('receive.elsewhereNote')}</Text>
         {deliveryPhoto || Object.keys(linePhotos).length > 0 ? (
-          <Text style={[styles.note, { color: tk.textMuted }]}>{t('receive.photosLocal')}</Text>
         ) : null}
         {error ? (
           <Text style={[styles.error, { color: tk.danger }]} accessibilityRole="alert">
