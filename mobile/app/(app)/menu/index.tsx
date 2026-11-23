@@ -101,18 +101,8 @@ export default function MenuScreen() {
     ]);
   };
 
-  const openEdit = (item: MenuItemDto) =>
-    router.push({
-      pathname: '/(app)/menu/edit-item',
-      params: {
-        itemId: item.id,
-        menuId: item.menu_id,
-        name: item.name,
-        selling_price: item.selling_price,
-        description: item.description ?? '',
-        category: item.category ?? '',
-      },
-    });
+  // Spec 09: one dish form for create, edit and recipe (the old edit/detail screens stay unlinked).
+  const openEdit = (item: MenuItemDto) => router.push({ pathname: '/(app)/menu/dish', params: { id: item.id } });
 
   const filters: CategoryFilter[] = ['all', ...MENU_ITEM_CATEGORIES];
 
@@ -127,7 +117,7 @@ export default function MenuScreen() {
           {features.menu_scan ? (
             <HeaderButton Icon={ScanLine} label={t('menu.scanMenu')} onPress={() => setScanOpen(true)} />
           ) : null}
-          <HeaderButton Icon={Plus} label={t('menu.addItem')} onPress={() => router.push('/(app)/menu/create-item')} filled />
+          <HeaderButton Icon={Plus} label={t('menu.addItem')} onPress={() => router.push('/(app)/menu/dish')} filled />
         </View>
       </View>
 
@@ -161,7 +151,7 @@ export default function MenuScreen() {
           renderItem={({ item }) => (
             <MenuItemCard
               item={item}
-              onOpen={() => router.push({ pathname: '/(app)/menu/[id]', params: { id: item.id } })}
+              onOpen={() => router.push({ pathname: '/(app)/menu/dish', params: { id: item.id } })}
               onToggle={() => toggleActive.mutate({ menuId: item.menu_id, itemId: item.id, isActive: item.is_active })}
               onEdit={() => openEdit(item)}
               onMore={() => setOverflowItem(item)}
@@ -180,7 +170,7 @@ export default function MenuScreen() {
                 </View>
                 <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.emptyTitle')}</Text>
                 <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('menu.emptyBody')}</Text>
-                <AppButton label={t('menu.addFirstItem')} onPress={() => router.push('/(app)/menu/create-item')} />
+                <AppButton label={t('menu.addFirstItem')} onPress={() => router.push('/(app)/menu/dish')} />
                 {features.menu_scan ? (
                   <AppButton label={t('menu.scanMenu')} variant="secondary" onPress={() => setScanOpen(true)} />
                 ) : null}

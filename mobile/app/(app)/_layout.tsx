@@ -17,6 +17,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="menu/index" />
+      <Stack.Screen name="menu/dish" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="agent" />
       <Stack.Screen name="kitchens/index" />

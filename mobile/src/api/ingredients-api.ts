@@ -14,6 +14,8 @@ export interface IngredientCreateBody {
   days_open_per_week?: number;
   safety_buffer_fraction?: string | null;
   notes?: string | null;
+  /** Food Bundles catalogue product: the cost follows its price. */
+  catalog_product_id?: string | null;
 }
 
 export interface IngredientUpdateBody {
@@ -43,6 +45,8 @@ export interface IngredientDto {
   safety_buffer_fraction: string | null;
   is_active: boolean;
   notes: string | null;
+  /** Linked Food Bundles catalogue product (null = custom ingredient). Older servers omit it. */
+  catalog_product_id?: string | null;
   created_at: string;
   updated_at: string;
 }

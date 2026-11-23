@@ -172,3 +172,32 @@ export function formatMoneyList(items: readonly { amount: number; currency: stri
   if (items.length === 0) return '—';
   return items.map((m) => formatMoney(m.amount, m.currency, lang)).join(' + ');
 }
+
+/**
+ * An amount without its currency sign, with the currency's decimals (RWF 1,125; EUR 7.99).
+ * Used where the screen already names the currency (e.g. "Selling price (RWF)").
+ */
+export function formatAmount(amount: number | string | null | undefined, currency: string, lang?: string): string {
+  const n = toNumber(amount);
+  if (n === null) return '—';
+  const digits = currency ? minorUnits(currency) : 2;
+  return new Intl.NumberFormat(LOCALE[toAppLanguage(lang)], {
+    minimumFractionDigits: currency ? digits : 0,
+    maximumFractionDigits: digits,
+  }).format(n);
+}
+
+/**
+ * A price per base unit as on the recipe screen: "4,500 / kg". In another currency than the
+ * kitchen's, the currency is shown ("€7.99 / kg").
+ */
+export function formatPerUnit(
+  amount: number | string | null | undefined,
+  currency: string,
+  kitchenCurrency: string,
+  unit: string,
+  lang?: string,
+): string {
+  const text = currency === kitchenCurrency ? formatAmount(amount, currency, lang) : formatUnitCost(amount, currency, lang);
+  return `${text} / ${unit}`;
+}
