@@ -44,6 +44,9 @@
     "footerTagline": "Yubakiwe amatsinda y'amagataraga",
     "footerCopyright": "© Food Bundles",
     "photoLabel": "Ifoto y'umwirondoro",
-    "photoLabelNamed": "Ifoto y'umwirondoro ya {{name}}"
+    "photoLabelNamed": "Ifoto y'umwirondoro ya {{name}}",
+    "serviceHours": "Amasaha ya serivisi",
+    "serviceHoursValue": "{{open}}–{{close}}",
+    "assistant": "Umufasha w'igikoni"
   }
 }

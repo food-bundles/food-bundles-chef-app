@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { Camera, ChefHat, ChevronLeft, MapPin, Users, UtensilsCrossed } from 'lucide-react-native';
+import { Camera, ChefHat, ChevronLeft, Clock, MapPin, Users, UtensilsCrossed } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing } from '@/lib/theme';
-import type { KitchenFormValues } from './kitchen-schema';
+import { sanitiseClockInput, type KitchenFormValues } from './kitchen-schema';
 import { RegionFields, type RegionFieldsProps } from './RegionFields';
 
 const HERO_HEIGHT = 220;
@@ -191,6 +191,33 @@ export function KitchenFormFields({
           </View>
         </View>
 
+        <View style={group}>
+          <View style={iconWrap}><Clock size={16} color={tk.link} strokeWidth={2} /></View>
+          <View style={[styles.flex, styles.hoursRow]}>
+            {(['openingTime', 'closingTime'] as const).map((field) => (
+              <View key={field} style={styles.flex}>
+                <Controller
+                  control={control}
+                  name={field}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AppTextField
+                      label={t(`kitchens.${field}Label`)}
+                      placeholder={field === 'openingTime' ? '11:00' : '22:00'}
+                      value={value ?? ''}
+                      onChangeText={(v) => onChange(sanitiseClockInput(v))}
+                      onBlur={onBlur}
+                      error={errors[field]?.message ? t(`kitchens.errors.${field}`) : undefined}
+                      keyboardType="number-pad"
+                      maxLength={5}
+                      returnKeyType="done"
+                    />
+                  )}
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
         <RegionFields
           control={control}
           errors={errors}
@@ -207,6 +234,7 @@ export function KitchenFormFields({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  hoursRow: { flexDirection: 'row', gap: spacing.sm },
   back: {
     position: 'absolute',
     left: 12,

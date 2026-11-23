@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Pencil, LogOut, UtensilsCrossed, Truck, TrendingUp, ChevronRight } from 'lucide-react-native';
+import { Settings, Pencil, LogOut, UtensilsCrossed, ChevronRight, ChevronLeft, Clock, Bot } from 'lucide-react-native';
+import { FEATURES } from '@/constants/features';
 import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
@@ -115,7 +116,17 @@ export default function ProfileScreen() {
 
   const header = (
     <View style={{ paddingHorizontal: spacing.md, minHeight: 52, borderBottomWidth: 1, borderBottomColor: tk.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: '700' }} accessibilityRole="header">
+      {!editing ? (
+        <AppPressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm }}
+        >
+          <ChevronLeft size={24} color={tk.text} />
+        </AppPressable>
+      ) : null}
+      <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: '700', flex: 1 }} accessibilityRole="header">
         {editing ? t('profile.editProfile') : t('profile.title')}
       </Text>
       {editing ? (
@@ -236,24 +247,27 @@ export default function ProfileScreen() {
           />
         </View>
 
-        <Text style={sectionLabel}>{t('profile.sectionLinks')}</Text>
-        <View style={card}>
-          <ListRow
-            icon={<Truck size={18} color={tk.link} strokeWidth={2} />}
-            iconBg={tk.primaryTint}
-            title={t('profile.linkReceiving')}
-            subtitle={t('profile.linkReceivingDesc')}
-            onPress={() => router.push('/(app)/receiving' as never)}
-          />
-          <ListRow
-            icon={<TrendingUp size={18} color={tk.link} strokeWidth={2} />}
-            iconBg={tk.primaryTint}
-            title={t('profile.linkSales')}
-            subtitle={t('profile.linkSalesDesc')}
-            onPress={() => router.push('/(app)/sales/entry' as never)}
-            separator={false}
-          />
-        </View>
+        {activeKitchen ? (
+          <View style={card}>
+            <ListRow
+              icon={<Clock size={18} color={tk.link} strokeWidth={2} />}
+              iconBg={tk.primaryTint}
+              title={t('profile.serviceHours')}
+              subtitle={t('profile.serviceHoursValue', { open: activeKitchen.openingTime, close: activeKitchen.closingTime })}
+              onPress={() => router.push(`/(app)/kitchens/${activeKitchen.id}` as never)}
+              separator={FEATURES.assistant}
+            />
+            {FEATURES.assistant ? (
+              <ListRow
+                icon={<Bot size={18} color={tk.link} strokeWidth={2} />}
+                iconBg={tk.primaryTint}
+                title={t('profile.assistant')}
+                onPress={() => router.push('/(app)/agent')}
+                separator={false}
+              />
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={sectionLabel}>{t('profile.sectionAccount')}</Text>
         <View style={card}>

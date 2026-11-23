@@ -58,8 +58,12 @@
     "errors": {
       "country": "Hitamo igihugu igikoni kirimo.",
       "currency": "Hitamo ifaranga ibiciro byawe biriho.",
-      "timezone": "Hitamo isaha y'akarere k'igikoni."
-    }
+      "timezone": "Hitamo isaha y'akarere k'igikoni.",
+      "openingTime": "Koresha amasaha 24, urugero: 11:00",
+      "closingTime": "Isaha yo gufunga igomba kuba nyuma yo gufungura, urugero: 22:00"
+    },
+    "openingTimeLabel": "Gufungura",
+    "closingTimeLabel": "Gufunga"
   },
   "currencyChange": {
     "title": "Guhindura ifaranga",

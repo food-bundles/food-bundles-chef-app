@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { isCurrency } from '@/lib/money';
 import { isCountry } from '@/lib/regions';
 
+/** 24-hour "HH:MM". */
+const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Error key (translated as kitchens.errors.closingTime), not user-facing text. */
+const CLOSING_TIME_ERROR = 'closingTime';
+
 export const kitchenSchema = z.object({
   name: z
     .string()
@@ -30,6 +35,18 @@ export const kitchenSchema = z.object({
   country: z.string().refine((v) => isCountry(v), 'country'),
   currency: z.string().refine((v) => isCurrency(v), 'currency'),
   timezone: z.string().min(1, 'timezone'),
-});
+  // Service hours (Home's state). Closing is after opening on the same day.
+  openingTime: z.string().regex(CLOCK, 'openingTime'),
+  closingTime: z.string().regex(CLOCK, 'closingTime'),
+}).refine(
+  (v) => !CLOCK.test(v.openingTime) || !CLOCK.test(v.closingTime) || v.closingTime > v.openingTime,
+  { path: ['closingTime'], message: CLOSING_TIME_ERROR },
+);
+
+/** Digits typed into a time field → "HH:MM" as the chef types (a colon after two digits). */
+export function sanitiseClockInput(text: string): string {
+  const digits = text.replace(/[^0-9]/g, '').slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+}
 
 export type KitchenFormValues = z.infer<typeof kitchenSchema>;

@@ -25,8 +25,8 @@ This file lists each key with its English source and the current draft, grouped 
 | archive (kitchen) | gushyingura | Confirm the wording for "archive". |
 | AI | AI | Kept as the English acronym. |
 
-Total keys: **1094** — status as generated: 0 approved,
-1094 needing review.
+Total keys: **1160** — status as generated: 0 approved,
+1160 needing review.
 
 ## agent (130)
 
@@ -283,7 +283,7 @@ Total keys: **1094** — status as generated: 0 approved,
 | `auth.features.insightsTitle` | Kitchen insights | Amakuru y'igikoni | ⚠ needs review |
 | `auth.features.insightsDesc` | Live stock and sales at a glance | Ububiko n'ibyagurishijwe ako kanya | ⚠ needs review |
 
-## common (43)
+## common (47)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -328,10 +328,14 @@ Total keys: **1094** — status as generated: 0 approved,
 | `tabs.dashboard` | Dashboard | Ikibaho | ⚠ needs review |
 | `tabs.menu` | Menu | Menu | ⚠ needs review |
 | `tabs.purchasing` | Requisition | Kugura | ⚠ needs review |
-| `tabs.stock` | Stock | Bubiko | ⚠ needs review |
+| `tabs.stock` | Stock | Ububiko | ⚠ needs review |
 | `tabs.profile` | Profile | Umwirondoro | ⚠ needs review |
+| `tabs.home` | Home | Ahabanza | ⚠ needs review |
+| `tabs.receive` | Receive | Kwakira | ⚠ needs review |
+| `tabs.commands` | Commands | Komande | ⚠ needs review |
+| `tabs.requisition` | Requisition | Ibisabwa | ⚠ needs review |
 
-## dashboard (50)
+## dashboard (105)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -385,6 +389,61 @@ Total keys: **1094** — status as generated: 0 approved,
 | `dashboard.reorderBody_other` | {{count}} ingredients are below the reorder level. Your purchase list is ready to review before tomorrow's service. | Ibikoresho {{count}} biri munsi y'urugero rwo gutumiza. Urutonde rwawe rwo kugura rwiteguye kugenzurwa mbere y'akazi k'ejo. | ⚠ needs review |
 | `dashboard.catalogItemLabel` | {{name}} — open the catalog | {{name}} — fungura urutonde rw'ibicuruzwa | ⚠ needs review |
 | `dashboard.pricePerUnit` | {{price}}/{{unit}} | {{price}}/{{unit}} | ⚠ needs review |
+| `home.kitchenEyebrow` | Kitchen | Igikoni | ⚠ needs review |
+| `home.menuRecipes` | Menu & recipes | Ibiryo n'uko bitegurwa | ⚠ needs review |
+| `home.profile` | Profile and settings | Umwirondoro n'igenamiterere | ⚠ needs review |
+| `home.switch` | Switch | Hindura | ⚠ needs review |
+| `home.switchLabel` | Switch kitchen | Hindura igikoni | ⚠ needs review |
+| `home.stepReceive` | Receive | Kwakira | ⚠ needs review |
+| `home.stepReceived` | Received | Byakiriwe | ⚠ needs review |
+| `home.stepCommands` | Commands | Komande | ⚠ needs review |
+| `home.stepRequisition` | Requisition | Ibisabwa | ⚠ needs review |
+| `home.stepTodo` | {{n}} {{label}} | {{n}} {{label}} | ⚠ needs review |
+| `home.stepDone` | ✓ {{label}} | ✓ {{label}} | ⚠ needs review |
+| `home.stepA11y` | Step {{n}} of 3, {{label}}: {{status}} | Intambwe ya {{n}} kuri 3, {{label}}: {{status}} | ⚠ needs review |
+| `home.stepStatus.done` | done | byarangiye | ⚠ needs review |
+| `home.stepStatus.current` | now | ubu | ⚠ needs review |
+| `home.stepStatus.upcoming` | later | nyuma | ⚠ needs review |
+| `home.opensAt` | Kitchen opens at {{time}} | Igikoni gifungura saa {{time}} | ⚠ needs review |
+| `home.openUntil` | Service open until {{time}} | Serivisi ifunguye kugeza saa {{time}} | ⚠ needs review |
+| `home.closed` | Service closed | Serivisi yafunze | ⚠ needs review |
+| `home.yesterdaysRequisition` | Yesterday's requisition | Ibyasabwe ejo | ⚠ needs review |
+| `home.orderStatus.submitted` | Ordered | Byatumijwe | ⚠ needs review |
+| `home.orderStatus.confirmed` | Confirmed | Byemejwe | ⚠ needs review |
+| `home.orderStatus.out_for_delivery` | On the way | Biri mu nzira | ⚠ needs review |
+| `home.orderStatus.delivered` | Received | Byakiriwe | ⚠ needs review |
+| `home.items_one` | {{count}} item | Ikintu {{count}} | ⚠ needs review |
+| `home.items_other` | {{count}} items | Ibintu {{count}} | ⚠ needs review |
+| `home.orderNo` | Food Bundles {{no}} | Food Bundles {{no}} | ⚠ needs review |
+| `home.moreItems` | + {{count}} more | + {{count}} ibindi | ⚠ needs review |
+| `home.receiveDelivery` | Receive delivery | Kwakira ibyagejejwe | ⚠ needs review |
+| `home.skipDelivery` | No delivery today? Skip | Nta byagejejwe uyu munsi? Simbuka | ⚠ needs review |
+| `home.noDeliveryTitle` | No delivery expected | Nta byitezwe kugezwa | ⚠ needs review |
+| `home.noDeliveryBody` | Bought something elsewhere? Add it in Receive. | Waguze ahandi? Bishyire muri Kwakira. | ⚠ needs review |
+| `home.addBoughtElsewhere` | Add items bought elsewhere | Ongeraho ibyaguzwe ahandi | ⚠ needs review |
+| `home.commands` | Commands | Komande | ⚠ needs review |
+| `home.counters.new` | New | Nshya | ⚠ needs review |
+| `home.counters.cooking` | Cooking | Birateka | ⚠ needs review |
+| `home.counters.served` | Served | Byatanzwe | ⚠ needs review |
+| `home.counters.cancelled` | Cancelled | Byahagaritswe | ⚠ needs review |
+| `home.openCommands` | Open commands | Fungura komande | ⚠ needs review |
+| `home.openCommandsNew` | Open commands ({{count}} new) | Fungura komande ({{count}} nshya) | ⚠ needs review |
+| `home.todayInShort` | Today in short | Uyu munsi muri make | ⚠ needs review |
+| `home.tomorrowsRequisition` | Tomorrow's requisition | Ibisabwa by'ejo | ⚠ needs review |
+| `home.itemsSuggested_one` | {{count}} item suggested · Food Bundles prices | Ikintu {{count}} cyatanzwe · ibiciro bya Food Bundles | ⚠ needs review |
+| `home.itemsSuggested_other` | {{count}} items suggested · Food Bundles prices | Ibintu {{count}} byatanzwe · ibiciro bya Food Bundles | ⚠ needs review |
+| `home.nothingSuggested` | Nothing to buy for tomorrow yet | Nta kintu cyo kugura ejo kugeza ubu | ⚠ needs review |
+| `home.reviewRequisition` | Review requisition | Reba ibisabwa | ⚠ needs review |
+| `home.loadError` | Couldn't load today's delivery. Pull down to try again. | Ntibyashobotse gufungura ibyagejejwe uyu munsi. Kurura hasi wongere ugerageze. | ⚠ needs review |
+| `home.noKitchenTitle` | Add your kitchen | Ongeraho igikoni cyawe | ⚠ needs review |
+| `home.noKitchenBody` | Set up your first kitchen to start the day. | Shyiraho igikoni cya mbere kugira ngo utangire umunsi. | ⚠ needs review |
+| `home.addKitchen` | Add kitchen | Ongeraho igikoni | ⚠ needs review |
+| `home.offline_one` | Offline · {{count}} change waiting to sync | Nta murandasi · impinduka {{count}} itegereje | ⚠ needs review |
+| `home.offline_other` | Offline · {{count}} changes waiting to sync | Nta murandasi · impinduka {{count}} zitegereje | ⚠ needs review |
+| `home.offlineNone` | Offline · showing the last saved data | Nta murandasi · amakuru ya nyuma yabitswe | ⚠ needs review |
+| `commands.title` | Commands | Komande | ⚠ needs review |
+| `commands.emptyTitle` | No commands yet today | Nta komande uyu munsi | ⚠ needs review |
+| `commands.emptyBody` | Commands you record or accept will show here. | Komande wanditse cyangwa wemeye zizagaragara hano. | ⚠ needs review |
 
 ## delivery (164)
 
@@ -563,7 +622,7 @@ Total keys: **1094** — status as generated: 0 approved,
 | `errors.boundary.body` | The app hit an unexpected problem. Your saved data is safe. | Porogaramu yahuye n'ikibazo kitunguranye. Amakuru yawe yabitswe ari amahoro. | ⚠ needs review |
 | `errors.boundary.retry` | Try again | Ongera ugerageze | ⚠ needs review |
 
-## kitchens (92)
+## kitchens (96)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -625,6 +684,10 @@ Total keys: **1094** — status as generated: 0 approved,
 | `kitchens.errors.country` | Choose the kitchen's country. | Hitamo igihugu igikoni kirimo. | ⚠ needs review |
 | `kitchens.errors.currency` | Choose the currency your prices are in. | Hitamo ifaranga ibiciro byawe biriho. | ⚠ needs review |
 | `kitchens.errors.timezone` | Choose the kitchen's time zone. | Hitamo isaha y'akarere k'igikoni. | ⚠ needs review |
+| `kitchens.errors.openingTime` | Use 24-hour time, e.g. 11:00 | Koresha amasaha 24, urugero: 11:00 | ⚠ needs review |
+| `kitchens.errors.closingTime` | Closing must be after opening, e.g. 22:00 | Isaha yo gufunga igomba kuba nyuma yo gufungura, urugero: 22:00 | ⚠ needs review |
+| `kitchens.openingTimeLabel` | Opens at | Gufungura | ⚠ needs review |
+| `kitchens.closingTimeLabel` | Closes at | Gufunga | ⚠ needs review |
 | `currencyChange.title` | Change currency | Guhindura ifaranga | ⚠ needs review |
 | `currencyChange.entryTitle` | Change currency | Guhindura ifaranga | ⚠ needs review |
 | `currencyChange.entrySubtitle` | Now {{currency}} · convert or relabel your prices | Ubu ni {{currency}} · hindura ibiciro cyangwa izina ry'ifaranga | ⚠ needs review |
@@ -947,7 +1010,7 @@ Total keys: **1094** — status as generated: 0 approved,
 | `orders.onItsWay` | This order is on its way — contact Food Bundles support. | Iki cyifuzo kiri mu nzira — vugana n'abakozi bafasha ba Food Bundles. | ⚠ needs review |
 | `orders.cancelFailed` | The order could not be cancelled. Try again. | Ntibyashobotse guhagarika icyifuzo. Ongera ugerageze. | ⚠ needs review |
 
-## profile (45)
+## profile (48)
 
 | Key | English source | Kinyarwanda draft | Status |
 |---|---|---|---|
@@ -996,6 +1059,9 @@ Total keys: **1094** — status as generated: 0 approved,
 | `profile.footerCopyright` | © Food Bundles | © Food Bundles | ⚠ needs review |
 | `profile.photoLabel` | Profile photo | Ifoto y'umwirondoro | ⚠ needs review |
 | `profile.photoLabelNamed` | Profile photo of {{name}} | Ifoto y'umwirondoro ya {{name}} | ⚠ needs review |
+| `profile.serviceHours` | Service hours | Amasaha ya serivisi | ⚠ needs review |
+| `profile.serviceHoursValue` | {{open}}–{{close}} | {{open}}–{{close}} | ⚠ needs review |
+| `profile.assistant` | Kitchen Assistant | Umufasha w'igikoni | ⚠ needs review |
 
 ## sales (13)
 

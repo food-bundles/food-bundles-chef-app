@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ClipboardList, MoreHorizontal, Pencil, Plus, ScanLine, Trash2, UtensilsCrossed, type LucideIcon } from 'lucide-react-native';
+import { ChevronLeft, ClipboardList, MoreHorizontal, Pencil, Plus, ScanLine, Trash2, UtensilsCrossed, type LucideIcon } from 'lucide-react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -119,11 +119,11 @@ export default function MenuScreen() {
   return (
     <View style={[styles.root, { backgroundColor: tokens.surface, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: tokens.border, backgroundColor: tokens.surfaceRaised }]}>
+        <HeaderButton Icon={ChevronLeft} label={t('common.back')} onPress={() => router.back()} />
         <Text style={[styles.title, { color: tokens.text }]} accessibilityRole="header">
           {t('menu.title')}
         </Text>
         <View style={styles.headerActions}>
-          <HeaderButton Icon={ClipboardList} label={t('menu.recordSales')} onPress={() => router.push('/(app)/sales/entry')} />
           {features.menu_scan ? (
             <HeaderButton Icon={ScanLine} label={t('menu.scanMenu')} onPress={() => setScanOpen(true)} />
           ) : null}

@@ -120,6 +120,8 @@ export const fontSize = {
   xl: 20,
   '2xl': 24,
   '3xl': 30,
+  /** Large bold numbers on Home cards (spec: numbers first). */
+  '4xl': 34,
 } as const;
 
 export const fontWeight = {

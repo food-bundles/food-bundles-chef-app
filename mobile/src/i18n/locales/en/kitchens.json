@@ -58,8 +58,12 @@
     "errors": {
       "country": "Choose the kitchen's country.",
       "currency": "Choose the currency your prices are in.",
-      "timezone": "Choose the kitchen's time zone."
-    }
+      "timezone": "Choose the kitchen's time zone.",
+      "openingTime": "Use 24-hour time, e.g. 11:00",
+      "closingTime": "Closing must be after opening, e.g. 22:00"
+    },
+    "openingTimeLabel": "Opens at",
+    "closingTimeLabel": "Closes at"
   },
   "currencyChange": {
     "title": "Change currency",

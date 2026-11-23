@@ -1,4 +1,5 @@
 import { Text, ActivityIndicator, StyleSheet } from 'react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { AppPressable } from './AppPressable';
 import { spacing, fontSize, fontWeight, MIN_TOUCH_SIZE, type ThemeTokens } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -15,6 +16,8 @@ export interface AppButtonProps {
   disabled?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** Optional icon before the label (decorative: the label names the action). */
+  icon?: LucideIcon;
 }
 
 function variantColors(variant: ButtonVariant, t: ThemeTokens) {
@@ -47,6 +50,7 @@ export function AppButton({
   disabled = false,
   accessibilityLabel,
   accessibilityHint,
+  icon: Icon,
 }: AppButtonProps) {
   const tokens = useTheme();
   const isDisabled = disabled || loading;
@@ -73,7 +77,10 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator size="small" color={c.text} />
       ) : (
-        <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: c.text }]}>{label}</Text>
+        <>
+          {Icon ? <Icon size={20} color={c.text} strokeWidth={2.25} style={styles.icon} /> : null}
+          <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: c.text }]}>{label}</Text>
+        </>
       )}
     </AppPressable>
   );
@@ -107,6 +114,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   labelLg: {
-    fontSize: 16,
+    fontSize: fontSize.lg,
   },
+  icon: { marginRight: spacing.sm },
 });

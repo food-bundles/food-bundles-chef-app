@@ -99,7 +99,7 @@ export default function EditMenuItemScreen() {
     try {
       await deleteMenuItem(activeKitchen.id, params.menuId, params.itemId);
       invalidate();
-      router.dismissTo('/(app)/(tabs)/menu');
+      router.dismissTo('/(app)/menu');
     } catch {
       setError(t('editItem.removeError'));
     } finally {

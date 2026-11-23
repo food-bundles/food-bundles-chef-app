@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { useCreateKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
+import { DEFAULT_CLOSING_TIME, DEFAULT_OPENING_TIME } from '@/store/kitchen-store';
 import { KitchenFormFields } from '@/features/kitchens/KitchenFormFields';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize } from '@/lib/theme';
@@ -33,6 +34,8 @@ export default function CreateKitchenScreen() {
       country: region.country ?? '',
       currency: region.currency ?? '',
       timezone: region.timezone ?? '',
+      openingTime: DEFAULT_OPENING_TIME,
+      closingTime: DEFAULT_CLOSING_TIME,
     },
   });
 
@@ -66,6 +69,8 @@ export default function CreateKitchenScreen() {
         country: values.country,
         currency: values.currency,
         timezone: values.timezone,
+        opening_time: values.openingTime,
+        closing_time: values.closingTime,
       });
       router.replace('/(app)/(tabs)');
     } catch {

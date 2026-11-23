@@ -46,6 +46,10 @@
     "menu": "Menu",
     "purchasing": "Achats",
     "stock": "Stock",
-    "profile": "Profil"
+    "profile": "Profil",
+    "home": "Accueil",
+    "receive": "Réception",
+    "commands": "Commandes",
+    "requisition": "Réquisition"
   }
 }

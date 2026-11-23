@@ -123,7 +123,7 @@ export default function StockScreen() {
       {/* Smart Reorder strip — appears only when low-stock items need ordering */}
       {reorderItems.length > 0 && (
         <Pressable
-          onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
+          onPress={() => router.push('/(app)/(tabs)/requisition' as never)}
           accessibilityRole="button"
           accessibilityLabel={t('stock.reorderTapHint', { count: reorderItems.length })}
           className="mx-4 mb-2 rounded-xl overflow-hidden active:opacity-80"

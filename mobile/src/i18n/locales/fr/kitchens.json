@@ -58,8 +58,12 @@
     "errors": {
       "country": "Choisissez le pays de la cuisine.",
       "currency": "Choisissez la devise de vos prix.",
-      "timezone": "Choisissez le fuseau horaire de la cuisine."
-    }
+      "timezone": "Choisissez le fuseau horaire de la cuisine.",
+      "openingTime": "Heure sur 24 h, p. ex. 11:00",
+      "closingTime": "La fermeture doit suivre l'ouverture, p. ex. 22:00"
+    },
+    "openingTimeLabel": "Ouverture",
+    "closingTimeLabel": "Fermeture"
   },
   "currencyChange": {
     "title": "Changer de devise",

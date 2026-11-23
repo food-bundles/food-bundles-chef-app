@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { FEATURES } from '@/constants/features';
 import { View, Text, Image, Alert, ActivityIndicator, Modal, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -555,7 +556,9 @@ export default function QuickReceiveScreen() {
             title={t('receiving.addCustomItem')}
             onPress={() => addLine({ catalogProductId: null, productName: '', unit: 'kg', quantity: '', unitPrice: '' })}
             chevron={false}
+            separator={FEATURES.deliveryMap}
           />
+          {FEATURES.deliveryMap ? (
           <ListRow
             icon={<Map size={18} color={tk.link} />}
             iconBg={tk.primaryTint}
@@ -569,6 +572,7 @@ export default function QuickReceiveScreen() {
             }
             separator={false}
           />
+          ) : null}
         </View>
 
         {submitError ? (

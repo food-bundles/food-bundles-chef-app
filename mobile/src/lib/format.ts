@@ -76,6 +76,31 @@ export function formatDate(value: Date | string, lang?: string): string {
   }
 }
 
+/**
+ * A kitchen day ("YYYY-MM-DD") as weekday + day + month, e.g. "Wed 18 Nov" (en),
+ * "mer. 18 nov." (fr) or "18/11" (rw, which lacks Intl data). The date is read as a calendar
+ * day, so the device's time zone never shifts it.
+ */
+export function formatDayShort(isoDay: string, lang?: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDay);
+  if (!m) return '—';
+  const language = toLanguage(lang);
+  if (language === 'rw') return `${m[3]}/${m[2]}`;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12));
+  try {
+    const parts = new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).formatToParts(d);
+    const get = (type: string): string => parts.find((p) => p.type === type)?.value ?? '';
+    return `${get('weekday')} ${get('day')} ${get('month')}`.trim();
+  } catch {
+    return `${m[3]}/${m[2]}`;
+  }
+}
+
 /** 24-hour clock time, e.g. "14:05" — the convention in Rwanda for all three languages. */
 export function formatTime(value: Date | string): string {
   const d = typeof value === 'string' ? new Date(value) : value;

@@ -50,5 +50,70 @@
     "reorderBody_other": "{{count}} ingredients are below the reorder level. Your purchase list is ready to review before tomorrow's service.",
     "catalogItemLabel": "{{name}} — open the catalog",
     "pricePerUnit": "{{price}}/{{unit}}"
+  },
+  "home": {
+    "kitchenEyebrow": "Kitchen",
+    "menuRecipes": "Menu & recipes",
+    "profile": "Profile and settings",
+    "switch": "Switch",
+    "switchLabel": "Switch kitchen",
+    "stepReceive": "Receive",
+    "stepReceived": "Received",
+    "stepCommands": "Commands",
+    "stepRequisition": "Requisition",
+    "stepTodo": "{{n}} {{label}}",
+    "stepDone": "✓ {{label}}",
+    "stepA11y": "Step {{n}} of 3, {{label}}: {{status}}",
+    "stepStatus": {
+      "done": "done",
+      "current": "now",
+      "upcoming": "later"
+    },
+    "opensAt": "Kitchen opens at {{time}}",
+    "openUntil": "Service open until {{time}}",
+    "closed": "Service closed",
+    "yesterdaysRequisition": "Yesterday's requisition",
+    "orderStatus": {
+      "submitted": "Ordered",
+      "confirmed": "Confirmed",
+      "out_for_delivery": "On the way",
+      "delivered": "Received"
+    },
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "orderNo": "Food Bundles {{no}}",
+    "moreItems": "+ {{count}} more",
+    "receiveDelivery": "Receive delivery",
+    "skipDelivery": "No delivery today? Skip",
+    "noDeliveryTitle": "No delivery expected",
+    "noDeliveryBody": "Bought something elsewhere? Add it in Receive.",
+    "addBoughtElsewhere": "Add items bought elsewhere",
+    "commands": "Commands",
+    "counters": {
+      "new": "New",
+      "cooking": "Cooking",
+      "served": "Served",
+      "cancelled": "Cancelled"
+    },
+    "openCommands": "Open commands",
+    "openCommandsNew": "Open commands ({{count}} new)",
+    "todayInShort": "Today in short",
+    "tomorrowsRequisition": "Tomorrow's requisition",
+    "itemsSuggested_one": "{{count}} item suggested · Food Bundles prices",
+    "itemsSuggested_other": "{{count}} items suggested · Food Bundles prices",
+    "nothingSuggested": "Nothing to buy for tomorrow yet",
+    "reviewRequisition": "Review requisition",
+    "loadError": "Couldn't load today's delivery. Pull down to try again.",
+    "noKitchenTitle": "Add your kitchen",
+    "noKitchenBody": "Set up your first kitchen to start the day.",
+    "addKitchen": "Add kitchen",
+    "offline_one": "Offline · {{count}} change waiting to sync",
+    "offline_other": "Offline · {{count}} changes waiting to sync",
+    "offlineNone": "Offline · showing the last saved data"
+  },
+  "commands": {
+    "title": "Commands",
+    "emptyTitle": "No commands yet today",
+    "emptyBody": "Commands you record or accept will show here."
   }
 }

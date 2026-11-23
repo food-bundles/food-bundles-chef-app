@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,6 +35,14 @@ class Kitchen(Base):
     country: Mapped[str | None] = mapped_column(String(2))
     # Step for suggested selling prices, in major units; null = the currency's default.
     price_step: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
+    # Service hours in the kitchen's own time zone (Home's state: before service, service,
+    # end of day). Closing is after opening on the same day.
+    opening_time: Mapped[time] = mapped_column(
+        Time, nullable=False, default=time(11, 0), server_default="11:00"
+    )
+    closing_time: Mapped[time] = mapped_column(
+        Time, nullable=False, default=time(22, 0), server_default="22:00"
+    )
     status: Mapped[str] = mapped_column(String(20), default=KitchenStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

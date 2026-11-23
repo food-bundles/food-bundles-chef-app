@@ -44,6 +44,9 @@
     "footerTagline": "Built for professional kitchen teams",
     "footerCopyright": "© Food Bundles",
     "photoLabel": "Profile photo",
-    "photoLabelNamed": "Profile photo of {{name}}"
+    "photoLabelNamed": "Profile photo of {{name}}",
+    "serviceHours": "Service hours",
+    "serviceHoursValue": "{{open}}–{{close}}",
+    "assistant": "Kitchen Assistant"
   }
 }

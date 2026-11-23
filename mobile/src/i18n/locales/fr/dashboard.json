@@ -50,5 +50,70 @@
     "reorderBody_other": "{{count}} ingrédients sont sous le seuil de commande. Votre liste d'achat est prête à être vérifiée avant le service de demain.",
     "catalogItemLabel": "{{name}} — ouvrir le catalogue",
     "pricePerUnit": "{{price}}/{{unit}}"
+  },
+  "home": {
+    "kitchenEyebrow": "Cuisine",
+    "menuRecipes": "Menu et recettes",
+    "profile": "Profil et réglages",
+    "switch": "Changer",
+    "switchLabel": "Changer de cuisine",
+    "stepReceive": "Réception",
+    "stepReceived": "Reçu",
+    "stepCommands": "Commandes",
+    "stepRequisition": "Réquisition",
+    "stepTodo": "{{n}} {{label}}",
+    "stepDone": "✓ {{label}}",
+    "stepA11y": "Étape {{n}} sur 3, {{label}} : {{status}}",
+    "stepStatus": {
+      "done": "terminée",
+      "current": "en cours",
+      "upcoming": "à venir"
+    },
+    "opensAt": "La cuisine ouvre à {{time}}",
+    "openUntil": "Service ouvert jusqu'à {{time}}",
+    "closed": "Service terminé",
+    "yesterdaysRequisition": "Réquisition d'hier",
+    "orderStatus": {
+      "submitted": "Commandée",
+      "confirmed": "Confirmée",
+      "out_for_delivery": "En route",
+      "delivered": "Reçue"
+    },
+    "items_one": "{{count}} article",
+    "items_other": "{{count}} articles",
+    "orderNo": "Food Bundles {{no}}",
+    "moreItems": "+ {{count}} de plus",
+    "receiveDelivery": "Réceptionner la livraison",
+    "skipDelivery": "Pas de livraison aujourd'hui ? Passer",
+    "noDeliveryTitle": "Aucune livraison prévue",
+    "noDeliveryBody": "Acheté ailleurs ? Ajoutez-le dans Réception.",
+    "addBoughtElsewhere": "Ajouter des achats faits ailleurs",
+    "commands": "Commandes",
+    "counters": {
+      "new": "Nouvelles",
+      "cooking": "En cuisine",
+      "served": "Servies",
+      "cancelled": "Annulées"
+    },
+    "openCommands": "Ouvrir les commandes",
+    "openCommandsNew": "Ouvrir les commandes ({{count}} nouvelles)",
+    "todayInShort": "Aujourd'hui en bref",
+    "tomorrowsRequisition": "Réquisition de demain",
+    "itemsSuggested_one": "{{count}} article proposé · prix Food Bundles",
+    "itemsSuggested_other": "{{count}} articles proposés · prix Food Bundles",
+    "nothingSuggested": "Rien à acheter pour demain pour l'instant",
+    "reviewRequisition": "Voir la réquisition",
+    "loadError": "Impossible de charger la livraison du jour. Tirez vers le bas pour réessayer.",
+    "noKitchenTitle": "Ajoutez votre cuisine",
+    "noKitchenBody": "Créez votre première cuisine pour commencer la journée.",
+    "addKitchen": "Ajouter une cuisine",
+    "offline_one": "Hors ligne · {{count}} modification en attente",
+    "offline_other": "Hors ligne · {{count}} modifications en attente",
+    "offlineNone": "Hors ligne · dernières données enregistrées"
+  },
+  "commands": {
+    "title": "Commandes",
+    "emptyTitle": "Pas encore de commandes aujourd'hui",
+    "emptyBody": "Les commandes enregistrées ou acceptées s'afficheront ici."
   }
 }

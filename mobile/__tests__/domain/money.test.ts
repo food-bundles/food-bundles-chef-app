@@ -76,7 +76,14 @@ describe('minor units', () => {
 });
 
 describe('kitchen region', () => {
-  const base = { name: 'Chez Ama', cuisineType: 'Paris', address: '', seatingCapacity: '' };
+  const base = {
+    name: 'Chez Ama',
+    cuisineType: 'Paris',
+    address: '',
+    seatingCapacity: '',
+    openingTime: '11:00',
+    closingTime: '22:00',
+  };
 
   it('requires a real country, currency and time zone', () => {
     expect(kitchenSchema.safeParse({ ...base, country: 'FR', currency: 'EUR', timezone: 'Europe/Paris' }).success).toBe(true);

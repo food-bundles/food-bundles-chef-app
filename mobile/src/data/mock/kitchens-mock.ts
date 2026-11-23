@@ -14,6 +14,8 @@ export const MOCK_KITCHENS: Kitchen[] = [
     country: 'RW',
     catalogAvailable: true,
     conversionEnabled: true,
+    openingTime: '11:00',
+    closingTime: '22:00',
     createdAt: '2026-01-15T08:00:00Z',
   },
   {
@@ -29,6 +31,8 @@ export const MOCK_KITCHENS: Kitchen[] = [
     country: 'RW',
     catalogAvailable: true,
     conversionEnabled: true,
+    openingTime: '11:00',
+    closingTime: '22:00',
     createdAt: '2026-03-10T08:00:00Z',
   },
 ];

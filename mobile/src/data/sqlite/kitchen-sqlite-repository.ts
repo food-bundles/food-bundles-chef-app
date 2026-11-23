@@ -29,6 +29,8 @@ function rowToKitchen(row: KitchenRow): Kitchen {
     country: 'RW',
     catalogAvailable: true,
     conversionEnabled: true,
+    openingTime: '11:00',
+    closingTime: '22:00',
     createdAt: row.created_at,
   };
 }

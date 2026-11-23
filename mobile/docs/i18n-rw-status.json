@@ -1134,6 +1134,22 @@
       "status": "needs-review",
       "en": "Profile"
     },
+    "tabs.home": {
+      "status": "needs-review",
+      "en": "Home"
+    },
+    "tabs.receive": {
+      "status": "needs-review",
+      "en": "Receive"
+    },
+    "tabs.commands": {
+      "status": "needs-review",
+      "en": "Commands"
+    },
+    "tabs.requisition": {
+      "status": "needs-review",
+      "en": "Requisition"
+    },
     "dashboard.title": {
       "status": "needs-review",
       "en": "Dashboard"
@@ -1333,6 +1349,226 @@
     "dashboard.pricePerUnit": {
       "status": "needs-review",
       "en": "{{price}}/{{unit}}"
+    },
+    "home.kitchenEyebrow": {
+      "status": "needs-review",
+      "en": "Kitchen"
+    },
+    "home.menuRecipes": {
+      "status": "needs-review",
+      "en": "Menu & recipes"
+    },
+    "home.profile": {
+      "status": "needs-review",
+      "en": "Profile and settings"
+    },
+    "home.switch": {
+      "status": "needs-review",
+      "en": "Switch"
+    },
+    "home.switchLabel": {
+      "status": "needs-review",
+      "en": "Switch kitchen"
+    },
+    "home.stepReceive": {
+      "status": "needs-review",
+      "en": "Receive"
+    },
+    "home.stepReceived": {
+      "status": "needs-review",
+      "en": "Received"
+    },
+    "home.stepCommands": {
+      "status": "needs-review",
+      "en": "Commands"
+    },
+    "home.stepRequisition": {
+      "status": "needs-review",
+      "en": "Requisition"
+    },
+    "home.stepTodo": {
+      "status": "needs-review",
+      "en": "{{n}} {{label}}"
+    },
+    "home.stepDone": {
+      "status": "needs-review",
+      "en": "✓ {{label}}"
+    },
+    "home.stepA11y": {
+      "status": "needs-review",
+      "en": "Step {{n}} of 3, {{label}}: {{status}}"
+    },
+    "home.stepStatus.done": {
+      "status": "needs-review",
+      "en": "done"
+    },
+    "home.stepStatus.current": {
+      "status": "needs-review",
+      "en": "now"
+    },
+    "home.stepStatus.upcoming": {
+      "status": "needs-review",
+      "en": "later"
+    },
+    "home.opensAt": {
+      "status": "needs-review",
+      "en": "Kitchen opens at {{time}}"
+    },
+    "home.openUntil": {
+      "status": "needs-review",
+      "en": "Service open until {{time}}"
+    },
+    "home.closed": {
+      "status": "needs-review",
+      "en": "Service closed"
+    },
+    "home.yesterdaysRequisition": {
+      "status": "needs-review",
+      "en": "Yesterday's requisition"
+    },
+    "home.orderStatus.submitted": {
+      "status": "needs-review",
+      "en": "Ordered"
+    },
+    "home.orderStatus.confirmed": {
+      "status": "needs-review",
+      "en": "Confirmed"
+    },
+    "home.orderStatus.out_for_delivery": {
+      "status": "needs-review",
+      "en": "On the way"
+    },
+    "home.orderStatus.delivered": {
+      "status": "needs-review",
+      "en": "Received"
+    },
+    "home.items_one": {
+      "status": "needs-review",
+      "en": "{{count}} item"
+    },
+    "home.items_other": {
+      "status": "needs-review",
+      "en": "{{count}} items"
+    },
+    "home.orderNo": {
+      "status": "needs-review",
+      "en": "Food Bundles {{no}}"
+    },
+    "home.moreItems": {
+      "status": "needs-review",
+      "en": "+ {{count}} more"
+    },
+    "home.receiveDelivery": {
+      "status": "needs-review",
+      "en": "Receive delivery"
+    },
+    "home.skipDelivery": {
+      "status": "needs-review",
+      "en": "No delivery today? Skip"
+    },
+    "home.noDeliveryTitle": {
+      "status": "needs-review",
+      "en": "No delivery expected"
+    },
+    "home.noDeliveryBody": {
+      "status": "needs-review",
+      "en": "Bought something elsewhere? Add it in Receive."
+    },
+    "home.addBoughtElsewhere": {
+      "status": "needs-review",
+      "en": "Add items bought elsewhere"
+    },
+    "home.commands": {
+      "status": "needs-review",
+      "en": "Commands"
+    },
+    "home.counters.new": {
+      "status": "needs-review",
+      "en": "New"
+    },
+    "home.counters.cooking": {
+      "status": "needs-review",
+      "en": "Cooking"
+    },
+    "home.counters.served": {
+      "status": "needs-review",
+      "en": "Served"
+    },
+    "home.counters.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled"
+    },
+    "home.openCommands": {
+      "status": "needs-review",
+      "en": "Open commands"
+    },
+    "home.openCommandsNew": {
+      "status": "needs-review",
+      "en": "Open commands ({{count}} new)"
+    },
+    "home.todayInShort": {
+      "status": "needs-review",
+      "en": "Today in short"
+    },
+    "home.tomorrowsRequisition": {
+      "status": "needs-review",
+      "en": "Tomorrow's requisition"
+    },
+    "home.itemsSuggested_one": {
+      "status": "needs-review",
+      "en": "{{count}} item suggested · Food Bundles prices"
+    },
+    "home.itemsSuggested_other": {
+      "status": "needs-review",
+      "en": "{{count}} items suggested · Food Bundles prices"
+    },
+    "home.nothingSuggested": {
+      "status": "needs-review",
+      "en": "Nothing to buy for tomorrow yet"
+    },
+    "home.reviewRequisition": {
+      "status": "needs-review",
+      "en": "Review requisition"
+    },
+    "home.loadError": {
+      "status": "needs-review",
+      "en": "Couldn't load today's delivery. Pull down to try again."
+    },
+    "home.noKitchenTitle": {
+      "status": "needs-review",
+      "en": "Add your kitchen"
+    },
+    "home.noKitchenBody": {
+      "status": "needs-review",
+      "en": "Set up your first kitchen to start the day."
+    },
+    "home.addKitchen": {
+      "status": "needs-review",
+      "en": "Add kitchen"
+    },
+    "home.offline_one": {
+      "status": "needs-review",
+      "en": "Offline · {{count}} change waiting to sync"
+    },
+    "home.offline_other": {
+      "status": "needs-review",
+      "en": "Offline · {{count}} changes waiting to sync"
+    },
+    "home.offlineNone": {
+      "status": "needs-review",
+      "en": "Offline · showing the last saved data"
+    },
+    "commands.title": {
+      "status": "needs-review",
+      "en": "Commands"
+    },
+    "commands.emptyTitle": {
+      "status": "needs-review",
+      "en": "No commands yet today"
+    },
+    "commands.emptyBody": {
+      "status": "needs-review",
+      "en": "Commands you record or accept will show here."
     },
     "receiving.title": {
       "status": "needs-review",
@@ -2233,6 +2469,22 @@
     "kitchens.errors.timezone": {
       "status": "needs-review",
       "en": "Choose the kitchen's time zone."
+    },
+    "kitchens.errors.openingTime": {
+      "status": "needs-review",
+      "en": "Use 24-hour time, e.g. 11:00"
+    },
+    "kitchens.errors.closingTime": {
+      "status": "needs-review",
+      "en": "Closing must be after opening, e.g. 22:00"
+    },
+    "kitchens.openingTimeLabel": {
+      "status": "needs-review",
+      "en": "Opens at"
+    },
+    "kitchens.closingTimeLabel": {
+      "status": "needs-review",
+      "en": "Closes at"
     },
     "currencyChange.title": {
       "status": "needs-review",
@@ -3657,6 +3909,18 @@
     "profile.photoLabelNamed": {
       "status": "needs-review",
       "en": "Profile photo of {{name}}"
+    },
+    "profile.serviceHours": {
+      "status": "needs-review",
+      "en": "Service hours"
+    },
+    "profile.serviceHoursValue": {
+      "status": "needs-review",
+      "en": "{{open}}–{{close}}"
+    },
+    "profile.assistant": {
+      "status": "needs-review",
+      "en": "Kitchen Assistant"
     },
     "sales.title": {
       "status": "needs-review",
