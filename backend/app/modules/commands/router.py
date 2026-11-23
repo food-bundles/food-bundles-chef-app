@@ -19,6 +19,12 @@ from app.modules.commands.schemas import (
     StaffUpdateRequest,
 )
 from app.modules.commands.service import CommandService
+from app.modules.inventory.stock_day import (
+    CountRequest,
+    StockDayResponse,
+    StockDayService,
+    UsedByRow,
+)
 from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.service import KitchenService
 
@@ -137,3 +143,37 @@ async def cancel_command(
 ) -> CommandResponse:
     """Cooking → Cancelled; the recipe goes back into stock."""
     return await CommandService(db).cancel(kitchen, current_chef, command_id)
+
+
+# ── today's stock (screen 10) ─────────────────────────────────────────────────
+
+
+@router.get("/stock/today", response_model=StockDayResponse)
+async def stock_today(
+    kitchen: Kitchen = Depends(_get_kitchen), db: AsyncSession = Depends(get_db)
+) -> StockDayResponse:
+    """Start · In · Used · Left per ingredient, with the low / very low flag."""
+    return await StockDayService(db).today(kitchen)
+
+
+@router.post("/stock/count", response_model=StockDayResponse, status_code=201)
+async def stock_count(
+    body: CountRequest,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    current_chef: Chef = Depends(get_current_chef),
+    db: AsyncSession = Depends(get_db),
+) -> StockDayResponse:
+    """A physical count: Left becomes the count; the difference is saved with its reason."""
+    svc = StockDayService(db)
+    await svc.count(kitchen, current_chef.id, body.ingredient_id, body.counted, body.reason)
+    return await svc.today(kitchen)
+
+
+@router.get("/stock/{ingredient_id}/used-by", response_model=list[UsedByRow])
+async def stock_used_by(
+    ingredient_id: uuid.UUID,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> list[UsedByRow]:
+    """Which dishes used this ingredient today."""
+    return await StockDayService(db).used_by(kitchen, ingredient_id)

@@ -125,5 +125,42 @@
     "costCurrencyLabel": "Ifaranga ry'ikiguzi",
     "costCurrencyHint": "Gumana ifaranga umucuruzi wawe akoresha. Ikiguzi cy'ibiryo kirihindura ku gipimo cy'uwo munsi.",
     "costCurrencyOff": "Guhindura amafaranga ntibirashoboka kuri iki gikoni, bityo iki giciro ntikibarwa mu giciro cy'ibiryo."
+  },
+  "stockDay": {
+    "title": "Ububiko bw'uyu munsi",
+    "subtitle": "Buhinduka uko hakiriwe cyangwa hatanzwe komande",
+    "count": "Kubara",
+    "loadError": "Ntibyashobotse gufungura ububiko bw'uyu munsi. Kurura hasi wongere ugerageze.",
+    "emptyTitle": "Nta bikoresho biraba",
+    "emptyBody": "Ibikoresho bigaragara hano iyo ibiryo byawe bifite uko bitegurwa.",
+    "colItem": "Ikintu",
+    "colStart": "Gutangira",
+    "colIn": "Byinjiye",
+    "colUsed": "Byakoreshejwe",
+    "colLeft": "Bisigaye",
+    "rowLabel": "{{name}} muri {{unit}}: gutangira {{start}}, byinjiye {{received}}, byakoreshejwe {{used}}, bisigaye {{left}}, {{level}}. Kanda urebe ibiryo byabikoresheje.",
+    "level": {
+      "ok": "birahagije",
+      "low": "bike",
+      "very_low": "bike cyane"
+    },
+    "note": "Byakoreshejwe = komande zatanzwe n'iziteka × uko bitegurwa. Kanda ku kintu urebe ibiryo byagikoresheje. Koresha Kubara kugira ngo ukosore nyuma yo kugenzura.",
+    "endOfDay": "Iherezo ry'umunsi · Kora ibisabwa",
+    "countSaved": "{{name}} cyabazwe",
+    "countWhat": "Ni iki wabaze?",
+    "countNamed": "Kubara {{name}}",
+    "expected": "Byitezwe {{qty}} {{unit}}",
+    "countTitle": "Kubara {{name}}",
+    "countedLabel": "Ingano yabazwe ya {{name}}, muri {{unit}}",
+    "difference": "Itandukaniro: {{diff}} {{unit}}. Kubera iki?",
+    "reasons": {
+      "waste": "Byatakaye",
+      "spoilage": "Byangiritse",
+      "error": "Ikosa"
+    },
+    "saveCount": "Bika ibyabazwe",
+    "usedByTitle": "{{name}} cyakoreshejwe uyu munsi",
+    "usedByNone": "Nta biryo byagikoresheje uyu munsi.",
+    "usedByRow": "Amasahani {{portions}} · {{qty}} {{unit}}"
   }
 }
