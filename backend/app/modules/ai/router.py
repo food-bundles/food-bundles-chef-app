@@ -54,6 +54,7 @@ from app.modules.ai.schemas.quality_assessment import (
     QualityAssessmentRequest,
     QualityAssessmentResponse,
 )
+from app.modules.ai.speech_language import default_speech_language
 from app.modules.ai.schemas.transcription import (
     TranscriptionRequest,
     TranscriptionResponse,
@@ -285,7 +286,7 @@ async def assess_quality(
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(
-    language: str = Form(default="rw"),
+    language: str | None = Form(default=None),
     audio: UploadFile = File(..., description="WAV or M4A audio file"),
     kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
@@ -298,6 +299,9 @@ async def transcribe_audio(
     """
     if not transcription_enabled():
         raise AiDisabledError("Transcription is not enabled.")
+    # The app sends its language; without it, the chef's language, then the kitchen's
+    # country decides (no Kinyarwanda default for kitchens outside Rwanda).
+    language = language or default_speech_language(current_chef.preferred_locale, kitchen.country)
     # Never send audio in a language the STT provider has not been evaluated for
     # (e.g. Kinyarwanda to an English-only model).
     if language not in transcription_languages():
