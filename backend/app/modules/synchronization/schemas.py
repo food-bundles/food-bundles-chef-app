@@ -41,6 +41,10 @@ OperationType = Literal[
     "add_recipe_line",
     "update_recipe_line",
     "delete_recipe_line",
+    # Phase 9: commands work offline during service.
+    "create_command",
+    "command_action",
+    "count_stock",
 ]
 
 

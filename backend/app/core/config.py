@@ -104,6 +104,24 @@ class Settings(BaseSettings):
     AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY: int = 0
     AI_MAX_REQUESTS_PER_CHEF_PER_DAY: int = 0
 
+    # ── Phase 9: the Food Bundles UX spec's open decisions (docs/domain-rules.md) ──
+    # Each defaults to the spec's proposal; change here, not in code.
+    COMMAND_DEDUCT_ON: Literal["accept", "served"] = "accept"
+    COMMAND_KEEP_COOKING_STEP: bool = True
+    # Commands recorded by these roles wait as New for the chef's stock check and Accept;
+    # chef-recorded commands go straight to Cooking.
+    COMMAND_NEW_STATUS_ROLES: list[str] = ["waiter", "cashier"]
+    COMMAND_RECORDER_ROLES: list[str] = ["chef", "waiter", "cashier"]
+    ORDERED_TODAY_EXCLUDES: list[str] = ["cancelled", "declined"]
+    COMMAND_NUMBER_RESET: Literal["each_opening", "never"] = "each_opening"
+    REQUISITION_SAME_WEEKDAYS: int = 7
+    REQUISITION_ROUND_TO_PACK: bool = True
+    REQUISITION_SAFETY_BUFFER_PCT: float = 0.0
+    REQUISITION_YIELD: float = 1.0
+    STOCK_LOW_FACTOR: float = 1.0
+    STOCK_VERY_LOW_FACTOR: float = 0.5
+    OFFLINE_DURING_SERVICE: bool = True
+
     # ── Phase 8: provider routing (Anthropic primary, Meta fallback) ──────────
     # Order is config, not code. Speech-to-text stays on Meta (Anthropic has no STT).
     AI_PRIMARY_PROVIDER: Literal["anthropic", "meta"] = "anthropic"

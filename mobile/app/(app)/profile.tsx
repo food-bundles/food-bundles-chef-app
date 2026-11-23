@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Pencil, LogOut, UtensilsCrossed, ChevronRight, ChevronLeft, Clock, Bot } from 'lucide-react-native';
+import { Settings, Pencil, LogOut, UtensilsCrossed, ChevronRight, ChevronLeft, Clock, Bot, Users } from 'lucide-react-native';
 import { FEATURES } from '@/constants/features';
 import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '@/store/session-store';
@@ -255,6 +255,13 @@ export default function ProfileScreen() {
               title={t('profile.serviceHours')}
               subtitle={t('profile.serviceHoursValue', { open: activeKitchen.openingTime, close: activeKitchen.closingTime })}
               onPress={() => router.push(`/(app)/kitchens/${activeKitchen.id}` as never)}
+            />
+            <ListRow
+              icon={<Users size={18} color={tk.link} strokeWidth={2} />}
+              iconBg={tk.primaryTint}
+              title={t('profile.staff')}
+              subtitle={t('profile.staffHint')}
+              onPress={() => router.push('/(app)/staff')}
               separator={FEATURES.assistant}
             />
             {FEATURES.assistant ? (

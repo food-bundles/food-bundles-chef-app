@@ -15,6 +15,7 @@ import {
   ServiceCard,
 } from '@/features/home/HomeViews';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { CommandSummaryCard } from '@/features/commands/CommandCard';
 import { formatDayShort } from '@/lib/format';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, spacing } from '@/lib/theme';
@@ -74,7 +75,13 @@ export default function HomeScreen() {
       <NoDeliveryCard onAddElsewhere={() => router.push('/(app)/(tabs)/receive')} />
     );
   } else if (home.state === 'service') {
-    card = <ServiceCard counts={home.commandCounts} onOpenCommands={() => router.push('/(app)/(tabs)/commands')} />;
+    card = (
+      <ServiceCard
+        counts={home.commandCounts}
+        newest={home.newestCommand ? <CommandSummaryCard command={home.newestCommand} /> : undefined}
+        onOpenCommands={() => router.push('/(app)/(tabs)/commands')}
+      />
+    );
   } else {
     card = (
       <EndOfDayCard

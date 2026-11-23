@@ -16,6 +16,9 @@ import {
 } from '@/domain/rules/home-state';
 import type { OrderStatus } from '@/api/orders-api';
 import { NO_FLAGS, dayFlagsKey, useDayFlagsStore } from './day-flags';
+import { useCommandsToday } from '@/features/commands/useCommands';
+import { newestOpen } from '@/features/commands/command-list';
+import type { CommandDto } from '@/api/commands-api';
 
 /** Money total in each currency (never added across currencies). */
 export type MoneyTotals = { amount: number; currency: string }[];
@@ -32,7 +35,7 @@ export interface DeliveryCardData {
   items: { name: string; quantity: string; unit: string }[];
 }
 
-/** 02 Service: command counters. Commands arrive in Phase 9 stage 4; until then all zero. */
+/** 02 Service: command counters. */
 export interface CommandCounts {
   new: number;
   cooking: number;
@@ -59,14 +62,14 @@ export interface HomeData {
   delivery: DeliveryCardData | null;
   deliveryConfirmed: boolean;
   commandCounts: CommandCounts;
+  /** The newest New command (else Cooking), shown on Home 02 with its stock check. */
+  newestCommand: CommandDto | null;
   requisition: RequisitionSummary;
   loading: boolean;
   error: boolean;
   refresh: () => Promise<void>;
   skipDelivery: () => void;
 }
-
-const NO_COMMANDS: CommandCounts = { new: 0, cooking: 0, served: 0, cancelled: 0 };
 
 /** Ticks every 30 seconds so Home changes state at opening and closing time. */
 function useNow(): Date {
@@ -102,6 +105,7 @@ export function useHome(): HomeData {
   const due = useMemo(() => todaysDelivery(orders.data ?? [], today), [orders.data, today]);
   const detail = useOrderDetail(due?.id ?? '');
   const suggestions = usePurchaseSuggestions();
+  const commands = useCommandsToday();
 
   const deliveryConfirmed = isDeliveryConfirmed(due, flags.deliverySkipped || flags.deliveryReceived);
   const openingMinutes = parseClock(openingTime) ?? 11 * 60;
@@ -147,9 +151,10 @@ export function useHome(): HomeData {
   const { refetch: refetchOrders } = orders;
   const { refetch: refetchDetail } = detail;
   const { refetch: refetchSuggestions } = suggestions;
+  const { refetch: refetchCommands } = commands;
   const refresh = useCallback(async () => {
-    await Promise.all([refetchOrders(), refetchDetail(), refetchSuggestions()]);
-  }, [refetchOrders, refetchDetail, refetchSuggestions]);
+    await Promise.all([refetchOrders(), refetchDetail(), refetchSuggestions(), refetchCommands()]);
+  }, [refetchOrders, refetchDetail, refetchSuggestions, refetchCommands]);
 
   const skipDelivery = useCallback(() => {
     if (kitchenId) void setFlags(kitchenId, today, { deliverySkipped: true });
@@ -167,7 +172,13 @@ export function useHome(): HomeData {
     beforeOpening: minutesNow < openingMinutes,
     delivery,
     deliveryConfirmed,
-    commandCounts: NO_COMMANDS,
+    commandCounts: {
+      new: commands.data?.counts.new ?? 0,
+      cooking: commands.data?.counts.cooking ?? 0,
+      served: commands.data?.counts.served ?? 0,
+      cancelled: commands.data?.counts.cancelled ?? 0,
+    },
+    newestCommand: newestOpen(commands.data?.commands ?? []),
     requisition,
     loading: orders.isLoading || (Boolean(due) && detail.isLoading),
     error: orders.isError,

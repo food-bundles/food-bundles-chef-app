@@ -9,6 +9,7 @@ import app.modules.audit.models
 import app.modules.authentication.models
 import app.modules.catalog.models
 import app.modules.chefs.models
+import app.modules.commands.models
 import app.modules.exchange_rates.models
 import app.modules.ingredients.models
 import app.modules.inventory.models
@@ -17,7 +18,8 @@ import app.modules.menus.models
 import app.modules.orders.models
 import app.modules.receiving.models
 import app.modules.recipes.models
-import app.modules.sales.models  # noqa: F401
+import app.modules.sales.models
+import app.modules.synchronization.models  # noqa: F401
 from alembic import context
 from app.core.config import settings
 from app.core.database import Base

@@ -47,6 +47,8 @@
     "photoLabelNamed": "Ifoto y'umwirondoro ya {{name}}",
     "serviceHours": "Amasaha ya serivisi",
     "serviceHoursValue": "{{open}}–{{close}}",
-    "assistant": "Umufasha w'igikoni"
+    "assistant": "Umufasha w'igikoni",
+    "staff": "Abakozi",
+    "staffHint": "Abaseriveri n'abacungamari ba \"Yanditswe na\""
   }
 }

@@ -47,6 +47,8 @@
     "photoLabelNamed": "Profile photo of {{name}}",
     "serviceHours": "Service hours",
     "serviceHoursValue": "{{open}}–{{close}}",
-    "assistant": "Kitchen Assistant"
+    "assistant": "Kitchen Assistant",
+    "staff": "Staff",
+    "staffHint": "Waiters and cashiers for \"Recorded by\""
   }
 }

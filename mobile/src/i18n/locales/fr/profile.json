@@ -47,6 +47,8 @@
     "photoLabelNamed": "Photo de profil de {{name}}",
     "serviceHours": "Heures de service",
     "serviceHoursValue": "{{open}}–{{close}}",
-    "assistant": "Assistant de cuisine"
+    "assistant": "Assistant de cuisine",
+    "staff": "Personnel",
+    "staffHint": "Serveurs et caissiers pour « Saisie par »"
   }
 }
