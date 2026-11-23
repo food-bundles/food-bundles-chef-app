@@ -84,6 +84,9 @@ COMMON_ENV = {
     "AI_KITCHEN_DAILY_BUDGET_USD": "0",
     "AI_ROUTER_MAX_RETRIES": "1",
     "APP_ENV": "development",
+    # One worker can run longer than an hour on a slow machine: the eval chef's token must
+    # outlive the arm (a 401 mid-run would be scored as a model failure).
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "1440",
 }
 
 

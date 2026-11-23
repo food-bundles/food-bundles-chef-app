@@ -70,6 +70,8 @@ yarn-error.*
 
 # Claude/AI tooling
 .claude/
+ai-evals/*
+docs/*
 CLAUDE.md
 ./mobile/docs/
 ./mobile/claude/
