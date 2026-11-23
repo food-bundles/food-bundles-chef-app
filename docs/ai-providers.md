@@ -205,7 +205,7 @@ Each routed call logs one `ai_call` event with these fields:
 - `feature`, `prompt_version`, `request_id`, `kitchen_id`
 - `provider_attempted`, `provider_served`, `fallback_reason`, `model`
 - `skip_reason`: why the primary was not called (no_key, disabled, kill_switch, budget,
-  breaker_open)
+  breaker_open, canary)
 - `latency_ms`, `input_tokens`, `output_tokens`, `cached_tokens` (cache reads),
   `cache_write_tokens`, `cost_usd`
 - `outcome`: success, repaired, **primary_skipped** (the primary was not called; see
@@ -286,8 +286,16 @@ Meta exactly as before Phase 8.
 
 ## Known limits (Step 1)
 
-- No chat streaming yet. Step 1b adds SSE with pre-first-token failover only; a
-  mid-stream failure becomes "interrupted, retry".
+- Chat streaming (Step 1b): `POST /kitchens/{id}/ai/agent/stream` (Server-Sent Events:
+  `delta`, `done`, `error`). Failover happens only before the first token (budget
+  `AI_TIMEOUT_CHAT_TTFT_MS`, fallback included). After that a failure is
+  `AI_STREAM_INTERRUPTED` (`outcome=interrupted` in `ai_call`) and the app shows
+  "Response interrupted" with Retry. There is no repair round on a streamed answer: invalid
+  JSON at the end is also "interrupted". Meta does not stream: its whole answer arrives as
+  one chunk. The app falls back to `POST /agent` when the server has no streaming endpoint.
+- Canary (Step 3): `AI_ANTHROPIC_CANARY_PERCENT`, `AI_ANTHROPIC_CANARY_FEATURES` and
+  `AI_ANTHROPIC_CANARY_COUNTRIES` (see `docs/canary-plan.md`). Outside the canary, calls go
+  to Meta with `skip_reason=canary`.
 - The breaker and latency stats are per instance. Spend is shared through Postgres.
 - Eval parity (Step 2) is prepared in `ai-evals/parity.py`; rules and cases in
   `ai-evals/PARITY.md`. Not run yet.

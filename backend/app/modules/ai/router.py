@@ -11,10 +11,12 @@ AI_LOG_CONTENT=False — raw media, prompts and responses are never written to l
 from __future__ import annotations
 
 import uuid
+from collections.abc import AsyncIterator
 from typing import Literal
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Header, Response, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -375,3 +377,59 @@ async def agent_turn(
 
     logger.info("agent_turn_complete", kitchen_id=str(kitchen.id))
     return result
+
+
+@router.post("/agent/stream")
+async def agent_turn_stream(
+    body: AgentRequest,
+    x_request_id: str | None = Header(default=None),
+    kitchen: Kitchen = Depends(_get_kitchen),
+    current_chef: Chef = Depends(get_current_chef),
+) -> StreamingResponse:
+    """Step 1b: the same Assistant turn as POST /agent, streamed as Server-Sent Events.
+
+    Events:
+    - `delta` {"text"}: more of the reply text, as the model writes it;
+    - `done` {AgentResponse}: the validated turn (identical to POST /agent's response);
+    - `error` {"code", "message"}: a typed error. `AI_STREAM_INTERRUPTED` means the reply
+      broke after text was shown: the app offers Retry. Failover to the fallback provider
+      happens only before the first `delta`.
+
+    Never writes to the database (like POST /agent). Uses its own database session, because
+    the request's session closes before a streamed body is sent.
+    """
+    from app.core.database import AsyncSessionFactory
+    from app.modules.ai.streaming import sse
+
+    chef_name = current_chef.name or "Chef"
+    chef_id = str(current_chef.id)
+    request_id = new_request_id(x_request_id)
+
+    async def events() -> AsyncIterator[str]:
+        try:
+            async with AsyncSessionFactory() as session:
+                svc = AgentService(session)
+                async for kind, payload in svc.run_stream(
+                    kitchen=kitchen,
+                    chef_name=chef_name,
+                    chef_id=chef_id,
+                    request=body,
+                    request_id=request_id,
+                ):
+                    if kind == "delta":
+                        yield sse("delta", {"text": payload})
+                    else:
+                        yield sse("done", payload.model_dump(mode="json"))
+        except AppError as exc:
+            yield sse("error", {"code": exc.error_code, "message": exc.message})
+        except Exception as exc:
+            logger.warning(
+                "agent_stream_failed", kitchen_id=str(kitchen.id), error=type(exc).__name__
+            )
+            yield sse("error", {"code": "AI_PROVIDER_ERROR", "message": "Agent turn failed."})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "X-Request-ID": request_id},
+    )

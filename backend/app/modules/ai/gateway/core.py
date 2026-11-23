@@ -20,13 +20,14 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from string import Template
+from collections.abc import Callable
 from typing import Any, TypeVar
 
 import structlog
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.exceptions import AiImageInvalidError, AiRateLimitError
+from app.core.exceptions import AiBadOutputError, AiImageInvalidError, AiRateLimitError
 from app.modules.ai.providers.base import ImagePart, LLMRequest, Message, Tier
 from app.modules.ai.providers.router import Policy, provider_router
 from app.shared.kitchen_time import kitchen_today
@@ -208,6 +209,52 @@ def _message(role: str, content: str | list[Any] | None) -> Message:
     return Message.text("assistant" if role == "assistant" else "user", text)
 
 
+def _build_request(
+    *,
+    feature: str,
+    prompt: Prompt,
+    system: str,
+    user_text: str,
+    schema: type[BaseModel],
+    request_id: str,
+    kitchen_id: str,
+    model: str | None,
+    image: bytes | None,
+    image_mime: str | None,
+    conversation: list[dict[str, Any]] | None,
+    tier: Tier,
+    effort: str | None,
+    wire_schema: dict[str, Any] | None,
+    anthropic_system: str | None,
+    max_tokens: int,
+    locale: str,
+) -> LLMRequest:
+    """The neutral request shared by `structured_call` and `structured_stream`."""
+    parts: tuple[str | ImagePart, ...] = (
+        (ImagePart(image, image_mime), user_text) if image and image_mime else (user_text,)
+    )
+    systems = {"meta": system}
+    if anthropic_system:
+        systems["anthropic"] = anthropic_system
+    return LLMRequest(
+        feature=feature,
+        prompt_version=prompt.id,
+        systems=systems,
+        messages=[
+            *(_message(m.get("role", "user"), m.get("content")) for m in conversation or []),
+            Message(role="user", parts=parts),
+        ],
+        request_id=request_id,
+        kitchen_id=kitchen_id,
+        output_schema=wire_schema or schema.model_json_schema(),
+        max_tokens=max_tokens,
+        tier=tier,
+        effort=effort,
+        locale=locale,
+        meta_model=model or settings.META_MUSE_SPARK_MODEL,
+    )
+
+
 async def structured_call(
     *,
     feature: str,
@@ -243,28 +290,24 @@ async def structured_call(
     Raises AiTimeoutError, AiProviderError, AiBadOutputError, AiRefusedError,
     AiUnavailableError or AiBudgetExceededError — never returns raw text.
     """
-    parts: tuple[str | ImagePart, ...] = (
-        (ImagePart(image, image_mime), user_text) if image and image_mime else (user_text,)
-    )
-    systems = {"meta": system}
-    if anthropic_system:
-        systems["anthropic"] = anthropic_system
-    request = LLMRequest(
+    request = _build_request(
         feature=feature,
-        prompt_version=prompt.id,
-        systems=systems,
-        messages=[
-            *(_message(m.get("role", "user"), m.get("content")) for m in conversation or []),
-            Message(role="user", parts=parts),
-        ],
+        prompt=prompt,
+        system=system,
+        user_text=user_text,
+        schema=schema,
         request_id=request_id,
         kitchen_id=kitchen_id,
-        output_schema=wire_schema or schema.model_json_schema(),
-        max_tokens=max_tokens,
+        model=model,
+        image=image,
+        image_mime=image_mime,
+        conversation=conversation,
         tier=tier,
         effort=effort,
+        wire_schema=wire_schema,
+        anthropic_system=anthropic_system,
+        max_tokens=max_tokens,
         locale=locale,
-        meta_model=model or settings.META_MUSE_SPARK_MODEL,
     )
     routed = await provider_router.run(
         request,
@@ -273,3 +316,68 @@ async def structured_call(
         policy=policy,
     )
     return routed.value
+
+
+async def structured_stream(
+    *,
+    feature: str,
+    prompt: Prompt,
+    system: str,
+    user_text: str,
+    schema: type[T],
+    timeout_seconds: float,
+    ttft_seconds: float,
+    request_id: str,
+    kitchen_id: str,
+    on_delta: Callable[[str], None],
+    model: str | None = None,
+    image: bytes | None = None,
+    image_mime: str | None = None,
+    conversation: list[dict[str, Any]] | None = None,
+    tier: Tier = "standard",
+    effort: str | None = None,
+    wire_schema: dict[str, Any] | None = None,
+    anthropic_system: str | None = None,
+    max_tokens: int = 4096,
+    locale: str = "en",
+    policy: Policy = "default",
+) -> T:
+    """Step 1b: like `structured_call`, but raw text is passed to `on_delta` as it streams.
+
+    Failover only before the first token; a later failure raises AiStreamInterruptedError
+    (no repair round: the chef retries). Returns the validated value.
+    """
+    request = _build_request(
+        feature=feature,
+        prompt=prompt,
+        system=system,
+        user_text=user_text,
+        schema=schema,
+        request_id=request_id,
+        kitchen_id=kitchen_id,
+        model=model,
+        image=image,
+        image_mime=image_mime,
+        conversation=conversation,
+        tier=tier,
+        effort=effort,
+        wire_schema=wire_schema,
+        anthropic_system=anthropic_system,
+        max_tokens=max_tokens,
+        locale=locale,
+    )
+    value: T | None = None
+    async for event in provider_router.stream(
+        request,
+        parse=lambda raw: _parse(raw, schema),
+        budget_seconds=timeout_seconds,
+        ttft_seconds=ttft_seconds,
+        policy=policy,
+    ):
+        if event.kind == "delta":
+            on_delta(event.text)
+        else:
+            value = event.value
+    if value is None:
+        raise AiBadOutputError()
+    return value

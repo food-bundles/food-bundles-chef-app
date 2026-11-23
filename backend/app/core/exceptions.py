@@ -245,3 +245,12 @@ class AiImageInvalidError(AppError):
     status_code = HTTPStatus.REQUEST_ENTITY_TOO_LARGE
     error_code = "AI_IMAGE_INVALID"
     message = "The image is missing, too large or not a supported format."
+
+
+class AiStreamInterruptedError(AppError):
+    """Step 1b: the reply broke after text had reached the chef. Never failed over to the
+    other provider mid-answer; the app shows "Response interrupted" with Retry."""
+
+    status_code = HTTPStatus.BAD_GATEWAY
+    error_code = "AI_STREAM_INTERRUPTED"
+    message = "The response was interrupted. Try again."

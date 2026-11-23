@@ -20,6 +20,8 @@ export type AiErrorCode =
   | 'too_small'
   | 'bad_output'
   | 'refused'
+  /** Step 1b: the streamed reply broke after text was shown (offer Retry). */
+  | 'interrupted'
   | 'auth'
   | 'server';
 

@@ -154,7 +154,7 @@ export default function AgentScreen() {
   const [attachment, setAttachment] = useState<PreparedImage | null>(null);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [pending, setPending] = useState<{ slow: boolean } | null>(null);
+  const [pending, setPending] = useState<{ slow: boolean; text?: string } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [snack, setSnack] = useState<{ message: string; onUndo?: () => void } | null>(null);
@@ -267,7 +267,7 @@ export default function AgentScreen() {
     stopReasonRef.current = null;
     const requestKitchen = kitchenId;
     setPending({ slow: false });
-    const slowTimer = setTimeout(() => setPending((p) => (p ? { slow: true } : p)), SLOW_AFTER_MS);
+    const slowTimer = setTimeout(() => setPending((p) => (p ? { ...p, slow: true } : p)), SLOW_AFTER_MS);
     const timeoutTimer = setTimeout(() => {
       stopReasonRef.current = 'timeout';
       controller.abort();
@@ -285,7 +285,15 @@ export default function AgentScreen() {
         resolve: resolve ?? null,
       };
       const requestId = newRequestId();
-      const res = await agentTurn.mutateAsync({ body, signal: controller.signal, requestId });
+      const res = await agentTurn.mutateAsync({
+        body,
+        signal: controller.signal,
+        requestId,
+        language,
+        onText: (textSoFar) => {
+          if (kitchenRef.current === requestKitchen) setPending((p) => (p ? { ...p, text: textSoFar } : p));
+        },
+      });
       if (controller.signal.aborted || kitchenRef.current !== requestKitchen) return;
       append(entryFromResponse(res, requestId));
       AccessibilityInfo.announceForAccessibility(res.reply_text);
@@ -583,7 +591,7 @@ export default function AgentScreen() {
             ))}
           </View>
         )}
-        {busy && <TypingIndicator slow={pending?.slow ?? false} />}
+        {busy && <TypingIndicator slow={pending?.slow ?? false} text={pending?.text} />}
       </ScrollView>
     );
   } else {
@@ -594,7 +602,7 @@ export default function AgentScreen() {
         keyExtractor={(e) => e.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={busy ? <TypingIndicator slow={pending?.slow ?? false} /> : undefined}
+        ListHeaderComponent={busy ? <TypingIndicator slow={pending?.slow ?? false} text={pending?.text} /> : undefined}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       />

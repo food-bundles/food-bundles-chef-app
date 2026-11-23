@@ -26,7 +26,8 @@
       "auth": "Votre session a expiré — reconnectez-vous.",
       "server": "Une erreur s'est produite — réessayez.",
       "too_small": "Le menu ou le document est trop petit sur la photo — rapprochez-vous.",
-      "refused": "Je ne peux pas vous aider avec cela. Posez une question sur votre menu, votre stock, vos ventes ou vos livraisons."
+      "refused": "Je ne peux pas vous aider avec cela. Posez une question sur votre menu, votre stock, vos ventes ou vos livraisons.",
+      "interrupted": "Réponse interrompue. Touchez Réessayer pour redemander."
     },
     "consent": {
       "title": "Aide de l'IA pour les photos et la voix",
