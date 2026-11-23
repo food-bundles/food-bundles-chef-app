@@ -29,10 +29,11 @@ export interface AddIngredientSheetProps {
   takenIngredientIds: readonly string[];
   takenCatalogIds: readonly string[];
   currency: string;
-  /** Dish analysis is enabled on this server. */
-  photoAvailable: boolean;
+  /** A secondary AI option under the list ("From a photo", "Scan receipt"); hidden when absent. */
+  secondaryAction?: { label: string; onPress: () => void };
+  /** Sheet title (defaults to "Add ingredient"). */
+  title?: string;
   onAdd: (line: DraftLine) => void;
-  onFromPhoto: () => void;
   onClose: () => void;
 }
 
@@ -62,9 +63,9 @@ export function AddIngredientSheet({
   takenIngredientIds,
   takenCatalogIds,
   currency,
-  photoAvailable,
+  secondaryAction,
+  title,
   onAdd,
-  onFromPhoto,
   onClose,
 }: AddIngredientSheetProps) {
   const { t, i18n } = useTranslation();
@@ -124,7 +125,7 @@ export function AddIngredientSheet({
       <View style={[styles.root, { backgroundColor: tk.surface }]}>
         <View style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}>
           <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
-            {t('dish.addIngredient')}
+            {title ?? t('dish.addIngredient')}
           </Text>
           <AppPressable onPress={close} accessibilityRole="button" accessibilityLabel={t('common.close')} style={styles.close}>
             <X size={22} color={tk.text} />
@@ -181,18 +182,18 @@ export function AddIngredientSheet({
                       {query.trim() ? t('dish.addCustomNamed', { name: query.trim() }) : t('dish.addCustom')}
                     </Text>
                   </AppPressable>
-                  {photoAvailable ? (
+                  {secondaryAction ? (
                     <AppPressable
                       onPress={() => {
                         close();
-                        onFromPhoto();
+                        secondaryAction.onPress();
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel={t('dish.fromPhoto')}
+                      accessibilityLabel={secondaryAction.label}
                       style={({ pressed }) => [styles.footerRow, { borderColor: tk.border }, pressed && styles.pressed]}
                     >
                       <Camera size={18} color={tk.textMuted} />
-                      <Text style={[styles.footerText, { color: tk.textMuted }]}>{t('dish.fromPhoto')}</Text>
+                      <Text style={[styles.footerText, { color: tk.textMuted }]}>{secondaryAction.label}</Text>
                     </AppPressable>
                   ) : null}
                 </View>

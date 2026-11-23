@@ -214,7 +214,8 @@ export async function saveDish(
   return itemId;
 }
 
-async function ensureIngredient(kitchenId: string, line: DraftLine, ingredients: readonly IngredientDto[]): Promise<string> {
+/** The kitchen ingredient for a draft line, created (catalogue-linked or custom) when missing. */
+export async function ensureIngredient(kitchenId: string, line: DraftLine, ingredients: readonly IngredientDto[]): Promise<string> {
   const existing = line.catalogProductId
     ? ingredients.find((i) => i.catalog_product_id === line.catalogProductId)
     : ingredients.find((i) => i.name.trim().toLowerCase() === line.name.trim().toLowerCase());

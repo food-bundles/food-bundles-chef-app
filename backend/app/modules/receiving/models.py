@@ -44,6 +44,10 @@ class DeliveryReceiving(Base):
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     # True when accepted quantity is more than 5% below ordered quantity (BE028)
     short_delivery: Mapped[bool] = mapped_column(default=False, nullable=False)
+    # Phase 9 (04 Receive): the chef's quality tag and issue reasons (delivery-quality
+    # signals; kept here until Food Bundles has an endpoint for them).
+    quality: Mapped[str | None] = mapped_column(String(10))
+    issue_reasons: Mapped[str | None] = mapped_column(String(100))  # comma-separated
     received_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("chefs.id", ondelete="SET NULL")
     )

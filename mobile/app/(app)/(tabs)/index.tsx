@@ -67,11 +67,11 @@ export default function HomeScreen() {
     card = home.delivery ? (
       <BeforeServiceCard
         delivery={home.delivery}
-        onReceive={() => router.push(`/(app)/receiving/${home.delivery?.orderId ?? ''}`)}
+        onReceive={() => router.push('/(app)/(tabs)/receive')}
         onSkip={home.skipDelivery}
       />
     ) : (
-      <NoDeliveryCard onAddElsewhere={() => router.push('/(app)/receiving/quick')} />
+      <NoDeliveryCard onAddElsewhere={() => router.push('/(app)/(tabs)/receive')} />
     );
   } else if (home.state === 'service') {
     card = <ServiceCard counts={home.commandCounts} onOpenCommands={() => router.push('/(app)/(tabs)/commands')} />;

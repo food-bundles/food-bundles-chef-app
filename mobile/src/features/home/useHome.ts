@@ -103,7 +103,7 @@ export function useHome(): HomeData {
   const detail = useOrderDetail(due?.id ?? '');
   const suggestions = usePurchaseSuggestions();
 
-  const deliveryConfirmed = isDeliveryConfirmed(due, flags.deliverySkipped);
+  const deliveryConfirmed = isDeliveryConfirmed(due, flags.deliverySkipped || flags.deliveryReceived);
   const openingMinutes = parseClock(openingTime) ?? 11 * 60;
   const closingMinutes = parseClock(closingTime) ?? 22 * 60;
   const state = homeState({

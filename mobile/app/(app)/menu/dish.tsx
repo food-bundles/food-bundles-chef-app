@@ -352,9 +352,8 @@ export default function DishRecipeScreen() {
         takenIngredientIds={lines.map((l) => l.ingredientId).filter((v): v is string => Boolean(v))}
         takenCatalogIds={lines.map((l) => l.catalogProductId).filter((v): v is string => Boolean(v))}
         currency={currency}
-        photoAvailable={features.dish_analysis}
+        secondaryAction={features.dish_analysis ? { label: t('dish.fromPhoto'), onPress: pickPhotoSource } : undefined}
         onAdd={addLine}
-        onFromPhoto={pickPhotoSource}
         onClose={() => setSheetOpen(false)}
       />
     </KeyboardAvoidingView>

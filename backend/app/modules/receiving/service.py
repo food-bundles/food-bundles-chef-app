@@ -119,10 +119,16 @@ class ReceivingService:
         order = await self._order_repo.get_with_lines(order_id)
         if order is None or order.kitchen_id != kitchen.id:
             raise NotFoundError("Order not found in this kitchen.")
-        if order.status not in (OrderStatus.CONFIRMED, OrderStatus.OUT_FOR_DELIVERY):
+        # Phase 9: an order can be received as soon as it is sent (the chef weighs what
+        # arrived; Food Bundles has no confirmation feed yet).
+        if order.status not in (
+            OrderStatus.SUBMITTED,
+            OrderStatus.CONFIRMED,
+            OrderStatus.OUT_FOR_DELIVERY,
+        ):
             raise ConflictError(
                 f"Cannot receive delivery for order in status '{order.status}'. "
-                "Order must be CONFIRMED or OUT_FOR_DELIVERY."
+                "Order must be SUBMITTED, CONFIRMED or OUT_FOR_DELIVERY."
             )
 
         line_map: dict[uuid.UUID, OrderLine] = {line.id: line for line in order.lines}
@@ -147,6 +153,8 @@ class ReceivingService:
                 decision=req_line.decision,
                 rejection_reason=req_line.rejection_reason,
                 short_delivery=short,
+                quality=req_line.quality,
+                issue_reasons=",".join(req_line.issue_reasons) or None,
                 received_by=chef_id,
             )
             self._db.add(receiving)

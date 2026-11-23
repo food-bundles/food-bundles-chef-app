@@ -11,10 +11,12 @@ import { create } from 'zustand';
  */
 export interface DayFlags {
   deliverySkipped: boolean;
+  /** Receive was confirmed on this phone (Home moves on even before the queue syncs). */
+  deliveryReceived: boolean;
   serviceEnded: boolean;
 }
 
-export const NO_FLAGS: DayFlags = { deliverySkipped: false, serviceEnded: false };
+export const NO_FLAGS: DayFlags = { deliverySkipped: false, deliveryReceived: false, serviceEnded: false };
 
 /** Storage key for a kitchen's day. */
 export function dayFlagsKey(kitchenId: string, day: string): string {
@@ -27,7 +29,11 @@ function parseFlags(raw: string | null): DayFlags {
     const value: unknown = JSON.parse(raw);
     if (typeof value !== 'object' || value === null) return NO_FLAGS;
     const v = value as Record<string, unknown>;
-    return { deliverySkipped: v.deliverySkipped === true, serviceEnded: v.serviceEnded === true };
+    return {
+      deliverySkipped: v.deliverySkipped === true,
+      deliveryReceived: v.deliveryReceived === true,
+      serviceEnded: v.serviceEnded === true,
+    };
   } catch {
     return NO_FLAGS;
   }

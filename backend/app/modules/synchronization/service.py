@@ -202,6 +202,8 @@ class SyncService:
                             quantity_received=Decimal(str(line["quantity_received"])),
                             decision=ReceivingDecision(line.get("decision", "accepted")),
                             rejection_reason=line.get("rejection_reason"),
+                            quality=line.get("quality"),
+                            issue_reasons=line.get("issue_reasons") or [],
                         )
                         for line in p["lines"]
                     ]
