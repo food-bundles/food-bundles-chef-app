@@ -114,13 +114,16 @@
     "deleteConfirmTitle": "Delete ingredient?",
     "deleteConfirmMessage": "{{name}} will be removed from your ingredients.",
     "editDetails": "Edit details",
-    "costPerUnitLabel": "Cost per {{unit}} (RWF)",
+    "costPerUnitLabel": "Cost per {{unit}}",
     "costHint": "Used to work out food cost and suggested prices.",
     "yieldLabel": "Usable yield (%)",
     "yieldHint": "Share left after peeling or trimming, e.g. 80 = 80%. Use 100 when nothing is wasted.",
     "adjustQtyLabel": "Quantity to add or remove",
     "noteLabel": "Note",
     "noCost": "No cost set",
-    "levelAfter": "Level after: {{qty}} {{unit}}"
+    "levelAfter": "Level after: {{qty}} {{unit}}",
+    "costCurrencyLabel": "Cost currency",
+    "costCurrencyHint": "Keep the currency your supplier charges in. Food cost converts it at the day's rate.",
+    "costCurrencyOff": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
   }
 }

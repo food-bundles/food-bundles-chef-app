@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any, cast
 
 import structlog
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,7 +20,11 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
-from app.core.middleware import IdempotencyMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.middleware import (
+    IdempotencyMiddleware,
+    RequestIdMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.core.rate_limit import limiter
 
 configure_logging()
@@ -28,12 +35,21 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.core.queue import connect as queue_connect
     from app.core.queue import disconnect as queue_disconnect
+
     logger.info(
         "startup",
         app=settings.APP_NAME,
         env=settings.APP_ENV,
         debug=settings.DEBUG,
     )
+    from app.modules.ai.providers.health import check_configuration
+    from app.modules.ai.providers.router import provider_router
+
+    check_configuration()
+    # Build the Anthropic SDK client now so the first chef request does not pay the import.
+    primary = provider_router.providers().get("anthropic")
+    if primary is not None and hasattr(primary, "warm_up"):
+        await asyncio.to_thread(primary.warm_up)
     await queue_connect()
     yield
     await queue_disconnect()
@@ -51,7 +67,8 @@ app = FastAPI(
 
 # Attach limiter so slowapi can find it on the app state
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# slowapi types its handler for RateLimitExceeded only; Starlette expects Exception.
+app.add_exception_handler(RateLimitExceeded, cast(Any, _rate_limit_exceeded_handler))
 
 # ── Middleware ─────────────────────────────────────────────────────────────────
 # Order matters: outermost middleware runs first on request, last on response.
@@ -100,9 +117,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -110,7 +125,8 @@ async def validation_error_handler(
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "The request data is invalid.",
-                "details": exc.errors(),
+                # jsonable_encoder: validator errors carry the exception object in "ctx".
+                "details": jsonable_encoder(exc.errors()),
                 "request_id": request_id,
             }
         },
@@ -143,6 +159,7 @@ async def health() -> dict[str, str]:
 @app.get("/health/ready", tags=["health"])
 async def readiness() -> dict[str, str]:
     from app.core.database import engine
+
     async with engine.connect():
         pass
     return {"status": "ready"}

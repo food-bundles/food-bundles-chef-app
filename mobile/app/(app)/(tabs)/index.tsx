@@ -17,7 +17,9 @@ import { KPITile } from '@/components/ui/KPITile';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { calcDaysOfCover } from '@/domain/calculations/expected-use';
 import { useTodaySales } from '@/features/sales/useSales';
-import { formatQuantity, formatRWF } from '@/lib/format';
+import { formatQuantity } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
+import { formatSalesTotal } from '@/features/sales/sales-total';
 
 export default function DashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -163,7 +165,7 @@ export default function DashboardScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <KPITile
-              value={formatRWF(todaySales?.revenue ?? 0, i18n.language)}
+              value={formatSalesTotal(todaySales, activeKitchen?.currency ?? '', i18n.language)}
               label={t('dashboard.sales')}
               sublabel={t('dashboard.salesToday', { count: todaySales?.portions ?? 0 })}
               icon={<ClipboardList size={18} color={colors.brand[500]} strokeWidth={2} />}
@@ -223,7 +225,9 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Catalog preview list */}
+        {/* Catalog preview list: only where Food Bundles operates */}
+        {activeKitchen?.catalogAvailable ? (
+          <>
         <SectionHeader
           title={t('dashboard.catalog')}
           actionLabel={t('common.seeAll')}
@@ -268,6 +272,8 @@ export default function DashboardScreen() {
             </AppPressable>
           </View>
         )}
+          </>
+        ) : null}
 
         {/* New kitchen onboarding callouts */}
         {isNewKitchen && (
@@ -403,7 +409,7 @@ function CatalogPreviewRow({ product }: { product: CatalogProductDto }) {
       </View>
       {price != null && (
         <Text className="text-brand-600 dark:text-brand-300 text-sm font-semibold">
-          {t('dashboard.pricePerUnit', { price: formatRWF(price, i18n.language), unit: product.unit })}
+          {t('dashboard.pricePerUnit', { price: formatMoney(price, product.reference_price_currency ?? '', i18n.language), unit: product.unit })}
         </Text>
       )}
     </AppPressable>

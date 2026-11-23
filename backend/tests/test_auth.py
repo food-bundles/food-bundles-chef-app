@@ -33,10 +33,11 @@ async def test_otp_resend_cooldown(client: AsyncClient) -> None:
 
 
 async def test_otp_verify_with_mock_code(client: AsyncClient, monkeypatch) -> None:
-    """MOCK_OTP_CODE is set to '123456' via env override in this test."""
-    import app.core.config as cfg
+    """The random OTP generator is pinned to '123456' for this test."""
 
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "123456")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "123456"
+    )  # pin the random OTP for the test
 
     phone = "+250780000003"
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
@@ -53,9 +54,10 @@ async def test_otp_verify_with_mock_code(client: AsyncClient, monkeypatch) -> No
 
 
 async def test_otp_verify_wrong_code(client: AsyncClient, monkeypatch) -> None:
-    import app.core.config as cfg
 
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "999999")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "999999"
+    )  # pin the random OTP for the test
     phone = "+250780000004"
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
 
@@ -72,9 +74,10 @@ async def test_get_me_unauthenticated(client: AsyncClient) -> None:
 
 
 async def _authenticate(client: AsyncClient, monkeypatch, phone: str) -> dict:
-    import app.core.config as cfg
 
-    monkeypatch.setattr(cfg.settings, "MOCK_OTP_CODE", "111111")
+    monkeypatch.setattr(
+        "app.modules.authentication.service.generate_otp", lambda: "111111"
+    )  # pin the random OTP for the test
     await client.post("/api/v1/auth/otp/request", json={"phone_number": phone})
     resp = await client.post(
         "/api/v1/auth/otp/verify",

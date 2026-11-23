@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { clarifyOptionSchema, scanAnswersSchema } from '@/features/ai/schemas';
 import type { ActionProposal, ClarifyingQuestion } from '@/api/agent-api';
 import { imageKindSchema, type ImageKind } from '@/features/ai/schemas';
 
@@ -19,7 +20,7 @@ export type ChatEntry =
       imageUri?: string;
       /** The message carried a photo (kept after restart, when the file may be gone). */
       hadImage?: boolean;
-      /** Kigali time (HH:MM) the kitchen data behind an answer was read. */
+      /** Kitchen-local time (HH:MM) the kitchen data behind an answer was read. */
       asOf?: string | null;
     }
   | {
@@ -60,6 +61,14 @@ export type ChatEntry =
       /** What the photo classifier decided the photo shows. */
       kind: ImageKind;
       imageUri?: string;
+    }
+  | {
+      /** The classifier was unavailable: the chef picks what the photo is. */
+      type: 'pick';
+      id: string;
+      imageUri?: string;
+      /** The kind the chef picked (the picker is then read-only). */
+      chosen?: 'menu' | 'dish' | 'delivery_note';
     };
 
 const actionTypeSchema = z.enum([
@@ -112,7 +121,18 @@ export const chatEntrySchema: z.ZodType<ChatEntry> = z.discriminatedUnion('type'
     type: z.literal('clarification'),
     id: z.string(),
     replyText: z.string(),
-    question: z.object({ question: z.string(), options: z.array(z.string()).nullable() }),
+    question: z.object({
+      question: z.string(),
+      options: z.array(z.string()).nullable(),
+      kind: z.string().nullable().optional(),
+      key: z.string().nullable().optional(),
+      question_key: z.string().nullable().optional(),
+      params: z.record(z.string()).nullable().optional(),
+      choices: z.array(clarifyOptionSchema).nullable().optional(),
+      preselected: z.string().nullable().optional(),
+      draft: proposalSchema.nullable().optional(),
+      answers: scanAnswersSchema.nullable().optional(),
+    }),
     answered: z.boolean().optional(),
   }),
   z.object({
@@ -128,6 +148,12 @@ export const chatEntrySchema: z.ZodType<ChatEntry> = z.discriminatedUnion('type'
     id: z.string(),
     kind: imageKindSchema,
     imageUri: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('pick'),
+    id: z.string(),
+    imageUri: z.string().optional(),
+    chosen: z.enum(['menu', 'dish', 'delivery_note']).optional(),
   }),
 ]) as z.ZodType<ChatEntry>;
 

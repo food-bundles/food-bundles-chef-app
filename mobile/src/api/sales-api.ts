@@ -1,3 +1,4 @@
+import type { MoneyDto } from './money-dto';
 import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
@@ -30,12 +31,17 @@ export interface WeeklySalesSummaryDto {
   weeks: WeeklyTotalDto[];
 }
 
-/** Same-day total; revenue is priced at each item's current selling price. */
+/**
+ * Same-day sales. Revenue is one subtotal per currency (prices recorded with each sale),
+ * never added across currencies; `revenue` is the kitchen-currency subtotal.
+ */
 export interface DailySalesSummaryDto {
   day: string;
   portions: number;
-  revenue: string; // decimal string, RWF
-  currency: 'RWF';
+  revenue: string; // decimal string in `currency`
+  currency: string;
+  revenue_by_currency?: MoneyDto[];
+  mixed_currencies?: boolean;
 }
 
 // ── API calls ─────────────────────────────────────────────────────────────────

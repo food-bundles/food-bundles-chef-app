@@ -7,12 +7,16 @@ import { AppPressable } from '@/components/ui/AppPressable';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
 import { useTheme } from '@/providers/ThemeProvider';
+import { PhotoKindPicker, type PickableKind } from '@/features/ai/PhotoKindPicker';
 import type { ChatEntry, ImageKind } from './chat-types';
+import { ClarificationCard } from '@/features/ai/ClarificationCard';
+import { clarificationKindSchema, type Clarification } from '@/features/ai/schemas';
 
 type MessageEntry = Extract<ChatEntry, { type: 'message' }>;
 type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
 type NoticeEntry = Extract<ChatEntry, { type: 'notice' }>;
 type RouteEntry = Extract<ChatEntry, { type: 'route' }>;
+type PickEntry = Extract<ChatEntry, { type: 'pick' }>;
 
 /** "Assistant" label above agent rows. */
 export function AgentLabel() {
@@ -75,12 +79,50 @@ export function ClarificationRow({
   entry,
   disabled,
   onSelect,
+  onAnswer,
+  onAction,
 }: {
   entry: ClarificationEntry;
   disabled: boolean;
   onSelect: (option: string) => void;
+  /** A server question (price or unit) was answered: finish the draft proposal. */
+  onAnswer?: (key: string, value: string, label: string) => void;
+  onAction?: () => void;
 }) {
   const tokens = useTheme();
+  const { t } = useTranslation();
+  const q = entry.question;
+  if (q.question_key && q.key && q.choices && q.draft) {
+    const key = q.key;
+    const clarification: Clarification = {
+      key,
+      kind: clarificationKindSchema.catch('unreadable_value').parse(q.kind),
+      question_key: q.question_key,
+      params: q.params ?? {},
+      options: q.choices,
+      preselected: q.preselected ?? null,
+      targets: [],
+    };
+    return (
+      <View style={{ alignItems: 'stretch' }}>
+        <AgentLabel />
+        {entry.replyText ? <Text style={[styles.bubbleText, { color: tokens.text }]}>{entry.replyText}</Text> : null}
+        {entry.answered ? (
+          <Text style={[styles.question, { color: tokens.textMuted }]}>{t(q.question_key, q.params ?? {})}</Text>
+        ) : (
+          <ClarificationCard
+            clarification={clarification}
+            busy={disabled}
+            onAnswer={(k, value) => {
+              const option = q.choices?.find((o) => o.value === value);
+              onAnswer?.(k, value, option ? t(option.label_key, option.params) : value);
+            }}
+            onAction={() => onAction?.()}
+          />
+        )}
+      </View>
+    );
+  }
   return (
     <View style={{ alignItems: 'flex-start' }}>
       <AgentLabel />
@@ -172,8 +214,29 @@ export function RouteCard({ entry, onOpen }: { entry: RouteEntry; onOpen: (entry
   );
 }
 
-/** Three pulsing dots while the assistant works; "Still working…" after 10 s. */
-export function TypingIndicator({ slow }: { slow: boolean }) {
+/** "What is this photo?" when the classifier was unavailable. Read-only once answered or
+ * after a restart (the cached photo is gone). */
+export function PickRow({ entry, onPick }: { entry: PickEntry; onPick: (entry: PickEntry, kind: PickableKind) => void }) {
+  const tokens = useTheme();
+  return (
+    <View style={{ alignItems: 'flex-start' }}>
+      <AgentLabel />
+      <View style={[styles.bubble, styles.wide, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border, borderWidth: 1, borderBottomLeftRadius: 4 }]}>
+        <PhotoKindPicker
+          onPick={(kind) => onPick(entry, kind)}
+          chosen={entry.chosen}
+          disabled={!entry.imageUri || entry.chosen !== undefined}
+        />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Three pulsing dots while the assistant works; "Still working…" after 10 s. While the reply
+ * streams (Step 1b), the text so far is shown above the dots.
+ */
+export function TypingIndicator({ slow, text }: { slow: boolean; text?: string }) {
   const { t } = useTranslation();
   const tokens = useTheme();
   const reduceMotion = useReduceMotion();
@@ -198,12 +261,15 @@ export function TypingIndicator({ slow }: { slow: boolean }) {
     <View style={{ alignItems: 'flex-start' }} accessibilityLiveRegion="polite" accessibilityLabel={slow ? t('agent.stillWorking') : t('agent.thinking')}>
       <AgentLabel />
       <View style={[styles.bubble, styles.typing, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border, borderWidth: 1, borderBottomLeftRadius: 4 }]}>
+        {text ? <Text style={[styles.bubbleText, { color: tokens.text }]}>{text}</Text> : null}
         <View style={styles.dots}>
           {[0, 1, 2].map((i) => (
             <Animated.View key={i} style={[styles.dot, { backgroundColor: tokens.textMuted, opacity: dotOpacity(i) }]} />
           ))}
         </View>
-        <Text style={[styles.typingText, { color: tokens.textMuted }]}>{slow ? t('agent.stillWorking') : t('agent.thinking')}</Text>
+        {text ? null : (
+          <Text style={[styles.typingText, { color: tokens.textMuted }]}>{slow ? t('agent.stillWorking') : t('agent.thinking')}</Text>
+        )}
       </View>
     </View>
   );

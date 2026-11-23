@@ -8,10 +8,12 @@ Processes a batch of QueuedMutation envelopes from mobile. Each mutation is:
 Idempotency is tracked in-memory per request (operation_id dedup set).
 Persistent dedup via a DB table is a later hardening step (see INTEGRATION_DESIGN.md backlog).
 """
+
 from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from typing import Any
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,8 +126,8 @@ class SyncService:
         op = mutation.operation_type
 
         if op == "record_sale":
-            svc = SalesService(self._db)
-            record = await svc.record_sale(
+            sales_svc = SalesService(self._db)
+            record = await sales_svc.record_sale(
                 kitchen,
                 chef.id,
                 DailySaleRecordRequest(
@@ -137,8 +139,8 @@ class SyncService:
             return record.id
 
         if op == "update_ingredient":
-            svc = IngredientService(self._db)
-            ingredient = await svc.update_ingredient(
+            ingredient_svc = IngredientService(self._db)
+            ingredient = await ingredient_svc.update_ingredient(
                 kitchen,
                 uuid.UUID(mutation.resource_id),
                 IngredientUpdateRequest(**_strip_none(p)),
@@ -146,8 +148,8 @@ class SyncService:
             return ingredient.id
 
         if op == "record_inventory":
-            svc = InventoryService(self._db)
-            entry = await svc.record_stock(
+            inventory_svc = InventoryService(self._db)
+            entry = await inventory_svc.record_stock(
                 kitchen,
                 chef.id,
                 InventoryEntryCreateRequest(
@@ -160,69 +162,70 @@ class SyncService:
             return entry.id
 
         if op == "create_order":
-            svc = OrderService(self._db)
-            order = await svc.create_order(
+            order_svc = OrderService(self._db)
+            order = await order_svc.create_order(
                 kitchen,
                 chef,
                 OrderCreateRequest(
                     delivery_date=p.get("delivery_date"),
                     notes=p.get("notes"),
-                    lines=[OrderLineCreate(**l) for l in p["lines"]],
+                    lines=[OrderLineCreate(**line) for line in p["lines"]],
                 ),
             )
             return order.id
 
         if op == "submit_order":
-            svc = OrderService(self._db)
-            resp = await svc.submit_order(kitchen, uuid.UUID(mutation.resource_id))
+            order_svc = OrderService(self._db)
+            resp = await order_svc.submit_order(kitchen, uuid.UUID(mutation.resource_id))
             return resp.order_id
 
         if op == "cancel_order":
-            svc = OrderService(self._db)
-            resp = await svc.cancel_order(kitchen, uuid.UUID(mutation.resource_id))
+            order_svc = OrderService(self._db)
+            resp = await order_svc.cancel_order(kitchen, uuid.UUID(mutation.resource_id))
             return resp.order_id
 
         if op == "start_delivery":
-            svc = ReceivingService(self._db)
-            resp = await svc.start_delivery(kitchen, uuid.UUID(mutation.resource_id))
+            receiving_svc = ReceivingService(self._db)
+            resp = await receiving_svc.start_delivery(kitchen, uuid.UUID(mutation.resource_id))
             return resp.order_id
 
         if op == "receive_delivery":
-            svc = ReceivingService(self._db)
-            results = await svc.receive_delivery(
+            receiving_svc = ReceivingService(self._db)
+            await receiving_svc.receive_delivery(
                 kitchen,
                 uuid.UUID(mutation.resource_id),
                 chef.id,
                 BulkReceivingRequest(
                     lines=[
                         ReceivingLineRequest(
-                            order_line_id=uuid.UUID(l["order_line_id"]),
-                            quantity_received=Decimal(str(l["quantity_received"])),
-                            decision=ReceivingDecision(l.get("decision", "accepted")),
-                            rejection_reason=l.get("rejection_reason"),
+                            order_line_id=uuid.UUID(line["order_line_id"]),
+                            quantity_received=Decimal(str(line["quantity_received"])),
+                            decision=ReceivingDecision(line.get("decision", "accepted")),
+                            rejection_reason=line.get("rejection_reason"),
                         )
-                        for l in p["lines"]
+                        for line in p["lines"]
                     ]
                 ),
             )
             return None
 
         if op == "create_menu_item":
-            svc = MenuService(self._db)
-            item = await svc.create_item(
+            menu_svc = MenuService(self._db)
+            item = await menu_svc.create_item(
                 kitchen,
                 uuid.UUID(p["menu_id"]),
                 MenuItemCreateRequest(
                     name=p["name"],
                     description=p.get("description"),
                     selling_price=Decimal(str(p["selling_price"])),
+                    selling_price_currency=p.get("selling_price_currency"),
                 ),
             )
             return item.id
 
         if op == "update_menu_item":
-            svc = MenuService(self._db)
-            item = await svc.update_item(
+            menu_svc = MenuService(self._db)
+            item = await menu_svc.update_item(
                 kitchen,
                 uuid.UUID(p["menu_id"]),
                 uuid.UUID(mutation.resource_id),
@@ -231,8 +234,8 @@ class SyncService:
             return item.id
 
         if op == "add_recipe_line":
-            svc = RecipeService(self._db)
-            line = await svc.add_line(
+            recipe_svc = RecipeService(self._db)
+            line = await recipe_svc.add_line(
                 kitchen,
                 uuid.UUID(p["menu_item_id"]),
                 RecipeLineCreateRequest(
@@ -250,8 +253,8 @@ class SyncService:
             return line.id
 
         if op == "update_recipe_line":
-            svc = RecipeService(self._db)
-            line = await svc.update_line(
+            recipe_svc = RecipeService(self._db)
+            line = await recipe_svc.update_line(
                 kitchen,
                 uuid.UUID(p["menu_item_id"]),
                 uuid.UUID(mutation.resource_id),
@@ -260,8 +263,8 @@ class SyncService:
             return line.id
 
         if op == "delete_recipe_line":
-            svc = RecipeService(self._db)
-            await svc.delete_line(
+            recipe_svc = RecipeService(self._db)
+            await recipe_svc.delete_line(
                 kitchen,
                 uuid.UUID(p["menu_item_id"]),
                 uuid.UUID(mutation.resource_id),
@@ -271,6 +274,6 @@ class SyncService:
         raise ValueError(f"Unknown operation type: {op}")
 
 
-def _strip_none(d: dict) -> dict:
+def _strip_none(d: dict[str, Any]) -> dict[str, Any]:
     """Remove None values so Pydantic partial-update schemas get clean dicts."""
     return {k: v for k, v in d.items() if v is not None}

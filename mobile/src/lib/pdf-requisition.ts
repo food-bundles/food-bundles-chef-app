@@ -3,11 +3,15 @@
  * Rendered by expo-print and shared via expo-sharing.
  */
 
+import { formatMoney, formatMoneyList, sumByCurrency } from './money';
+
 export interface RequisitionLine {
   product_name: string;
   unit: string;
   quantity_ordered: string;
   unit_price: string;
+  /** ISO 4217 of unit_price. */
+  currency: string;
 }
 
 export interface RequisitionPdfData {
@@ -18,13 +22,15 @@ export interface RequisitionPdfData {
   notes?: string | null;
   kitchenName: string;
   lines: RequisitionLine[];
+  /** App language, for number formatting. */
+  lang?: string;
 }
 
 export function buildRequisitionHtml(data: RequisitionPdfData): string {
-  const totalValue = data.lines.reduce(
-    (sum, l) => sum + parseFloat(l.quantity_ordered) * parseFloat(l.unit_price),
-    0,
-  );
+  // One total per currency; amounts in different currencies are never added together.
+  const totals = sumByCurrency(
+    data.lines.map((l) => ({ amount: parseFloat(l.quantity_ordered) * parseFloat(l.unit_price), currency: l.currency })),
+  ).filter((m) => m.amount > 0);
 
   const lineRows = data.lines
     .map((l) => {
@@ -35,8 +41,8 @@ export function buildRequisitionHtml(data: RequisitionPdfData): string {
         <tr>
           <td>${escapeHtml(l.product_name)}</td>
           <td style="text-align:center">${qty} ${escapeHtml(l.unit)}</td>
-          <td style="text-align:right">${price > 0 ? price.toLocaleString() + ' RWF' : 'TBC'}</td>
-          <td style="text-align:right; font-weight:600">${total > 0 ? total.toLocaleString() + ' RWF' : '—'}</td>
+          <td style="text-align:right">${price > 0 ? escapeHtml(formatMoney(price, l.currency, data.lang)) : 'TBC'}</td>
+          <td style="text-align:right; font-weight:600">${total > 0 ? escapeHtml(formatMoney(total, l.currency, data.lang)) : '—'}</td>
         </tr>
       `;
     })
@@ -127,10 +133,10 @@ export function buildRequisitionHtml(data: RequisitionPdfData): string {
     <tbody>${lineRows}</tbody>
   </table>
 
-  ${totalValue > 0 ? `
+  ${totals.length > 0 ? `
   <div class="total-row">
     <span class="total-label">Total Requisition Value</span>
-    <span class="total-value">${totalValue.toLocaleString()} RWF</span>
+    <span class="total-value">${escapeHtml(formatMoneyList(totals, data.lang))}</span>
   </div>
   ` : ''}
 

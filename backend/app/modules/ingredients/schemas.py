@@ -13,6 +13,9 @@ class IngredientCreateRequest(BaseModel):
     yield_fraction: Decimal = Field(Decimal("1.0"), gt=0, le=1)
     qty_per_portion: Decimal = Field(Decimal("0"), ge=0)
     cost_per_unit: Decimal | None = Field(None, ge=0)
+    # ISO 4217; defaults to the kitchen's currency. Any currency is kept as entered and
+    # converted for food cost at the day's rate.
+    cost_per_unit_currency: str | None = Field(None, min_length=3, max_length=3)
     selling_unit_size: Decimal = Field(Decimal("1"), gt=0)
     days_open_per_week: int = Field(7, ge=1, le=7)
     safety_buffer_fraction: Decimal | None = Field(None, gt=0, le=1)
@@ -25,6 +28,9 @@ class IngredientUpdateRequest(BaseModel):
     yield_fraction: Decimal | None = Field(None, gt=0, le=1)
     qty_per_portion: Decimal | None = Field(None, ge=0)
     cost_per_unit: Decimal | None = Field(None, ge=0)
+    # ISO 4217; defaults to the kitchen's currency. Any currency is kept as entered and
+    # converted for food cost at the day's rate.
+    cost_per_unit_currency: str | None = Field(None, min_length=3, max_length=3)
     selling_unit_size: Decimal | None = Field(None, gt=0)
     days_open_per_week: int | None = Field(None, ge=1, le=7)
     safety_buffer_fraction: Decimal | None = Field(None, gt=0, le=1)
@@ -41,6 +47,7 @@ class IngredientResponse(BaseModel):
     yield_fraction: Decimal
     qty_per_portion: Decimal
     cost_per_unit: Decimal | None
+    cost_per_unit_currency: str | None = None
     selling_unit_size: Decimal
     days_open_per_week: int
     safety_buffer_fraction: Decimal | None

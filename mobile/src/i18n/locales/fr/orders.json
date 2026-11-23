@@ -70,6 +70,8 @@
     },
     "shareAsPdf": "Partager en PDF",
     "sharePdfLabel": "Télécharger ou partager la demande d'achat en PDF",
-    "submitOrderLabel": "Envoyer la commande"
+    "submitOrderLabel": "Envoyer la commande",
+    "onItsWay": "Cette commande est en route — contactez le support Food Bundles.",
+    "cancelFailed": "La commande n'a pas pu être annulée. Réessayez."
   }
 }

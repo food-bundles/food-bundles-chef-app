@@ -72,4 +72,4 @@ def _build_transcription_adapter() -> TranscriptionCapability:
 
 
 def _use_meta_provider() -> bool:
-    return bool(settings.MODEL_API_KEY)
+    return bool(settings.MODEL_API_KEY.get_secret_value())

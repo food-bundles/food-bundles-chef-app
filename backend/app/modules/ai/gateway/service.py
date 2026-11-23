@@ -1,8 +1,9 @@
 """AI gateway features: image classification, menu extraction, dish analysis.
 
 The model only perceives (what is in the photo). Everything numeric that the chef
-acts on — RWF prices parsed from menu text, ingredient matching to kitchen stock,
-and the suggested selling price — is computed here deterministically.
+acts on (prices read from the printed text, units, document arithmetic, ingredient
+matching, the suggested selling price) is computed here deterministically, and the
+server decides which clarifying question to ask (v2 prompts, Step 2a build step 5).
 """
 
 from __future__ import annotations
@@ -14,13 +15,9 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.domain.calculations import (
-    convert_quantity,
-    parse_quantity,
-    parse_rwf_price,
-    round_up_price,
-    unit_price_from_total,
-)
+from app.core.exceptions import AiPrimaryFailedError
+from app.domain.calculations import convert_quantity
+from app.modules.ai.clarifications import ScanAnswers, log_clarifications
 from app.modules.ai.gateway.core import (
     classification_cache,
     image_hash,
@@ -28,28 +25,32 @@ from app.modules.ai.gateway.core import (
     load_prompt,
     structured_call,
 )
+from app.modules.ai.gateway.scans import build_document, build_menu, scan_context, table_rates
 from app.modules.ai.schemas.gateway import (
     DishAnalysisResponse,
     DishIngredientResponse,
     DishPrice,
     DocumentExtractionResponse,
-    DocumentLine,
+    DocumentResolveRequest,
     ImageClassificationResponse,
     MenuExtractionResponse,
-    MenuExtractItem,
-    ModelDishAnalysis,
-    ModelDocumentExtraction,
+    MenuResolveRequest,
+    ModelDishAnalysisV2,
+    ModelDocumentExtractionV2,
     ModelImageClassification,
-    ModelMenuExtraction,
+    ModelMenuExtractionV2,
 )
+from app.modules.exchange_rates.costs import KitchenUnitCosts, kitchen_unit_costs
 from app.modules.ingredients.models import Ingredient
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.kitchens.models import Kitchen
+from app.shared.money import Money, price_step, round_up_to_step
+from app.shared.schemas.money import MoneyOut
 
 CLASSIFY_PROMPT = ("classify_image", "v1")
-MENU_PROMPT = ("menu_extract", "v1")
-DISH_PROMPT = ("dish_analyze", "v1")
-DOCUMENT_PROMPT = ("document_extract", "v1")
+MENU_PROMPT = ("menu_extract", "v2")
+DISH_PROMPT = ("dish_analyze", "v2")
+DOCUMENT_PROMPT = ("document_extract", "v2")
 
 _MAX_INGREDIENTS_IN_PROMPT = 200
 
@@ -61,6 +62,7 @@ def _normalise(name: str) -> str:
 
 class AiGatewayService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._ingredients = IngredientRepository(db)
 
     async def classify(
@@ -74,19 +76,35 @@ class AiGatewayService:
                 **cached.model_dump(), request_id=request_id, prompt_version=prompt.id
             )
 
-        result = await structured_call(
-            feature="image_classify",
-            prompt=prompt,
-            system=prompt.render(),
-            user_text="Classify this photo.",
-            schema=ModelImageClassification,
-            timeout_seconds=settings.AI_CLASSIFY_TIMEOUT_SECONDS,
-            request_id=request_id,
-            kitchen_id=str(kitchen.id),
-            model=settings.META_MUSE_SPARK_FAST_MODEL or None,
-            image=image,
-            image_mime=mime,
-        )
+        try:
+            result = await structured_call(
+                feature="image_classify",
+                prompt=prompt,
+                system=prompt.render(),
+                user_text="Classify this photo.",
+                schema=ModelImageClassification,
+                timeout_seconds=settings.AI_TIMEOUT_CLASSIFY_MS / 1000,
+                request_id=request_id,
+                kitchen_id=str(kitchen.id),
+                model=settings.META_MUSE_SPARK_FAST_MODEL or None,
+                tier="fast",
+                effort=settings.ANTHROPIC_EFFORT_CLASSIFY,
+                max_tokens=1024,
+                image=image,
+                image_mime=mime,
+                # If Claude fails or times out, ask the chef (instant, always right)
+                # instead of waiting for the slower fallback model.
+                policy="no_failover",
+            )
+        except AiPrimaryFailedError:
+            return ImageClassificationResponse(
+                status="classify_unavailable",
+                kind=None,
+                confidence=None,
+                image_quality=None,
+                request_id=request_id,
+                prompt_version=prompt.id,
+            )
         classification_cache.set(cache_key, result)
         return ImageClassificationResponse(
             **result.model_dump(), request_id=request_id, prompt_version=prompt.id
@@ -101,92 +119,100 @@ class AiGatewayService:
             prompt=prompt,
             system=prompt.render(language=language_name(language)),
             user_text="List every item on this menu.",
-            schema=ModelMenuExtraction,
-            timeout_seconds=settings.AI_EXTRACT_TIMEOUT_SECONDS,
+            schema=ModelMenuExtractionV2,
+            timeout_seconds=settings.AI_TIMEOUT_EXTRACT_MS / 1000,
+            tier="standard",
+            effort=settings.ANTHROPIC_EFFORT_EXTRACT,
+            locale=language,
             request_id=request_id,
             kitchen_id=str(kitchen.id),
             image=image,
             image_mime=mime,
         )
-        items: list[MenuExtractItem] = []
-        for item in result.items:
-            price = parse_rwf_price(item.price_text)
-            # An unreadable price text lowers our confidence in the price to zero.
-            price_conf = item.price_confidence if price is not None else 0.0
-            items.append(
-                MenuExtractItem(
-                    name=item.name.strip(),
-                    category=item.category,
-                    price=price,
-                    description=item.description,
-                    confidence=round(
-                        min(
-                            item.name_confidence,
-                            price_conf if item.price_text else item.name_confidence,
-                        ),
-                        2,
-                    ),
-                    name_confidence=item.name_confidence,
-                    price_confidence=price_conf,
-                    source_text=item.source_text,
-                )
-            )
-        return MenuExtractionResponse(
+        response = await build_menu(
+            result.items,
             kind=result.kind,
-            items=items,
             image_quality=result.image_quality,
+            ctx=scan_context(kitchen),
+            answers=ScanAnswers(),
+            rate_for=table_rates(self._db, kitchen),
             request_id=request_id,
             prompt_version=prompt.id,
         )
+        log_clarifications("menu_scan", request_id, response.clarifications)
+        return response
+
+    async def resolve_menu(
+        self, kitchen: Kitchen, body: MenuResolveRequest
+    ) -> MenuExtractionResponse:
+        """The same scan re-read with the chef's answers: no model call, nothing saved."""
+        response = await build_menu(
+            body.items,
+            kind=body.kind,
+            image_quality=body.image_quality,
+            ctx=scan_context(kitchen),
+            answers=body.answers,
+            rate_for=table_rates(self._db, kitchen),
+            request_id=body.request_id,
+            prompt_version=load_prompt(*MENU_PROMPT).id,
+        )
+        log_clarifications("menu_scan", body.request_id, response.clarifications[:1])
+        return response
 
     async def extract_document(
         self, kitchen: Kitchen, image: bytes, mime: str, language: str, request_id: str
     ) -> DocumentExtractionResponse:
-        """Delivery note / receipt → line items for Log Delivery. Nothing is saved here."""
+        """Delivery note / receipt → line items for Log Delivery, with the arithmetic
+        checked (flagged, never corrected). Nothing is saved here."""
         prompt = load_prompt(*DOCUMENT_PROMPT)
         result = await structured_call(
             feature="document_scan",
             prompt=prompt,
             system=prompt.render(language=language_name(language)),
-            user_text="List every delivered line on this document.",
-            schema=ModelDocumentExtraction,
-            timeout_seconds=settings.AI_EXTRACT_TIMEOUT_SECONDS,
+            user_text="List every row on this document, including totals.",
+            schema=ModelDocumentExtractionV2,
+            timeout_seconds=settings.AI_TIMEOUT_EXTRACT_MS / 1000,
+            tier="standard",
+            effort=settings.ANTHROPIC_EFFORT_EXTRACT,
+            locale=language,
             request_id=request_id,
             kitchen_id=str(kitchen.id),
             image=image,
             image_mime=mime,
         )
-        lines: list[DocumentLine] = []
-        for line in result.lines:
-            quantity = parse_quantity(line.quantity_text)
-            line_total = parse_rwf_price(line.line_total_text)
-            unit_price = parse_rwf_price(line.unit_price_text) or unit_price_from_total(
-                line_total, quantity
-            )
-            # A number we could not read lowers the confidence of the whole line.
-            unreadable = (line.quantity_text is not None and quantity is None) or (
-                line.unit_price_text is not None and parse_rwf_price(line.unit_price_text) is None
-            )
-            lines.append(
-                DocumentLine(
-                    name=line.name.strip(),
-                    quantity=format(quantity.normalize(), "f") if quantity is not None else None,
-                    unit=(line.unit or "").strip() or None,
-                    unit_price=unit_price,
-                    line_total=line_total,
-                    confidence=round(
-                        min(line.confidence, 0.4) if unreadable else line.confidence, 2
-                    ),
-                )
-            )
-        return DocumentExtractionResponse(
-            kind=result.kind,
-            supplier_name=(result.supplier_name or "").strip() or None,
-            document_date=_iso_date_or_none(result.document_date),
-            lines=lines,
-            image_quality=result.image_quality,
+        response = await self._document(kitchen, result, ScanAnswers(), request_id, prompt.id)
+        log_clarifications("document_scan", request_id, response.clarifications)
+        return response
+
+    async def resolve_document(
+        self, kitchen: Kitchen, body: DocumentResolveRequest
+    ) -> DocumentExtractionResponse:
+        response = await self._document(
+            kitchen,
+            body.extraction,
+            body.answers,
+            body.request_id,
+            load_prompt(*DOCUMENT_PROMPT).id,
+        )
+        log_clarifications("document_scan", body.request_id, response.clarifications[:1])
+        return response
+
+    async def _document(
+        self,
+        kitchen: Kitchen,
+        raw: ModelDocumentExtractionV2,
+        answers: ScanAnswers,
+        request_id: str,
+        prompt_version: str,
+    ) -> DocumentExtractionResponse:
+        return await build_document(
+            raw,
+            ctx=scan_context(kitchen),
+            answers=answers,
+            rate_for=table_rates(self._db, kitchen),
             request_id=request_id,
-            prompt_version=prompt.id,
+            prompt_version=prompt_version,
+            iso_date=_iso_date_or_none(raw.document_date),
         )
 
     async def analyze_dish(
@@ -222,8 +248,11 @@ class AiGatewayService:
                 name_hint_line=hint_line,
             ),
             user_text="Analyse this dish photo.",
-            schema=ModelDishAnalysis,
-            timeout_seconds=settings.AI_EXTRACT_TIMEOUT_SECONDS,
+            schema=ModelDishAnalysisV2,
+            timeout_seconds=settings.AI_TIMEOUT_EXTRACT_MS / 1000,
+            tier="standard",
+            effort=settings.ANTHROPIC_EFFORT_EXTRACT,
+            locale=language,
             request_id=request_id,
             kitchen_id=str(kitchen.id),
             image=image,
@@ -250,7 +279,12 @@ class AiGatewayService:
             if ing is not None:
                 matched.append((ing, qty, ai_ing.unit))
 
-        price, reason = _price_from_costs(matched, total=len(result.ingredients))
+        # Costs in the kitchen's currency, converted by deterministic code from the rates
+        # table; the model never sees or supplies a rate.
+        unit_costs = await kitchen_unit_costs(self._db, kitchen, [m[0] for m in matched])
+        price, reason = _price_from_costs(
+            matched, total=len(result.ingredients), unit_costs=unit_costs, kitchen=kitchen
+        )
         return DishAnalysisResponse(
             kind=result.kind,
             dish_name=(name_hint.strip() if name_hint and name_hint.strip() else result.dish_name),
@@ -269,31 +303,44 @@ class AiGatewayService:
 
 
 def _price_from_costs(
-    matched: list[tuple[Ingredient, Decimal, str]], total: int
+    matched: list[tuple[Ingredient, Decimal, str]],
+    total: int,
+    unit_costs: KitchenUnitCosts,
+    kitchen: Kitchen,
 ) -> tuple[DishPrice | None, str | None]:
-    """Deterministic price range: ingredient cost per portion ÷ target food-cost share."""
+    """Deterministic price range in the kitchen's currency: ingredient cost per portion
+    ÷ target food-cost share, rounded UP to the kitchen's price step (decision 7: the
+    kitchen's own step, else the per-currency default, else the smallest unit)."""
     if total == 0:
         return None, "no_ingredients"
     cost = Decimal("0")
     costed = 0
     for ing, qty, unit in matched:
-        if ing.cost_per_unit is None or ing.yield_fraction <= 0:
+        unit_cost = unit_costs.get(ing)
+        if unit_cost is None or ing.yield_fraction <= 0:
             continue
         qty_in_unit = convert_quantity(qty, unit, ing.unit)
         if qty_in_unit is None:
             continue
-        cost += qty_in_unit / ing.yield_fraction * ing.cost_per_unit
+        cost += qty_in_unit / ing.yield_fraction * unit_cost.amount
         costed += 1
     if costed == 0 or cost <= 0:
         return None, "no_matched_costs"
 
     low_share = Decimal(str(settings.AI_TARGET_FOOD_COST_LOW))
     high_share = Decimal(str(settings.AI_TARGET_FOOD_COST_HIGH))
+    currency = str(kitchen.currency)
+    step = price_step(currency, settings.PRICE_ROUNDING_STEPS, kitchen.price_step)
+    # A higher food-cost share means a lower price, and vice versa.
+    low = Money.rounded(round_up_to_step(cost / high_share, step), currency)
+    high = Money.rounded(round_up_to_step(cost / low_share, step), currency)
     return (
         DishPrice(
-            # A higher food-cost share means a lower price, and vice versa.
-            low=round_up_price(cost / high_share),
-            high=round_up_price(cost / low_share),
+            low=float(low.amount),
+            high=float(high.amount),
+            currency=currency,
+            low_money=MoneyOut(**low.to_api()),
+            high_money=MoneyOut(**high.to_api()),
             cost_per_portion=float(cost.quantize(Decimal("0.01"))),
             food_cost_low_pct=int(low_share * 100),
             food_cost_high_pct=int(high_share * 100),

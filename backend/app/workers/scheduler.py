@@ -9,9 +9,13 @@ Tasks:
 
 Cron jobs (UTC):
     refresh_catalog          — hourly, pulls latest products from Food Bundles API
-    send_low_stock_reminders — daily 05:00 UTC (07:00 Kigali), low-stock push alerts
+    send_low_stock_reminders — hourly; each kitchen at 07:00 in its own time zone
+    refresh_exchange_rates   — at startup, 01:15 and 13:15; the only writer of exchange_rates
 """
+
 from __future__ import annotations
+
+from typing import Any, ClassVar
 
 from arq import cron
 from arq.connections import RedisSettings
@@ -19,17 +23,20 @@ from arq.connections import RedisSettings
 from app.core.config import settings
 from app.workers.tasks.catalog_refresh import refresh_catalog
 from app.workers.tasks.daily_reminders import send_low_stock_reminders
+from app.workers.tasks.exchange_rates import refresh_exchange_rates
 from app.workers.tasks.order_sync import sync_order_to_food_bundles
 from app.workers.tasks.push_notifications import send_push_notification
 
 
 async def startup(ctx: dict) -> None:  # type: ignore[type-arg]
     import structlog
+
     structlog.get_logger(__name__).info("worker_startup")
 
 
 async def shutdown(ctx: dict) -> None:  # type: ignore[type-arg]
     import structlog
+
     structlog.get_logger(__name__).info("worker_shutdown")
 
 
@@ -38,17 +45,23 @@ class WorkerSettings:
     on_startup = startup
     on_shutdown = shutdown
 
-    functions = [
+    functions: ClassVar[list[Any]] = [
         send_push_notification,
         sync_order_to_food_bundles,
     ]
 
-    cron_jobs = [
+    cron_jobs: ClassVar[list[Any]] = [
         # Refresh catalog every hour at :00
         cron(refresh_catalog, hour=None, minute=0),
-        # Low-stock reminders daily at 05:00 UTC (07:00 Kigali, EAT = UTC+2)
-        cron(send_low_stock_reminders, hour=5, minute=0),
+        # Low-stock reminders: every hour; each kitchen is picked at its own local 07:00
+        cron(send_low_stock_reminders, hour=None, minute=0),
+        # Exchange rates: twice a day, so one failed run is retried the same day
+        # (also once at startup, so a fresh deploy has rates and passes check_worker).
+        cron(refresh_exchange_rates, hour={1, 13}, minute=15, run_at_startup=True),
     ]
+
+    # Heartbeat key read by `arq ... --check` (the container health check), every 60 s.
+    health_check_interval = 60
 
     # Keep job results for 24 h for debugging
     keep_result = 86_400

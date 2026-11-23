@@ -145,7 +145,8 @@
       "editA11y": "Edit: {{title}}",
       "confirmA11y": "Confirm: {{title}}",
       "discardEdit": "Discard changes",
-      "saveEdit": "Save changes"
+      "saveEdit": "Save changes",
+      "converted": "Converted"
     }
   }
 }

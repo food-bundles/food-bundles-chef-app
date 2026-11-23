@@ -6,7 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Coins } from 'lucide-react-native';
 import { FormScreen } from '@/components/ui/FormScreen';
+import { ListRow } from '@/components/ui/ListRow';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
@@ -26,13 +28,16 @@ export default function KitchenDetailScreen() {
   const archiveKitchen = useArchiveKitchen();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<KitchenFormValues>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting, isDirty } } = useForm<KitchenFormValues>({
     resolver: zodResolver(kitchenSchema),
     defaultValues: {
       name: kitchen?.name ?? '',
       address: kitchen?.address ?? '',
       cuisineType: kitchen?.cuisineType ?? '',
       seatingCapacity: kitchen?.seatingCapacity?.toString() ?? '',
+      country: kitchen?.country ?? '',
+      currency: kitchen?.currency ?? '',
+      timezone: kitchen?.timezone ?? '',
     },
   });
 
@@ -72,7 +77,13 @@ export default function KitchenDetailScreen() {
     try {
       await updateKitchen.mutateAsync({
         kitchenId: kitchen.id,
-        body: { name: values.name, address: values.address || null, location: values.cuisineType || null },
+        body: {
+          name: values.name,
+          address: values.address || null,
+          location: values.cuisineType || null,
+          country: values.country,
+          timezone: values.timezone,
+        },
       });
       router.back();
     } catch {
@@ -135,7 +146,19 @@ export default function KitchenDetailScreen() {
         photoUri={photoUri}
         onPickPhoto={showPhotoPicker}
         photoLabel={t('kitchens.changePhotoLabel')}
+        setValue={setValue}
+        currencyLocked
       >
+        {!kitchen.isArchived ? (
+          <ListRow
+            icon={<Coins size={16} color={tk.link} />}
+            title={t('currencyChange.entryTitle')}
+            subtitle={t('currencyChange.entrySubtitle', { currency: kitchen.currency })}
+            onPress={() => router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId: kitchen.id } })}
+            chevron
+            accessibilityHint={t('currencyChange.entryHint')}
+          />
+        ) : null}
         {kitchen.isArchived ? (
           <View style={{ paddingVertical: spacing.sm, borderRadius: radius.lg, backgroundColor: tk.surfaceSunken, alignItems: 'center' }}>
             <Text style={{ color: tk.textMuted, fontSize: fontSize.sm }}>{t('kitchens.isArchived')}</Text>

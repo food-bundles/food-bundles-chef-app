@@ -30,7 +30,11 @@ class QualityAssessmentCapability(Protocol):
     """Advisory quality assessment for a delivery item photo."""
 
     async def assess(
-        self, request: QualityAssessmentRequest
+        self,
+        request: QualityAssessmentRequest,
+        *,
+        kitchen_id: str = "",
+        request_id: str = "",
     ) -> QualityAssessmentResponse:
         ...
 

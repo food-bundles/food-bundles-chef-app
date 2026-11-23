@@ -23,6 +23,12 @@ function rowToKitchen(row: KitchenRow): Kitchen {
     cuisineType: row.cuisine_type ?? undefined,
     seatingCapacity: row.seating_capacity ?? undefined,
     isArchived: row.is_archived === 1,
+    // Legacy offline table (not used by the app) has no region columns: sample values.
+    currency: 'RWF',
+    timezone: 'Africa/Kigali',
+    country: 'RW',
+    catalogAvailable: true,
+    conversionEnabled: true,
     createdAt: row.created_at,
   };
 }

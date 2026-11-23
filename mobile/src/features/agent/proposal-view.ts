@@ -1,5 +1,7 @@
 import type { ActionProposal } from '@/api/agent-api';
-import { formatDate, formatQuantity, formatRWF, localISODate } from '@/lib/format';
+import { formatDate, formatQuantity } from '@/lib/format';
+import { formatMoney, minorUnits } from '@/lib/money';
+import { activeKitchenCurrency, activeKitchenToday } from '@/features/kitchens/kitchen-today';
 
 /**
  * Turns an action proposal into what the action card shows. Everything here is
@@ -70,11 +72,21 @@ function orderRef(orderId: unknown): string {
 }
 
 function dayLabel(iso: string, t: Translate, lang: string): string {
-  if (!iso || iso === localISODate()) return t('agent.card.today');
+  if (!iso || iso === activeKitchenToday()) return t('agent.card.today');
   return formatDate(`${iso}T12:00:00`, lang);
 }
 
 /** Localised one-line title for the card, built from params. */
+/** The currency of a proposed menu price (set by the server), else the kitchen's. */
+function priceCurrency(params: Params): string {
+  return asText(params.selling_price_currency) || activeKitchenCurrency();
+}
+
+/** A menu price in its currency (the server sets selling_price_currency; else the kitchen's). */
+function menuPrice(params: Params, lang: string): string {
+  return formatMoney(asText(params.selling_price), priceCurrency(params), lang);
+}
+
 export function proposalTitle(p: ActionProposal, t: Translate, lang: string): string {
   const params = p.params;
   switch (p.action_type) {
@@ -97,7 +109,7 @@ export function proposalTitle(p: ActionProposal, t: Translate, lang: string): st
     case 'add_menu_item':
       return t('agent.card.title.addMenuItem', {
         name: asText(params.name),
-        price: formatRWF(asText(params.selling_price), lang),
+        price: menuPrice(params, lang),
       });
     case 'link_recipe_ingredient':
       return t('agent.card.title.linkRecipe', {
@@ -151,7 +163,21 @@ export function proposalDetails(p: ActionProposal, t: Translate, lang: string): 
       const category = asText(params.category);
       return [
         row('agent.card.name', asText(params.name)),
-        row('agent.card.price', formatRWF(asText(params.selling_price), lang)),
+        row('agent.card.price', menuPrice(params, lang)),
+        ...(params.original_price
+          ? [
+              row(
+                'agent.card.converted',
+                t('clarify.converted', {
+                  original: formatMoney(asText(params.original_price), asText(params.original_currency), lang),
+                  from: asText(params.original_currency),
+                  rate: asText(params.rate),
+                  to: asText(params.selling_price_currency),
+                  date: params.rate_date ? formatDate(asText(params.rate_date), lang) : '',
+                }),
+              ),
+            ]
+          : []),
         row('agent.card.category', category ? t(`menu.categories.${category}`) : ''),
       ];
     }
@@ -229,7 +255,15 @@ export function editableFields(p: ActionProposal, t: Translate): EditableField[]
     case 'add_menu_item':
       return [
         { id: 'name', path: ['name'], label: t('agent.card.name'), kind: 'text' },
-        { id: 'selling_price', path: ['selling_price'], label: t('agent.card.price'), kind: 'int', min: 0, unit: 'RWF' },
+        {
+          id: 'selling_price',
+          path: ['selling_price'],
+          label: t('agent.card.price'),
+          // Whole numbers for RWF, decimals for EUR, USD, ...
+          kind: minorUnits(priceCurrency(params)) === 0 ? 'int' : 'decimal',
+          min: 0,
+          unit: priceCurrency(params),
+        },
       ];
     case 'link_recipe_ingredient':
       return [

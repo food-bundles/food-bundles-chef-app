@@ -11,10 +11,12 @@ AI_LOG_CONTENT=False — raw media, prompts and responses are never written to l
 from __future__ import annotations
 
 import uuid
+from collections.abc import AsyncIterator
 from typing import Literal
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Header, Response, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -43,8 +45,10 @@ from app.modules.ai.schemas.gateway import (
     AiFeedbackRequest,
     DishAnalysisResponse,
     DocumentExtractionResponse,
+    DocumentResolveRequest,
     ImageClassificationResponse,
     MenuExtractionResponse,
+    MenuResolveRequest,
 )
 from app.modules.ai.schemas.quality_assessment import (
     QualityAssessmentRequest,
@@ -56,6 +60,7 @@ from app.modules.ai.schemas.transcription import (
 )
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
+from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.service import KitchenService
 
 logger = structlog.get_logger(__name__)
@@ -67,7 +72,7 @@ async def _get_kitchen(
     kitchen_id: uuid.UUID,
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
-):
+) -> Kitchen:
     svc = KitchenService(db)
     return await svc.get_kitchen(current_chef, kitchen_id)
 
@@ -78,7 +83,7 @@ MAX_AUDIO_BYTES = 3 * 1024 * 1024
 
 
 @router.get("/features", response_model=AiFeaturesResponse)
-async def ai_features(kitchen=Depends(_get_kitchen)) -> AiFeaturesResponse:
+async def ai_features(kitchen: Kitchen = Depends(_get_kitchen)) -> AiFeaturesResponse:
     """Remote kill switches: which AI features the app may offer right now."""
     return AiFeaturesResponse(
         image_classify=image_classify_enabled(),
@@ -103,14 +108,14 @@ async def classify_image(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> ImageClassificationResponse:
     """Decide what a photo shows (menu, dish, receipt, delivery note, stock shelf, other)."""
     if not image_classify_enabled():
         raise AiDisabledError("Image classification is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).classify(kitchen, data, mime, new_request_id(x_request_id))
 
@@ -120,18 +125,31 @@ async def menu_extract(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> MenuExtractionResponse:
     """Extract menu items for chef review. Nothing is saved — the app imports confirmed rows."""
     if not menu_scan_enabled():
         raise AiDisabledError("Menu scanning is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).extract_menu(
         kitchen, data, mime, language, new_request_id(x_request_id)
     )
+
+
+@router.post("/menu-extract/resolve", response_model=MenuExtractionResponse)
+async def menu_extract_resolve(
+    body: MenuResolveRequest,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> MenuExtractionResponse:
+    """Re-read a scanned menu with the chef's answers to the clarifying questions. No model
+    call (not counted against the AI limits); nothing is saved."""
+    if not menu_scan_enabled():
+        raise AiDisabledError("Menu scanning is not enabled.")
+    return await AiGatewayService(db).resolve_menu(kitchen, body)
 
 
 @router.post("/dish-analyze", response_model=DishAnalysisResponse)
@@ -140,14 +158,14 @@ async def dish_analyze(
     language: AppLanguage = Form("en"),
     name_hint: str | None = Form(default=None, max_length=120),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> DishAnalysisResponse:
     """Suggest dish name, category and ingredients; price range is computed from real costs."""
     if not dish_analysis_enabled():
         raise AiDisabledError("Dish analysis is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).analyze_dish(
         kitchen, data, mime, language, name_hint, new_request_id(x_request_id)
@@ -159,7 +177,7 @@ async def document_extract(
     image: UploadFile = File(..., description="JPEG/PNG/WebP, ≤ 1 MiB"),
     language: AppLanguage = Form("en"),
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentExtractionResponse:
@@ -167,17 +185,29 @@ async def document_extract(
     reviews the lines in Log Delivery and confirms them there."""
     if not document_scan_enabled():
         raise AiDisabledError("Document scanning is not enabled.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     data, mime = await _read_image(image)
     return await AiGatewayService(db).extract_document(
         kitchen, data, mime, language, new_request_id(x_request_id)
     )
 
 
+@router.post("/document-extract/resolve", response_model=DocumentExtractionResponse)
+async def document_extract_resolve(
+    body: DocumentResolveRequest,
+    kitchen: Kitchen = Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> DocumentExtractionResponse:
+    """Re-read a scanned document with the chef's answers. No model call; nothing saved."""
+    if not document_scan_enabled():
+        raise AiDisabledError("Document scanning is not enabled.")
+    return await AiGatewayService(db).resolve_document(kitchen, body)
+
+
 @router.post("/feedback", status_code=204)
 async def ai_feedback(
     body: AiFeedbackRequest,
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
 ) -> Response:
     """Record what the chef did with an AI result (confirmed, edited, rejected, imported).
 
@@ -201,7 +231,8 @@ async def assess_quality(
     product_name: str = Form(...),
     expected_unit: str = Form(...),
     image: UploadFile = File(..., description="JPEG or PNG, max 1 MB"),
-    kitchen=Depends(_get_kitchen),
+    x_request_id: str | None = Header(default=None),
+    kitchen: Kitchen = Depends(_get_kitchen),
 ) -> QualityAssessmentResponse:
     """Advisory quality assessment for a delivery item photo.
 
@@ -229,8 +260,12 @@ async def assess_quality(
                 image_bytes=image_bytes,
                 product_name=product_name,
                 expected_unit=expected_unit,
-            )
+            ),
+            kitchen_id=str(kitchen.id),
+            request_id=new_request_id(x_request_id),
         )
+    except AppError:
+        raise  # typed AI errors (unavailable, timeout, kill switch) keep their codes
     except Exception as exc:
         logger.warning(
             "quality_assessment_failed",
@@ -252,7 +287,7 @@ async def assess_quality(
 async def transcribe_audio(
     language: str = Form(default="rw"),
     audio: UploadFile = File(..., description="WAV or M4A audio file"),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
 ) -> TranscriptionResponse:
     """Speech-to-text for optional chef dictation.
@@ -267,7 +302,7 @@ async def transcribe_audio(
     # (e.g. Kinyarwanda to an English-only model).
     if language not in transcription_languages():
         raise AiDisabledError(f"Voice input is not available for '{language}' yet.")
-    check_rate_limit(str(kitchen.id), str(current_chef.id))
+    check_rate_limit(str(kitchen.id), str(current_chef.id), tz=kitchen.timezone)
     # 60 s of AAC voice is well under 2 MB; anything larger is not a push-to-talk clip.
     audio_bytes = await audio.read(MAX_AUDIO_BYTES + 1)
     if len(audio_bytes) > MAX_AUDIO_BYTES:
@@ -303,7 +338,7 @@ async def transcribe_audio(
 async def agent_turn(
     body: AgentRequest,
     x_request_id: str | None = Header(default=None),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
@@ -342,3 +377,59 @@ async def agent_turn(
 
     logger.info("agent_turn_complete", kitchen_id=str(kitchen.id))
     return result
+
+
+@router.post("/agent/stream")
+async def agent_turn_stream(
+    body: AgentRequest,
+    x_request_id: str | None = Header(default=None),
+    kitchen: Kitchen = Depends(_get_kitchen),
+    current_chef: Chef = Depends(get_current_chef),
+) -> StreamingResponse:
+    """Step 1b: the same Assistant turn as POST /agent, streamed as Server-Sent Events.
+
+    Events:
+    - `delta` {"text"}: more of the reply text, as the model writes it;
+    - `done` {AgentResponse}: the validated turn (identical to POST /agent's response);
+    - `error` {"code", "message"}: a typed error. `AI_STREAM_INTERRUPTED` means the reply
+      broke after text was shown: the app offers Retry. Failover to the fallback provider
+      happens only before the first `delta`.
+
+    Never writes to the database (like POST /agent). Uses its own database session, because
+    the request's session closes before a streamed body is sent.
+    """
+    from app.core.database import AsyncSessionFactory
+    from app.modules.ai.streaming import sse
+
+    chef_name = current_chef.name or "Chef"
+    chef_id = str(current_chef.id)
+    request_id = new_request_id(x_request_id)
+
+    async def events() -> AsyncIterator[str]:
+        try:
+            async with AsyncSessionFactory() as session:
+                svc = AgentService(session)
+                async for kind, payload in svc.run_stream(
+                    kitchen=kitchen,
+                    chef_name=chef_name,
+                    chef_id=chef_id,
+                    request=body,
+                    request_id=request_id,
+                ):
+                    if kind == "delta":
+                        yield sse("delta", {"text": payload})
+                    else:
+                        yield sse("done", payload.model_dump(mode="json"))
+        except AppError as exc:
+            yield sse("error", {"code": exc.error_code, "message": exc.message})
+        except Exception as exc:
+            logger.warning(
+                "agent_stream_failed", kitchen_id=str(kitchen.id), error=type(exc).__name__
+            )
+            yield sse("error", {"code": "AI_PROVIDER_ERROR", "message": "Agent turn failed."})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "X-Request-ID": request_id},
+    )

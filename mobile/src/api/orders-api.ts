@@ -1,3 +1,4 @@
+import type { MoneyDto } from './money-dto';
 import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
@@ -16,6 +17,8 @@ export interface OrderLineCreateBody {
   unit: string;
   quantity_ordered: string;   // decimal string
   unit_price: string;         // decimal string
+  /** ISO 4217; defaults to the kitchen currency. */
+  unit_price_currency?: string;
   ingredient_id?: string | null;
 }
 
@@ -32,7 +35,10 @@ export interface OrderLineDto {
   product_name: string;
   unit: string;
   quantity_ordered: string;
+  /** Deprecated (one release): use unit_price_money. */
   unit_price: string;
+  unit_price_currency: string | null;
+  unit_price_money: MoneyDto | null;
   ingredient_id: string | null;
 }
 

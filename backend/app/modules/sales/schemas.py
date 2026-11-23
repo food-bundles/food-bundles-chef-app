@@ -6,6 +6,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.shared.schemas.money import MoneyOut
+
 
 class DailySaleRecordRequest(BaseModel):
     menu_item_id: uuid.UUID
@@ -38,9 +40,17 @@ class WeeklyTotal(BaseModel):
 
 
 class DailySalesSummary(BaseModel):
-    """Same-day sales total; revenue uses each item's current selling price."""
+    """Same-day sales: revenue per currency, never added across currencies.
+
+    `revenue` is the subtotal in the kitchen's `currency` (kept for installed app
+    versions); `revenue_by_currency` lists every subtotal, kitchen currency first.
+    `mixed_currencies` is true when the day has sales in more than one currency
+    (e.g. after a currency change).
+    """
 
     day: date
     portions: int
     revenue: Decimal
-    currency: str = "RWF"
+    currency: str
+    revenue_by_currency: list[MoneyOut] = []
+    mixed_currencies: bool = False

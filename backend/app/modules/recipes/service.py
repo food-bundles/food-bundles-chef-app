@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.domain.calculations import convert_quantity, recipe_cost
+from app.modules.exchange_rates.costs import kitchen_unit_costs
+from app.modules.exchange_rates.schemas import RateOut
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.kitchens.models import Kitchen
 from app.modules.menus.repository import MenuItemRepository
@@ -22,13 +24,12 @@ from app.modules.recipes.schemas import (
 
 class RecipeService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._repo = RecipeRepository(db)
         self._item_repo = MenuItemRepository(db)
         self._ingredient_repo = IngredientRepository(db)
 
-    async def list_lines(
-        self, kitchen: Kitchen, menu_item_id: uuid.UUID
-    ) -> list[RecipeLine]:
+    async def list_lines(self, kitchen: Kitchen, menu_item_id: uuid.UUID) -> list[RecipeLine]:
         await self._require_item(kitchen, menu_item_id)
         return await self._repo.list_for_item(menu_item_id)
 
@@ -82,12 +83,14 @@ class RecipeService:
             raise NotFoundError("Recipe line not found.")
         await self._repo.delete(line)
 
-    async def calculate_cost(
-        self, kitchen: Kitchen, menu_item_id: uuid.UUID
-    ) -> RecipeCostResponse:
-        """Deterministic per-portion cost using Decimal arithmetic."""
+    async def calculate_cost(self, kitchen: Kitchen, menu_item_id: uuid.UUID) -> RecipeCostResponse:
+        """Deterministic per-portion cost in the kitchen's currency (Decimal arithmetic).
+
+        Ingredient costs in another currency are converted at the table's rate for the
+        kitchen's local date; without a rate the line shows "rate unavailable"."""
         await self._require_item(kitchen, menu_item_id)
         lines = await self._repo.list_for_item(menu_item_id)
+        unit_costs = await kitchen_unit_costs(self._db, kitchen, [ln.ingredient for ln in lines])
 
         cost_lines: list[tuple[Decimal, Decimal, Decimal]] = []
         details: list[RecipeLineCostDetail] = []
@@ -95,7 +98,8 @@ class RecipeService:
         for line in lines:
             ing = line.ingredient
             yld = line.yield_fraction_override or ing.yield_fraction
-            cost = ing.cost_per_unit
+            unit_cost = unit_costs.get(ing)
+            cost = unit_cost.amount if unit_cost is not None else None
             # cost_per_unit is per ingredient unit, so express the recipe quantity in it first
             qty_in_ing_unit = convert_quantity(line.qty_per_portion, line.unit, ing.unit)
 
@@ -110,7 +114,15 @@ class RecipeService:
                     ingredient_name=ing.name,
                     qty_per_portion=line.qty_per_portion,
                     yield_fraction=yld,
-                    cost_per_unit=cost,
+                    cost_per_unit=ing.cost_per_unit,
+                    cost_per_unit_currency=(
+                        ing.cost_per_unit_currency or kitchen.currency
+                        if ing.cost_per_unit is not None
+                        else None
+                    ),
+                    cost_per_unit_converted=cost,
+                    rate=RateOut.of(unit_cost.rate if unit_cost else None),
+                    rate_unavailable=unit_costs.is_rate_unavailable(ing),
                     line_cost=line_cost,
                 )
             )
@@ -120,6 +132,8 @@ class RecipeService:
         return RecipeCostResponse(
             menu_item_id=menu_item_id,
             total_cost=total,
+            currency=kitchen.currency,
+            complete=not unit_costs.rate_unavailable,
             lines=details,
         )
 

@@ -15,7 +15,9 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { prepareImageForAi } from '@/features/ai/image-prep';
-import { extractDocument, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
+import { extractDocument, resolveDocument, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
+import { ClarificationCard } from '@/features/ai/ClarificationCard';
+import { applyAnswer, currentQuestion } from '@/features/ai/clarify';
 import { newRequestId } from '@/features/ai/ai-client';
 import { useAiTask } from '@/features/ai/useAiTask';
 import { AiStatusPanel } from '@/features/ai/AiStatusPanel';
@@ -23,7 +25,9 @@ import type { DocumentExtraction } from '@/features/ai/schemas';
 import { createOrder, submitOrder, confirmOrder } from '@/api/orders-api';
 import { startDelivery, receiveDelivery } from '@/api/receiving-api';
 import { queryKeys } from '@/api/query-keys';
-import { formatTime, localISODate, toAppLanguage } from '@/lib/format';
+import { formatTime, toAppLanguage } from '@/lib/format';
+import { sanitisePriceInput } from '@/lib/money';
+import { activeKitchenToday } from '@/features/kitchens/kitchen-today';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { CatalogProductDto } from '@/api/catalog-api';
@@ -155,6 +159,10 @@ export default function QuickReceiveScreen() {
   const [readNote, setReadNote] = useState<string | null>(null);
   const appliedRequestRef = useRef<string | null>(null);
   const aiSuggestedRef = useRef(0);
+  /** A reading with open questions, asked one at a time before its lines are added. */
+  const [pendingDoc, setPendingDoc] = useState<DocumentExtraction | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   // Called once with each validated reading; nothing is saved until "Log Delivery".
   const applyReading = (result: DocumentExtraction) => {
@@ -171,7 +179,15 @@ export default function QuickReceiveScreen() {
       );
       return;
     }
+    if (result.clarifications.length > 0) {
+      setPendingDoc(result);
+      return;
+    }
+    addReadLines(result);
+  };
+  const addReadLines = (result: DocumentExtraction) => {
     const byName = new globalThis.Map(catalog.map((p) => [p.name.trim().toLowerCase(), p]));
+    const kitchenCurrency = activeKitchen?.currency;
     aiSuggestedRef.current = result.lines.length;
     setSupplierName((prev) => prev || result.supplier_name || '');
     setLines((prev) => [
@@ -184,13 +200,45 @@ export default function QuickReceiveScreen() {
           productName: product?.name ?? l.name,
           unit: l.unit || product?.unit || 'kg',
           quantity: l.quantity ?? '',
-          unitPrice: l.unit_price != null ? String(l.unit_price) : '',
+          unitPrice:
+            l.unit_price_money && l.unit_price_money.currency === kitchenCurrency
+              ? l.unit_price_money.amount
+              : l.unit_price != null
+                ? String(l.unit_price)
+                : '',
           aiConfidence: l.confidence,
         };
       }),
     ]);
-    setReadNote(t('receiving.ai.added', { count: result.lines.length }));
+    const added = t('receiving.ai.added', { count: result.lines.length });
+    // Arithmetic is flagged, never corrected: say so next to what was added.
+    setReadNote(result.arithmetic?.status === 'mismatch' ? `${added} ${t('clarify.arithmeticFlag')}` : added);
   };
+  /** The chef answered the open question: the server re-reads the document (no model call). */
+  const answerQuestion = async (key: string, value: string) => {
+    if (!pendingDoc) return;
+    setResolving(true);
+    setResolveError(null);
+    try {
+      const next = await resolveDocument(kitchenId, pendingDoc, applyAnswer(pendingDoc.answers, key, value));
+      if (next.clarifications.length > 0) {
+        setPendingDoc(next);
+      } else {
+        setPendingDoc(null);
+        addReadLines(next);
+      }
+    } catch {
+      setResolveError(t('ai.unavailable'));
+    } finally {
+      setResolving(false);
+    }
+  };
+  const skipQuestions = () => {
+    if (!pendingDoc) return;
+    addReadLines(pendingDoc);
+    setPendingDoc(null);
+  };
+  const question = currentQuestion(pendingDoc?.clarifications);
   const readTask = useAiTask<DocumentExtraction>(
     'document',
     (image, cb) => extractDocument(kitchenId, image, language, cb),
@@ -219,7 +267,7 @@ export default function QuickReceiveScreen() {
       const order = await createOrder(
         activeKitchen.id,
         {
-          delivery_date: localISODate(),
+          delivery_date: activeKitchenToday(),
           notes: supplierName.trim()
             ? t('receiving.supplierNote', { supplier: supplierName.trim() })
             : t('receiving.walkInNote'),
@@ -440,6 +488,30 @@ export default function QuickReceiveScreen() {
           )
         ) : null}
 
+        {question ? (
+          <View style={{ gap: spacing.sm }}>
+            <ClarificationCard
+              clarification={question}
+              busy={resolving}
+              remaining={pendingDoc?.clarifications.length ?? 1}
+              onAnswer={(key, value) => void answerQuestion(key, value)}
+              onAction={() => router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId } })}
+            />
+            {resolveError ? (
+              <Text style={{ color: tk.danger, fontSize: fontSize.sm }} accessibilityRole="alert">
+                {resolveError}
+              </Text>
+            ) : null}
+            <AppButton
+              label={t('clarify.skipAll')}
+              variant="ghost"
+              onPress={skipQuestions}
+              disabled={resolving}
+              accessibilityHint={t('clarify.skipAllHint')}
+            />
+          </View>
+        ) : null}
+
         <View style={{ gap: 6 }}>
           <Text style={[styles.label, { color: tk.textMuted }]}>{t('receiving.supplierLabel')}</Text>
           <ThemedTextInput
@@ -574,6 +646,7 @@ function LineItemRow({
 }) {
   const { t } = useTranslation();
   const tk = useTheme();
+  const currency = useKitchenStore((st) => st.activeKitchen?.currency ?? '');
   const smallInput = (hasError: boolean) => [
     styles.smallInput,
     { backgroundColor: tk.surfaceSunken, color: tk.text, borderColor: hasError ? tk.danger : 'transparent' },
@@ -636,9 +709,9 @@ function LineItemRow({
           <Text style={[styles.smallLabel, { color: tk.textMuted }]}>{t('receiving.pricePerUnit')}</Text>
           <ThemedTextInput
             value={line.unitPrice}
-            onChangeText={(v) => onChange(line.id, 'unitPrice', v.replace(/[^0-9]/g, ''))}
+            onChangeText={(v) => onChange(line.id, 'unitPrice', sanitisePriceInput(v, currency))}
             placeholder="0"
-            keyboardType="number-pad"
+            keyboardType="decimal-pad"
             style={smallInput(false)}
             accessibilityLabel={t('receiving.pricePerUnit')}
           />

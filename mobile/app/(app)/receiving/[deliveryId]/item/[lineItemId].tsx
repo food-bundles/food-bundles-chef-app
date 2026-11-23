@@ -19,7 +19,8 @@ import { ApiError } from '@/api/errors';
 import { isShortDelivery } from '@/domain/calculations/purchasing';
 import { MAX_PHOTO_SIZE_BYTES } from '@/constants';
 import { colors, spacing, fontSize, fontWeight, radius } from '@/lib/theme';
-import { formatQuantity, formatRWF } from '@/lib/format';
+import { formatQuantity } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import type { QualityAssessmentResponseDto, QualityResult, QualityDimensionResult } from '@/api/ai-api';
 import type { ReceivingDecision } from '@/api/receiving-api';
 import type { BadgeVariant } from '@/components/ui/StatusBadge';
@@ -489,7 +490,7 @@ export default function LineItemReceiveScreen() {
               {line.quantity_ordered} {line.unit}
             </Text>
             <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
-              {t('receiving.refPriceLine', { price: formatRWF(line.unit_price, i18n.language), unit: line.unit })}
+              {t('receiving.refPriceLine', { price: formatMoney(line.unit_price, line.unit_price_currency ?? '', i18n.language), unit: line.unit })}
             </Text>
           </View>
 

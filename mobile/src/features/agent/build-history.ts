@@ -25,6 +25,7 @@ export function entryToMessages(entry: ChatEntry): AgentMessage[] {
       return [{ role: 'agent', content: `${entry.replyText} ${entry.question.question}`.trim() }];
     case 'notice':
     case 'route':
+    case 'pick':
       return [];
   }
 }

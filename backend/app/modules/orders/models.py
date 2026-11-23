@@ -4,12 +4,13 @@ import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.shared.enums import OrderStatus
+from app.shared.money import Money
 
 
 class Order(Base):
@@ -20,9 +21,7 @@ class Order(Base):
 
     __tablename__ = "orders"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     kitchen_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("kitchens.id", ondelete="CASCADE"),
@@ -36,9 +35,7 @@ class Order(Base):
     )
     # external_order_id: Food Bundles platform order ID after submission
     external_order_id: Mapped[str | None] = mapped_column(String(100), index=True)
-    status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=OrderStatus.DRAFT
-    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default=OrderStatus.DRAFT)
     delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
@@ -60,9 +57,7 @@ class OrderLine(Base):
 
     __tablename__ = "order_lines"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),
@@ -75,6 +70,16 @@ class OrderLine(Base):
     unit: Mapped[str] = mapped_column(String(30), nullable=False)
     quantity_ordered: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    unit_price_minor: Mapped[int | None] = mapped_column(BigInteger)
+    unit_price_currency: Mapped[str | None] = mapped_column(String(3))
+
+    @property
+    def unit_price_money(self) -> dict[str, str] | None:
+        """{"amount", "currency"} from the minor-unit columns (None until set)."""
+        if self.unit_price_minor is None or not self.unit_price_currency:
+            return None
+        return Money(int(self.unit_price_minor), self.unit_price_currency).to_api()
+
     # ingredient_id: optional mapping to local ingredient for receiving
     ingredient_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("ingredients.id", ondelete="SET NULL")

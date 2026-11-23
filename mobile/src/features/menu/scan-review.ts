@@ -1,4 +1,4 @@
-import { detectAnomaly } from '@/domain/anomaly';
+import { detectAnomaly, type PricePoint } from '@/domain/anomaly';
 import type { MenuItemCategory, MenuItemDto } from '@/api/menus-api';
 import type { MenuExtractItem } from '@/features/ai/schemas';
 
@@ -15,7 +15,7 @@ export interface ReviewRow {
   /** Stable per row; also the idempotency key for its create request. */
   key: string;
   name: string;
-  /** Whole RWF as digits; '' when the menu showed no readable price. */
+  /** Decimal string in the kitchen's currency; '' when the menu showed no readable price. */
   price: string;
   category: MenuItemCategory | null;
   description: string | null;
@@ -49,9 +49,10 @@ export function normaliseName(name: string): string {
     .trim();
 }
 
-function wholeRwf(value: string | number | null | undefined): number | null {
+/** A positive price amount, or null. Never rounded (7.99 stays 7.99). */
+function priceAmount(value: string | number | null | undefined): number | null {
   const n = typeof value === 'number' ? value : value ? Number(value) : NaN;
-  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /**
@@ -78,12 +79,13 @@ export function buildReviewRows(
     rows.push({
       key: makeKey(),
       name,
-      price: item.price != null && item.price > 0 ? String(item.price) : '',
+      // v2: the settled price in the kitchen's currency; v1 servers send a whole number.
+      price: item.price_money ? item.price_money.amount : item.price != null && item.price > 0 ? String(item.price) : '',
       category: item.category,
       description: item.description,
       selected: !match,
       nameConfidence: item.name_confidence,
-      priceConfidence: item.price != null ? item.price_confidence : 0,
+      priceConfidence: item.price_money || item.price != null ? item.price_confidence : 0,
       sourceText: item.source_text,
       duplicateOf: match
         ? { id: match.id, menuId: match.menu_id, name: match.name, price: match.selling_price }
@@ -98,21 +100,21 @@ export function buildReviewRows(
  * What the chef should look at on a row, in display order. Prices are compared with
  * the existing menu (or, for a new menu, with the other scanned prices).
  */
-export function rowFlags(row: ReviewRow, peerPrices: number[]): RowFlag[] {
+export function rowFlags(row: ReviewRow, peerPrices: readonly PricePoint[], currency: string): RowFlag[] {
   const flags: RowFlag[] = [];
   if (row.nameConfidence < LOW_CONFIDENCE) flags.push('check_name');
-  const price = wholeRwf(row.price);
+  const price = priceAmount(row.price);
   if (price === null) {
     flags.push('no_price');
   } else {
     if (row.priceConfidence < LOW_CONFIDENCE) flags.push('check_price');
-    const anomaly = detectAnomaly(price, peerPrices);
+    const anomaly = detectAnomaly({ amount: price, currency }, peerPrices);
     if (anomaly === 'high') flags.push('price_high');
     if (anomaly === 'low') flags.push('price_low');
   }
   if (row.duplicateOf) {
     flags.push(
-      price !== null && price !== wholeRwf(row.duplicateOf.price) ? 'duplicate_new_price' : 'duplicate_same_price',
+      price !== null && price !== priceAmount(row.duplicateOf.price) ? 'duplicate_new_price' : 'duplicate_same_price',
     );
   }
   return flags;
@@ -122,20 +124,23 @@ export function rowFlags(row: ReviewRow, peerPrices: number[]): RowFlag[] {
  * Prices the anomaly check compares `row` against: the live menu when it has enough
  * priced items, otherwise the other scanned rows (never the row itself).
  */
-export function peerPricesFor(row: ReviewRow, menu: MenuItemDto[], rows: ReviewRow[]): number[] {
-  const live = menu.map((m) => wholeRwf(m.selling_price)).filter((p): p is number => p !== null);
+export function peerPricesFor(row: ReviewRow, menu: MenuItemDto[], rows: ReviewRow[], currency: string): PricePoint[] {
+  const live = menu
+    .map((m) => ({ amount: priceAmount(m.selling_price), currency: m.selling_price_currency ?? currency }))
+    .filter((p): p is PricePoint => p.amount !== null && p.currency.toUpperCase() === currency.toUpperCase());
   if (live.length >= 2) return live;
   return rows
     .filter((r) => r.key !== row.key)
-    .map((r) => wholeRwf(r.price))
-    .filter((p): p is number => p !== null);
+    .map((r) => priceAmount(r.price))
+    .filter((p): p is number => p !== null)
+    .map((amount) => ({ amount, currency }));
 }
 
 /** i18n key of the blocking problem on a selected row, or null when it can be imported. */
 export function rowError(row: ReviewRow): string | null {
   if (!row.selected) return null;
   if (row.name.trim().length < 2) return 'menu.scan.nameRequired';
-  if (wholeRwf(row.price) === null) return 'menu.scan.priceRequired';
+  if (priceAmount(row.price) === null) return 'menu.scan.priceRequired';
   return null;
 }
 
@@ -152,7 +157,7 @@ export function importPlan(rows: ReviewRow[]): ImportPlan {
   for (const row of rows) {
     if (!row.selected || rowError(row)) continue;
     if (!row.duplicateOf) creates.push(row);
-    else if (wholeRwf(row.price) !== wholeRwf(row.duplicateOf.price)) updates.push(row);
+    else if (priceAmount(row.price) !== priceAmount(row.duplicateOf.price)) updates.push(row);
   }
   return { creates, updates };
 }

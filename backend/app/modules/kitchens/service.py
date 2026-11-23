@@ -5,12 +5,17 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import KitchenAccessDeniedError, NotFoundError
+from app.core.exceptions import (
+    CurrencyChangeNotAllowedError,
+    KitchenAccessDeniedError,
+    NotFoundError,
+)
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.repository import KitchenRepository
 from app.modules.kitchens.schemas import KitchenCreateRequest, KitchenUpdateRequest
 from app.shared.enums import KitchenStatus
+from app.shared.money_fields import exact_money
 
 
 class KitchenService:
@@ -20,9 +25,7 @@ class KitchenService:
     async def list_kitchens(self, chef: Chef) -> list[Kitchen]:
         return await self._repo.list_for_chef(chef.id)
 
-    async def create_kitchen(
-        self, chef: Chef, data: KitchenCreateRequest
-    ) -> Kitchen:
+    async def create_kitchen(self, chef: Chef, data: KitchenCreateRequest) -> Kitchen:
         kitchen = Kitchen(
             chef_id=chef.id,
             name=data.name,
@@ -31,6 +34,7 @@ class KitchenService:
             phone=data.phone,
             currency=data.currency,
             timezone=data.timezone,
+            country=data.country,
         )
         return await self._repo.create(kitchen)
 
@@ -50,10 +54,19 @@ class KitchenService:
             kitchen.address = data.address
         if data.phone is not None:
             kitchen.phone = data.phone
-        if data.currency is not None:
-            kitchen.currency = data.currency
+        if data.currency is not None and data.currency != kitchen.currency:
+            raise CurrencyChangeNotAllowedError()
         if data.timezone is not None:
             kitchen.timezone = data.timezone
+        if data.country is not None:
+            kitchen.country = data.country
+        if data.price_step is not None:
+            # Must be a whole number of the currency's smallest unit; 0 clears the override.
+            kitchen.price_step = (
+                None
+                if data.price_step == 0
+                else exact_money(data.price_step, kitchen.currency).amount
+            )
 
         return await self._repo.update(kitchen)
 

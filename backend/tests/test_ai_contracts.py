@@ -116,7 +116,7 @@ async def test_feature_flag_enabled_returns_mock_adapter(monkeypatch) -> None:
 
     monkeypatch.setattr(cfg.settings, "AI_ENABLED", True)
     monkeypatch.setattr(cfg.settings, "AI_QUALITY_ASSESSMENT_ENABLED", True)
-    monkeypatch.setattr(cfg.settings, "MODEL_API_KEY", "")
+    monkeypatch.setattr(cfg.settings, "MODEL_API_KEY", cfg.SecretStr(""))
 
     from app.modules.ai.routing.provider_router import get_quality_assessment_adapter
     from app.modules.ai.services.mock_provider import MockQualityAssessmentAdapter
@@ -126,27 +126,25 @@ async def test_feature_flag_enabled_returns_mock_adapter(monkeypatch) -> None:
 
 
 def test_sam_null_quantity_when_not_fully_visible() -> None:
-    """SAM constraint: quantity must be None when crate not fully visible."""
-    from app.integrations.meta_model_api.quality_assessment import (
-        _parse_quantity_estimate,
-    )
+    """Quantity must be None when the crate is not fully visible, even if the model guessed."""
+    import json
 
-    result = _parse_quantity_estimate(
-        {"fully_visible": False, "estimated_quantity": 9.5, "confidence": 0.7},
-        "kg",
+    from app.integrations.meta_model_api.quality_assessment import _parse_response
+
+    _, result = _parse_response(
+        json.dumps({"quantity_visible": False, "estimated_quantity": 9.5}), "kg"
     )
     assert result.crate_fully_visible is False
     assert result.estimated_quantity is None
 
 
 def test_sam_quantity_present_when_fully_visible() -> None:
-    from app.integrations.meta_model_api.quality_assessment import (
-        _parse_quantity_estimate,
-    )
+    import json
 
-    result = _parse_quantity_estimate(
-        {"fully_visible": True, "estimated_quantity": 9.5, "confidence": 0.85},
-        "kg",
+    from app.integrations.meta_model_api.quality_assessment import _parse_response
+
+    _, result = _parse_response(
+        json.dumps({"quantity_visible": True, "estimated_quantity": 9.5}), "kg"
     )
     assert result.crate_fully_visible is True
     assert result.estimated_quantity == Decimal("9.5")

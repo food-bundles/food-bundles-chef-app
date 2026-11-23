@@ -36,12 +36,7 @@ export function formatInteger(value: number, lang?: string): string {
   }
 }
 
-/** RWF amount: thousands separator, no decimals, e.g. "3,500 RWF". Non-finite input renders as "— RWF". */
-export function formatRWF(value: number | string | null | undefined, lang?: string): string {
-  const n = typeof value === 'string' ? parseFloat(value) : value;
-  if (n == null || !Number.isFinite(n)) return '— RWF';
-  return `${formatInteger(n, lang)} RWF`;
-}
+// Money is formatted by formatMoney (src/lib/money.ts), always in the amount's own currency.
 
 /** Quantity with at most 2 decimals and trailing zeros trimmed: 500.0000 → "500", 0.250 → "0.25". */
 export function formatQuantity(value: number | string | null | undefined, lang?: string): string {
@@ -104,4 +99,29 @@ export function formatMonthYear(value: Date | string, lang?: string): string {
 /** Local calendar day as YYYY-MM-DD (not UTC — a sale at 01:00 in Kigali belongs to today). */
 export function localISODate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * The kitchen's calendar day (YYYY-MM-DD) in its IANA time zone (decision 8): a sale at
+ * 00:30 in Paris belongs to Paris's date even if the phone or UTC says otherwise.
+ * Falls back to the device's day when no zone is known or Intl cannot resolve it.
+ */
+export function kitchenISODate(timeZone: string | null | undefined, d: Date = new Date()): string {
+  if (!timeZone) return localISODate(d);
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const get = (type: string): string | undefined => parts.find((p) => p.type === type)?.value;
+    const year = get('year');
+    const month = get('month');
+    const day = get('day');
+    if (year && month && day) return `${year}-${month}-${day}`;
+  } catch {
+    // Unknown zone or no Intl time-zone data: the device's day is the best available.
+  }
+  return localISODate(d);
 }

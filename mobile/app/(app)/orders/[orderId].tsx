@@ -5,11 +5,13 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Package, Download, Share2 } from 'lucide-react-native';
 import { useOrderDetail, useCancelOrder, useSubmitOrder } from '@/features/orders/useOrders';
+import { cancelErrorKey, orderCancelState } from '@/features/orders/order-cancel';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ProductIcon } from '@/components/ui/ProductIcon';
 import { buildRequisitionHtml } from '@/lib/pdf-requisition';
+import { formatMoney, formatMoneyList, sumByCurrency } from '@/lib/money';
 import { colors } from '@/lib/theme';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
@@ -48,7 +50,7 @@ async function shareOrderAsPdf(htmlContent: string, orderRef: string, t: (key: s
 }
 
 export default function OrderDetailScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { data: order, isLoading, error } = useOrderDetail(orderId ?? '');
@@ -57,18 +59,25 @@ export default function OrderDetailScreen() {
   const { data: catalog = [] } = useCatalog();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const [sharing, setSharing] = useState(false);
+  /** i18n key of the last failed cancel (shown under the button). */
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const catalogImageMap = Object.fromEntries(
     catalog.filter((p) => p.image_url).map((p) => [p.id, p.image_url] as [string, string])
   );
 
-  const totalValue = order?.lines.reduce(
-    (sum, l) => sum + parseFloat(l.quantity_ordered) * parseFloat(l.unit_price),
-    0,
-  ) ?? 0;
+  // One total per currency (order lines carry their own); never added across currencies.
+  const lineCurrency = (l: { unit_price_currency: string | null }) => l.unit_price_currency ?? activeKitchen?.currency ?? '';
+  const totals = sumByCurrency(
+    (order?.lines ?? []).map((l) => ({
+      amount: parseFloat(l.quantity_ordered) * parseFloat(l.unit_price),
+      currency: lineCurrency(l),
+    })),
+  ).filter((m) => m.amount > 0);
 
   const canSubmit = order?.status === 'draft';
-  const canCancel = order && (order.status === 'draft' || order.status === 'submitted');
+  const cancelState = order ? orderCancelState(order.status) : 'not_cancellable';
+  const canCancel = cancelState === 'cancellable';
 
   const handleSharePdf = async () => {
     if (!order) return;
@@ -86,7 +95,9 @@ export default function OrderDetailScreen() {
           unit: l.unit,
           quantity_ordered: l.quantity_ordered,
           unit_price: l.unit_price,
+          currency: lineCurrency(l),
         })),
+        lang: i18n.language,
       });
       await shareOrderAsPdf(html, order.id.slice(-8).toUpperCase(), t);
     } finally {
@@ -162,7 +173,7 @@ export default function OrderDetailScreen() {
             <View className="flex-row justify-between">
               <Text className="text-surface-600 dark:text-surface-400 text-xs uppercase tracking-wider">{t('orders.totalValue')}</Text>
               <Text className="text-surface-900 dark:text-white font-bold text-base">
-                {totalValue.toLocaleString()} RWF
+                {formatMoneyList(totals, i18n.language)}
               </Text>
             </View>
             {order.delivery_date && (
@@ -220,11 +231,11 @@ export default function OrderDetailScreen() {
                   <View className="flex-1">
                     <Text className="text-surface-900 dark:text-white font-medium">{line.product_name}</Text>
                     <Text className="text-surface-600 dark:text-surface-400 text-xs mt-0.5">
-                      {qty} {line.unit} × {price.toLocaleString()} RWF
+                      {qty} {line.unit} × {formatMoney(price, lineCurrency(line), i18n.language)}
                     </Text>
                   </View>
                   <Text className="text-brand-600 dark:text-brand-300 font-semibold text-sm">
-                    {lineTotal > 0 ? `${lineTotal.toLocaleString()} RWF` : '—'}
+                    {lineTotal > 0 ? formatMoney(lineTotal, lineCurrency(line), i18n.language) : '—'}
                   </Text>
                 </View>
               );
@@ -250,11 +261,24 @@ export default function OrderDetailScreen() {
           )}
 
           {/* Cancel action */}
+          {cancelState === 'on_its_way' && (
+            <Text
+              className="mt-2 text-surface-600 dark:text-surface-400 text-sm text-center"
+              accessibilityRole="text"
+            >
+              {t('orders.onItsWay')}
+            </Text>
+          )}
           {canCancel && (
             <Pressable
               onPress={async () => {
-                await cancelMutation.mutateAsync(order.id);
-                router.back();
+                setCancelError(null);
+                try {
+                  await cancelMutation.mutateAsync(order.id);
+                  router.back();
+                } catch (err) {
+                  setCancelError(cancelErrorKey(err));
+                }
               }}
               disabled={cancelMutation.isPending}
               accessibilityRole="button"
@@ -265,6 +289,11 @@ export default function OrderDetailScreen() {
                 {cancelMutation.isPending ? t('orders.cancelling') : t('orders.cancelOrder')}
               </Text>
             </Pressable>
+          )}
+          {cancelError && (
+            <Text className="mt-2 text-danger text-sm text-center" accessibilityRole="alert">
+              {t(cancelError)}
+            </Text>
           )}
         </ScrollView>
       )}

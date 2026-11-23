@@ -57,7 +57,13 @@ The proposed backend stack is:
 
 Use stable, compatible dependency versions. Pin dependencies and maintain a reproducible development environment.
 
-Redis and background task infrastructure should only be introduced when a demonstrated workload requires them.
+Redis is **required**, in development and in production. It holds the AI kill switch
+(`ai:killswitch:{provider}`), which turns a provider off on every API instance within
+about 5 seconds without a deploy, and it is the arq task broker. Without Redis the kill
+switch only affects the instance that received the request (the API keeps working and
+`/api/v1/ai/health` reports `redis_connected: false`). Use an eviction policy that never
+evicts keys without a TTL (`volatile-lru` or `noeviction`), so the kill switch survives
+memory pressure.
 
 ## 3. Backend Architecture
 
@@ -220,6 +226,43 @@ Two order workflows must be supported as product requirements:
 2. A chef submits an order to a linked restaurant for review, approval, editing, rejection, and payment processing.
 
 The exact release phase and workflow ownership for restaurant approval must be documented as a product decision before implementation.
+
+#### Order cancellation (current rule) and dispatch/payment (open item)
+
+**Current rule (2026-11-18).** A chef can cancel an order while it is `draft`, `submitted` or
+`confirmed` (orders are created `confirmed`). Once it is `out_for_delivery`, cancel returns
+409 `ORDER_ON_ITS_WAY` and the app shows "This order is on its way — contact Food Bundles
+support" (EN/FR/RW). `delivered` and `cancelled` orders return a plain 409 `CONFLICT`.
+
+**Caveat.** `out_for_delivery` today means *the chef started receiving*
+(`POST /kitchens/{kitchen_id}/orders/{order_id}/receiving/start`), not a real dispatch by
+Food Bundles. Nothing records whether Food Bundles has dispatched or been paid for an order,
+and cancelling does not notify Food Bundles about an order that `order_sync` already sent
+(`external_order_id` set).
+
+**Open item: dispatch and payment from Food Bundles.** Once the Food Bundles order API
+contract exists, cancel becomes "allowed only while not dispatched and not paid". We will
+need from Food Bundles, for every order (`external_order_id`):
+
+| Field / event | Type | Used for |
+|---|---|---|
+| `order.status_changed` webhook (or a status endpoint to poll) | event | Keep our copy current without the chef |
+| `event_id` | string, unique | Idempotent processing (ignore replays) |
+| `occurred_at` and a per-order `version` / sequence | UTC timestamp, integer | Apply events in order; ignore stale ones |
+| `status` | `received`, `accepted`, `rejected`, `preparing`, `dispatched`, `delivered`, `cancelled` | Order timeline |
+| `dispatched_at` | UTC timestamp, null until dispatched | **Blocks cancel** |
+| `estimated_delivery_at` | UTC timestamp, optional | Show the chef when to expect it |
+| `payment_status` and `paid_at` | `unpaid`, `pending`, `paid`, `refunded`; UTC timestamp | **Blocks cancel** once `paid` |
+| `payment_reference` | string, optional | Support and reconciliation |
+| `cancelled_by` and `cancel_reason` | `chef`, `food_bundles`; text | Show why an order was cancelled |
+| Webhook signature (e.g. HMAC-SHA256 of the body with a shared secret, plus a timestamp header) | header | Reject forged or replayed calls |
+| `POST /orders/{external_order_id}/cancel` | API call with idempotency key; returns the new status or "too late" | Cancel on the Food Bundles side, not just ours |
+
+On our side this adds `orders.dispatched_at`, `orders.paid_at`, `orders.payment_status`,
+`orders.fb_status`, `orders.fb_status_updated_at` and a separate `receiving_started_at`, so
+`out_for_delivery` can mean a real dispatch again. The cancel rule then becomes: allowed
+when `dispatched_at` and `paid_at` are both null *and* the Food Bundles cancel call accepts
+it.
 
 ### 4.6 Delivery Receiving
 
@@ -741,6 +784,9 @@ Install:
 - Git.
 - Docker Desktop.
 - PostgreSQL (or use Docker Compose).
+- Redis 7 or newer (or use Docker Compose). Required: see section 2.
+- gitleaks 8.21 or newer on `PATH` (`scoop install gitleaks` / `brew install gitleaks`).
+  The pre-commit hook blocks commits without it.
 - A virtual environment tool.
 
 ### 11.1 Clone and Enter the Backend
@@ -789,8 +835,12 @@ Never commit `.env` or real credentials.
 If Docker Compose is configured:
 
 ```powershell
-docker compose up -d db
+docker compose up -d db redis
 ```
+
+Redis must listen on the address `REDIS_URL` resolves to. On Windows, `localhost` resolves
+to IPv6 (`::1`) first, so a Redis started by hand must bind both `127.0.0.1` and `::1`
+(Docker Compose publishes both).
 
 ### 11.6 Apply Migrations
 

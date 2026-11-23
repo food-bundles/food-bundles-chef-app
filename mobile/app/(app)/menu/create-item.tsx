@@ -28,7 +28,7 @@ import { AiError } from '@/features/ai/ai-client';
 import { AiStatusPanel } from '@/features/ai/AiStatusPanel';
 import type { DishAnalysis } from '@/features/ai/schemas';
 import { detectAnomaly } from '@/domain/anomaly';
-import { formatRWF } from '@/lib/format';
+import { formatMoney, sanitisePriceInput } from '@/lib/money';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 
@@ -67,6 +67,7 @@ export default function CreateMenuItemScreen() {
   const tk = useTheme();
   const params = useLocalSearchParams<{ photoUri?: string }>();
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
+  const kitchenCurrency = activeKitchen?.currency ?? '';
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const qc = useQueryClient();
   const { features } = useAiFeatures();
@@ -140,9 +141,12 @@ export default function CreateMenuItemScreen() {
   const priceAnomaly = useMemo((): 'high' | 'low' | false => {
     const entered = parseFloat(sellingPriceValue);
     if (isNaN(entered) || entered <= 0) return false;
-    const peers = existingItems.map((i) => parseFloat(i.selling_price)).filter((p) => !isNaN(p) && p > 0);
-    return detectAnomaly(entered, peers);
-  }, [sellingPriceValue, existingItems]);
+    const peers = existingItems
+      .map((i) => ({ amount: parseFloat(i.selling_price), currency: i.selling_price_currency ?? kitchenCurrency }))
+      .filter((p) => !isNaN(p.amount) && p.amount > 0);
+    return detectAnomaly({ amount: entered, currency: kitchenCurrency }, peers);
+  }, [sellingPriceValue, existingItems, kitchenCurrency]);
+  const priceCurrency = analysis?.price?.currency ?? kitchenCurrency;
 
   const pickPhoto = async (fromCamera: boolean) => {
     const perm = fromCamera
@@ -322,13 +326,13 @@ export default function CreateMenuItemScreen() {
               <View style={{ gap: 6 }}>
                 <Text style={{ color: tk.text, fontSize: fontSize.sm }}>
                   {t('createItem.priceRange', {
-                    low: formatRWF(analysis.price.low, i18n.language),
-                    high: formatRWF(analysis.price.high, i18n.language),
+                    low: formatMoney(analysis.price.low, priceCurrency, i18n.language),
+                    high: formatMoney(analysis.price.high, priceCurrency, i18n.language),
                   })}
                 </Text>
                 <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>
                   {t('createItem.priceReasoning', {
-                    cost: formatRWF(analysis.price.cost_per_portion, i18n.language),
+                    cost: formatMoney(analysis.price.cost_per_portion, priceCurrency, i18n.language),
                     low: analysis.price.food_cost_low_pct,
                     high: analysis.price.food_cost_high_pct,
                     costed: analysis.price.costed_ingredients,
@@ -339,10 +343,10 @@ export default function CreateMenuItemScreen() {
                   {[analysis.price.low, analysis.price.high].map((p) => (
                     <SelectableChip
                       key={p}
-                      label={formatRWF(p, i18n.language)}
+                      label={formatMoney(p, priceCurrency, i18n.language)}
                       selected={sellingPriceValue === String(p)}
                       onPress={() => setValue('selling_price', String(p), { shouldValidate: true })}
-                      accessibilityLabel={t('createItem.usePrice', { price: formatRWF(p, i18n.language) })}
+                      accessibilityLabel={t('createItem.usePrice', { price: formatMoney(p, priceCurrency, i18n.language) })}
                     />
                   ))}
                 </View>
@@ -476,14 +480,14 @@ export default function CreateMenuItemScreen() {
           name="selling_price"
           render={({ field: { onChange, onBlur, value } }) => (
             <AppTextField
-              label={t('createItem.priceLabel')}
+              label={t('createItem.priceLabel', { currency: kitchenCurrency })}
               placeholder={t('createItem.pricePlaceholder')}
               value={value}
-              onChangeText={(v) => onChange(v.replace(/[^0-9]/g, ''))}
+              onChangeText={(v) => onChange(sanitisePriceInput(v, kitchenCurrency))}
               onBlur={onBlur}
               error={errors.selling_price?.message}
-              keyboardType="number-pad"
-              suffix="RWF"
+              keyboardType="decimal-pad"
+              suffix={kitchenCurrency}
             />
           )}
         />

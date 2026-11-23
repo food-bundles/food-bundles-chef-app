@@ -4,17 +4,28 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, KitchenAccessDeniedError, NotFoundError
+from app.core.exceptions import (
+    CatalogNotAvailableError,
+    ConflictError,
+    KitchenAccessDeniedError,
+    NotFoundError,
+    OrderOnItsWayError,
+)
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.models import Kitchen
 from app.modules.orders.models import Order, OrderLine
 from app.modules.orders.repository import OrderLineRepository, OrderRepository
 from app.modules.orders.schemas import (
     OrderCreateRequest,
+    OrderLineResponse,
     OrderSubmitResponse,
     OrderWithLinesResponse,
 )
 from app.shared.enums import OrderStatus
+from app.shared.money_fields import resolve_currency, set_price
+
+# Order lines typed in by the chef rather than picked from the Food Bundles catalogue.
+MANUAL_PRODUCT_ID = "manual"
 
 
 class OrderService:
@@ -32,6 +43,12 @@ class OrderService:
     async def create_order(
         self, kitchen: Kitchen, chef: Chef, data: OrderCreateRequest
     ) -> OrderWithLinesResponse:
+        # Food Bundles catalogue items only where Food Bundles operates (decision 9);
+        # everywhere else, lines are manual items ("manual").
+        if not kitchen.catalog_available and any(
+            line.catalog_product_id != MANUAL_PRODUCT_ID for line in data.lines
+        ):
+            raise CatalogNotAvailableError()
         order = Order(
             kitchen_id=kitchen.id,
             chef_id=chef.id,
@@ -41,18 +58,23 @@ class OrderService:
         )
         order = await self._repo.create(order)
 
-        lines = [
-            OrderLine(
+        lines = []
+        for line in data.lines:
+            row = OrderLine(
                 order_id=order.id,
                 catalog_product_id=line.catalog_product_id,
                 product_name=line.product_name,
                 unit=line.unit,
                 quantity_ordered=line.quantity_ordered,
-                unit_price=line.unit_price,
                 ingredient_id=line.ingredient_id,
             )
-            for line in data.lines
-        ]
+            set_price(
+                row,
+                "unit_price",
+                line.unit_price,
+                resolve_currency(kitchen, line.unit_price_currency),
+            )
+            lines.append(row)
         lines = await self._line_repo.create_many(lines)
 
         return OrderWithLinesResponse(
@@ -65,14 +87,10 @@ class OrderService:
             notes=order.notes,
             created_at=order.created_at,
             updated_at=order.updated_at,
-            lines=[
-                _line_to_schema(l) for l in lines
-            ],
+            lines=[_line_to_schema(line) for line in lines],
         )
 
-    async def submit_order(
-        self, kitchen: Kitchen, order_id: uuid.UUID
-    ) -> OrderSubmitResponse:
+    async def submit_order(self, kitchen: Kitchen, order_id: uuid.UUID) -> OrderSubmitResponse:
         order = await self._require_owned(kitchen, order_id)
         if order.status not in (OrderStatus.DRAFT, OrderStatus.SUBMITTED):
             raise ConflictError(f"Order cannot be submitted from status '{order.status}'.")
@@ -89,9 +107,7 @@ class OrderService:
             message="Order confirmed and ready for delivery.",
         )
 
-    async def confirm_order(
-        self, kitchen: Kitchen, order_id: uuid.UUID
-    ) -> OrderSubmitResponse:
+    async def confirm_order(self, kitchen: Kitchen, order_id: uuid.UUID) -> OrderSubmitResponse:
         order = await self._require_owned(kitchen, order_id)
         if order.status not in (OrderStatus.SUBMITTED, OrderStatus.CONFIRMED):
             raise ConflictError(f"Order cannot be confirmed from status '{order.status}'.")
@@ -104,14 +120,25 @@ class OrderService:
             message="Order confirmed.",
         )
 
-    async def cancel_order(
-        self, kitchen: Kitchen, order_id: uuid.UUID
-    ) -> OrderSubmitResponse:
+    async def cancel_order(self, kitchen: Kitchen, order_id: uuid.UUID) -> OrderSubmitResponse:
+        """Cancel an order that is not yet on its way.
+
+        Orders are created CONFIRMED, so confirmed orders must stay cancellable. Once the
+        order is OUT_FOR_DELIVERY the chef must contact Food Bundles support instead.
+
+        NOTE: today OUT_FOR_DELIVERY means "the chef started receiving" (set by
+        POST .../receiving/start), NOT a real dispatch by Food Bundles: there is no
+        dispatched_at / paid_at yet. Cancelling here also does not notify Food Bundles
+        about an order already sent by order_sync. Both are open items until the Food
+        Bundles status API exists (backend/README.md, section 4.5).
+        """
         order = await self._require_owned(kitchen, order_id)
-        if order.status not in (OrderStatus.DRAFT, OrderStatus.SUBMITTED):
+        if order.status == OrderStatus.OUT_FOR_DELIVERY:
+            raise OrderOnItsWayError()
+        if order.status not in (OrderStatus.DRAFT, OrderStatus.SUBMITTED, OrderStatus.CONFIRMED):
             raise ConflictError(
                 f"Order cannot be cancelled from status '{order.status}'. "
-                "Only draft or submitted orders may be cancelled."
+                "Only orders that are not yet on their way may be cancelled."
             )
         order.status = OrderStatus.CANCELLED
         order = await self._repo.update(order)
@@ -122,9 +149,7 @@ class OrderService:
             message="Order cancelled.",
         )
 
-    async def get_order(
-        self, kitchen: Kitchen, order_id: uuid.UUID
-    ) -> OrderWithLinesResponse:
+    async def get_order(self, kitchen: Kitchen, order_id: uuid.UUID) -> OrderWithLinesResponse:
         order = await self._repo.get_with_lines(order_id)
         if order is None:
             raise NotFoundError("Order not found.")
@@ -140,7 +165,7 @@ class OrderService:
             notes=order.notes,
             created_at=order.created_at,
             updated_at=order.updated_at,
-            lines=[_line_to_schema(l) for l in order.lines],
+            lines=[_line_to_schema(line) for line in order.lines],
         )
 
     async def _require_owned(self, kitchen: Kitchen, order_id: uuid.UUID) -> Order:
@@ -153,8 +178,7 @@ class OrderService:
         return order
 
 
-def _line_to_schema(line: OrderLine):
-    from app.modules.orders.schemas import OrderLineResponse
+def _line_to_schema(line: OrderLine) -> OrderLineResponse:
     return OrderLineResponse(
         id=line.id,
         order_id=line.order_id,
@@ -163,5 +187,7 @@ def _line_to_schema(line: OrderLine):
         unit=line.unit,
         quantity_ordered=line.quantity_ordered,
         unit_price=line.unit_price,
+        unit_price_currency=line.unit_price_currency,
+        unit_price_money=line.unit_price_money,
         ingredient_id=line.ingredient_id,
     )

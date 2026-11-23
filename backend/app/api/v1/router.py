@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.ai.ops_router import router as ai_ops_router
 from app.modules.ai.router import router as ai_router
 from app.modules.authentication.router import router as auth_router
 from app.modules.catalog.router import router as catalog_router
+from app.modules.exchange_rates.router import router as exchange_rates_router
 from app.modules.ingredients.router import router as ingredients_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.kitchens.router import router as kitchens_router
@@ -20,6 +22,7 @@ router = APIRouter(prefix="/v1")
 router.include_router(auth_router)
 router.include_router(catalog_router)
 router.include_router(kitchens_router)
+router.include_router(exchange_rates_router)
 router.include_router(ingredients_router)
 router.include_router(inventory_router)
 router.include_router(menus_router)
@@ -30,3 +33,4 @@ router.include_router(orders_router)
 router.include_router(receiving_router)
 router.include_router(sync_router)
 router.include_router(ai_router)
+router.include_router(ai_ops_router)

@@ -25,7 +25,9 @@
       "bad_output": "The AI answer could not be read — try again or enter details manually.",
       "auth": "Your session expired — sign in again.",
       "server": "Something went wrong — try again.",
-      "too_small": "The menu or document is too small in the photo — move closer."
+      "too_small": "The menu or document is too small in the photo — move closer.",
+      "refused": "I can't help with that. Try asking about your menu, stock, sales or deliveries.",
+      "interrupted": "Response interrupted. Tap Retry to ask again."
     },
     "consent": {
       "title": "AI help with photos and voice",
@@ -33,6 +35,79 @@
       "accept": "Continue",
       "decline": "Not now",
       "policy": "Privacy policy"
+    },
+    "photoKind": {
+      "title": "What is this photo?",
+      "body": "We couldn't tell automatically. Pick one to continue.",
+      "menu": "Menu",
+      "dish": "Dish",
+      "delivery_note": "Delivery note"
     }
+  },
+  "clarify": {
+    "currency_missing": {
+      "question": "Prices have no currency. Which is it?"
+    },
+    "currency_ambiguous": {
+      "question": "\"{{example}}\": which currency is it?"
+    },
+    "currency_mismatch": {
+      "question": "These prices are in {{currency}}. Your kitchen uses {{kitchen_currency}}."
+    },
+    "ambiguous_separator": {
+      "question": "Is \"{{example}}\" a whole number or a decimal?"
+    },
+    "k_suffix": {
+      "question": "Does \"{{example}}\" mean {{amount}}?"
+    },
+    "ambiguous_unit": {
+      "us_or_uk": "Is \"{{unit}}\" a US or a UK (imperial) measure?",
+      "pack_size": "How much is in one \"{{unit}}\"?"
+    },
+    "arithmetic_mismatch": {
+      "line_arithmetic": "Line {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, but it says {{printed}}.",
+      "subtotal_mismatch": "The lines add up to {{expected}}, but the subtotal says {{printed}}.",
+      "total_mismatch": "The lines, tax and fees add up to {{expected}}, but the total says {{printed}}.",
+      "words_mismatch": "The total in words reads {{expected}}, but the figures say {{printed}}."
+    },
+    "unreadable_value": {
+      "question": "I couldn't read the price of \"{{name}}\" ({{text}})."
+    },
+    "option": {
+      "kitchen_currency": "{{currency}} (your kitchen)",
+      "currency": "{{currency}}",
+      "other_currency": "Other currency…",
+      "amount": "{{amount}}",
+      "yes": "Yes",
+      "no": "No",
+      "convert": "Convert at 1 {{from}} = {{rate}} {{to}} ({{date}})",
+      "convert_disabled": "Convert to {{to}}",
+      "change_kitchen_currency": "Change the kitchen currency to {{currency}}",
+      "skip_prices": "Import without these prices",
+      "type_it": "Type it",
+      "skip": "Skip",
+      "keep_amount": "Keep {{amount}}",
+      "us": "US",
+      "uk": "UK (imperial)",
+      "pack_size": "Size of one pack",
+      "keep_unit": "Keep the unit as written",
+      "keep_printed": "Keep as printed",
+      "edit": "Edit the line",
+      "apply": "Apply"
+    },
+    "reason": {
+      "rate_unavailable": "No exchange rate from the last 3 days.",
+      "conversion_off": "Currency conversion is not available for this kitchen yet."
+    },
+    "remaining_one": "{{count}} question left",
+    "remaining_other": "{{count}} questions left",
+    "packSizePlaceholder": "e.g. 50 kg",
+    "packSizeInvalid": "Type a number and a unit, e.g. 50 kg.",
+    "applying": "Applying your answer…",
+    "pickCurrency": "Choose the currency",
+    "skipAll": "Skip the questions",
+    "skipAllHint": "Rows with an open question keep an empty price for you to type.",
+    "arithmeticFlag": "Some lines do not add up. Nothing was changed: check them before saving.",
+    "converted": "{{original}} at 1 {{from}} = {{rate}} {{to}} ({{date}})"
   }
 }

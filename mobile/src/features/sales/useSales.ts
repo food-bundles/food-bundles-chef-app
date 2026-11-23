@@ -4,7 +4,7 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { queryKeys } from '@/api/query-keys';
 import { getDailySalesSummary, recordSale } from '@/api/sales-api';
 import type { SaleRecordCreateBody } from '@/api/sales-api';
-import { localISODate } from '@/lib/format';
+import { useKitchenToday } from '@/features/kitchens/kitchen-today';
 
 export function useRecordSale() {
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
@@ -28,7 +28,7 @@ export function useRecordSale() {
 export function useTodaySales() {
   const chefId = useSessionStore((s) => s.chef?.id ?? '');
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
-  const day = localISODate();
+  const day = useKitchenToday();
   return useQuery({
     queryKey: queryKeys.sales.daily(chefId, kitchenId, day),
     queryFn: () => getDailySalesSummary(kitchenId, day),

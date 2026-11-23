@@ -17,14 +17,16 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # ── Redis (arq broker + cache) ──────────────────────────────────────────────
+  # ── Redis (arq broker, AI kill switch, rate limits) — REQUIRED ───────────────
+  # volatile-lru only evicts keys that have a TTL, so the AI kill switch
+  # (ai:killswitch:*, no TTL) is never evicted under memory pressure.
   redis:
     image: redis:7-alpine
     ports:
       - "${REDIS_EXTERNAL_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

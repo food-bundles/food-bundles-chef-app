@@ -1,3 +1,4 @@
+import type { MoneyDto, RateDto } from './money-dto';
 import { request, type WriteOptions } from './http-client';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ export interface MenuItemCreateBody {
   name: string;
   description?: string | null;
   selling_price: string;   // decimal string
+  /** ISO 4217; defaults to the kitchen currency. */
+  selling_price_currency?: string;
   category?: MenuItemCategory | null;
 }
 
@@ -38,6 +41,8 @@ export interface MenuItemUpdateBody {
   name?: string | null;
   description?: string | null;
   selling_price?: string | null;
+  /** ISO 4217; defaults to the kitchen currency. */
+  selling_price_currency?: string | null;
   is_active?: boolean | null;
   category?: MenuItemCategory | null;
 }
@@ -50,7 +55,10 @@ export interface MenuItemDto {
   description: string | null;
   /** Null for items created before categories existed. */
   category?: MenuItemCategory | null;
+  /** Deprecated (one release): use selling_price_money. */
   selling_price: string;
+  selling_price_currency: string | null;
+  selling_price_money: MoneyDto | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -90,8 +98,15 @@ export interface RecipeCostLine {
   ingredient_name: string;
   qty_per_portion: string;
   yield_fraction: string;
+  /** As entered, in `cost_per_unit_currency` (may differ from the kitchen's). */
   cost_per_unit: string | null;
-  /** Null when the ingredient has no cost or its unit cannot be converted. */
+  cost_per_unit_currency?: string | null;
+  /** In the kitchen's currency, converted at `rate` when the currencies differ. */
+  cost_per_unit_converted?: string | null;
+  rate?: RateDto | null;
+  /** The cost is in another currency and no recent rate exists: no number is guessed. */
+  rate_unavailable?: boolean;
+  /** Null when the ingredient has no cost, no rate, or its unit cannot be converted. */
   line_cost: string | null;
 }
 
@@ -99,6 +114,10 @@ export interface RecipeCostLine {
 export interface RecipeCostDto {
   menu_item_id: string;
   total_cost: string;
+  /** The kitchen's currency. */
+  currency?: string | null;
+  /** False when a cost in another currency had no rate (the total is partial). */
+  complete?: boolean;
   lines: RecipeCostLine[];
 }
 

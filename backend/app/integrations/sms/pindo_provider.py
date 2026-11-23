@@ -43,7 +43,7 @@ class PindoSmsProvider(SmsProvider):
             "sender": settings.SMS_SENDER_ID,
         }
         headers = {
-            "Authorization": f"Bearer {settings.SMS_API_KEY}",
+            "Authorization": f"Bearer {settings.SMS_API_KEY.get_secret_value()}",
             "Content-Type": "application/json",
         }
         try:

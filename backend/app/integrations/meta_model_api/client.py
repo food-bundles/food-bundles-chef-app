@@ -50,7 +50,7 @@ class MetaModelAPIClient:
 
     def __init__(self) -> None:
         self._base_url = settings.META_MODEL_API_BASE_URL.rstrip("/")
-        self._api_key = settings.MODEL_API_KEY
+        self._api_key = settings.MODEL_API_KEY.get_secret_value()
         self._timeout = settings.AI_DEFAULT_TIMEOUT_SECONDS
         self._max_retries = settings.AI_MAX_RETRIES
 

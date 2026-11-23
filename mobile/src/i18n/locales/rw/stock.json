@@ -114,13 +114,16 @@
     "deleteConfirmTitle": "Gusiba ikiribwa?",
     "deleteConfirmMessage": "{{name}} izakurwa ku rutonde rw'ibikoresho byawe.",
     "editDetails": "Hindura ibisobanuro",
-    "costPerUnitLabel": "Ikiguzi kuri {{unit}} (RWF)",
+    "costPerUnitLabel": "Ikiguzi kuri {{unit}}",
     "costHint": "Gikoreshwa mu kubara ikiguzi cy'ibiribwa n'ibiciro bisabwa.",
     "yieldLabel": "Igice gikoreshwa (%)",
     "yieldHint": "Igice gisigara nyuma yo gutonora cyangwa gusukura, urugero 80 = 80%. Andika 100 niba nta gipfa ubusa.",
     "adjustQtyLabel": "Ingano yo kongeramo cyangwa gukuramo",
     "noteLabel": "Icyitonderwa",
     "noCost": "Nta kiguzi cyashyizweho",
-    "levelAfter": "Bizaba: {{qty}} {{unit}}"
+    "levelAfter": "Bizaba: {{qty}} {{unit}}",
+    "costCurrencyLabel": "Ifaranga ry'ikiguzi",
+    "costCurrencyHint": "Gumana ifaranga umucuruzi wawe akoresha. Ikiguzi cy'ibiryo kirihindura ku gipimo cy'uwo munsi.",
+    "costCurrencyOff": "Guhindura amafaranga ntibirashoboka kuri iki gikoni, bityo iki giciro ntikibarwa mu giciro cy'ibiryo."
   }
 }

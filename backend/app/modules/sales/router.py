@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
+from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.service import KitchenService
 from app.modules.sales.schemas import (
     DailySaleRecordRequest,
@@ -17,6 +18,8 @@ from app.modules.sales.schemas import (
     WeeklySalesSummary,
 )
 from app.modules.sales.service import SalesService
+from app.shared.money import Money
+from app.shared.schemas.money import MoneyOut
 
 router = APIRouter(prefix="/kitchens/{kitchen_id}/sales", tags=["sales"])
 
@@ -25,7 +28,7 @@ async def _get_kitchen(
     kitchen_id: uuid.UUID,
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
-):
+) -> Kitchen:
     svc = KitchenService(db)
     return await svc.get_kitchen(current_chef, kitchen_id)
 
@@ -33,7 +36,7 @@ async def _get_kitchen(
 @router.post("", response_model=DailySaleRecordResponse, status_code=201)
 async def record_sale(
     body: DailySaleRecordRequest,
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     current_chef: Chef = Depends(get_current_chef),
     db: AsyncSession = Depends(get_db),
 ) -> DailySaleRecordResponse:
@@ -45,19 +48,27 @@ async def record_sale(
 @router.get("/daily-summary", response_model=DailySalesSummary)
 async def daily_summary(
     day: date = Query(..., alias="date", description="Kitchen-local calendar day, YYYY-MM-DD"),
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     db: AsyncSession = Depends(get_db),
 ) -> DailySalesSummary:
-    """Portions and revenue (RWF, at current menu prices) recorded for one day."""
+    """Portions and revenue per currency (prices recorded with each sale) for one day."""
     svc = SalesService(db)
-    portions, revenue = await svc.daily_revenue(kitchen, day)
-    return DailySalesSummary(day=day, portions=portions, revenue=revenue)
+    portions, subtotals = await svc.daily_revenue(kitchen, day)
+    own = next((m for m in subtotals if m.currency == kitchen.currency), None)
+    return DailySalesSummary(
+        day=day,
+        portions=portions,
+        revenue=own.amount if own else Money(0, kitchen.currency).amount,
+        currency=kitchen.currency,
+        revenue_by_currency=[MoneyOut(**m.to_api()) for m in subtotals],
+        mixed_currencies=len(subtotals) > 1,
+    )
 
 
 @router.get("/{menu_item_id}/weekly", response_model=WeeklySalesSummary)
 async def weekly_summary(
     menu_item_id: uuid.UUID,
-    kitchen=Depends(_get_kitchen),
+    kitchen: Kitchen = Depends(_get_kitchen),
     weeks: int = Query(4, ge=1, le=12),
     db: AsyncSession = Depends(get_db),
 ) -> WeeklySalesSummary:

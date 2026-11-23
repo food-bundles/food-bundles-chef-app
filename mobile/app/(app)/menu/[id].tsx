@@ -20,8 +20,11 @@ import {
 import { useStockLevels } from '@/features/inventory/useStockLevels';
 import { useIngredients } from '@/features/ingredients/useIngredients';
 import { AddToRecipeSheet } from '@/features/menu/AddToRecipeSheet';
-import { formatQuantity, formatRWF } from '@/lib/format';
+import { formatDate, formatQuantity } from '@/lib/format';
+import { formatMoney, formatUnitCost } from '@/lib/money';
+import { formatRate } from '@/features/kitchens/currency-change';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useKitchenStore } from '@/store/kitchen-store';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
 import type { RecipeLineDto } from '@/api/menus-api';
 
@@ -30,6 +33,7 @@ const TARGET_MARGIN = 0.4;
 
 export default function MenuItemDetailScreen() {
   const { t, i18n } = useTranslation();
+  const conversionEnabled = useKitchenStore((s) => s.activeKitchen?.conversionEnabled ?? false);
   const tk = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -92,8 +96,12 @@ export default function MenuItemDetailScreen() {
   }
 
   const price = parseFloat(item.selling_price);
+  // Food cost is in the kitchen's currency (converted server-side where needed).
+  const costCurrency = cost?.currency ?? item.selling_price_currency ?? '';
   const hasCost = Boolean(cost?.lines.some((l) => l.line_cost != null));
-  const totalCost = hasCost && cost ? parseFloat(cost.total_cost) : null;
+  // A partial total (a cost in another currency had no rate) would overstate the margin and
+  // mislead the food-cost coach, so it is not shown; the "incomplete" notice explains why.
+  const totalCost = hasCost && cost && cost.complete !== false ? parseFloat(cost.total_cost) : null;
   const margin = totalCost != null && price > 0 ? ((price - totalCost) / price) * 100 : null;
   const topCostLine = cost?.lines
     .filter((l) => l.line_cost != null)
@@ -146,7 +154,7 @@ export default function MenuItemDetailScreen() {
         <View style={[card, { padding: spacing.md, gap: spacing.sm }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: tk.text, fontSize: fontSize['2xl'], fontWeight: '800' }}>
-              {formatRWF(price, i18n.language)}
+              {formatMoney(price, item.selling_price_currency ?? costCurrency, i18n.language)}
             </Text>
             <StatusBadge
               label={item.is_active ? t('menuItem.active') : t('menuItem.inactive')}
@@ -158,7 +166,7 @@ export default function MenuItemDetailScreen() {
             <View style={{ flexDirection: 'row', gap: spacing.lg, marginTop: 4 }}>
               <View>
                 <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('menuItem.foodCost')}</Text>
-                <Text style={{ color: tk.text, fontSize: fontSize.sm, fontWeight: '600' }}>{formatRWF(totalCost, i18n.language)}</Text>
+                <Text style={{ color: tk.text, fontSize: fontSize.sm, fontWeight: '600' }}>{formatMoney(totalCost, costCurrency, i18n.language)}</Text>
               </View>
               {margin != null && (
                 <View>
@@ -168,6 +176,11 @@ export default function MenuItemDetailScreen() {
               )}
             </View>
           )}
+          {cost?.complete === false ? (
+            <Text style={{ color: tk.danger, fontSize: fontSize.xs }} accessibilityRole="alert">
+              {t('menuItem.costIncomplete')}
+            </Text>
+          ) : null}
           <View style={{ borderTopWidth: 1, borderTopColor: tk.border, marginTop: 4, marginHorizontal: -spacing.md }}>
             <ListRow
               icon={<Utensils size={18} color={item.is_active ? tk.link : tk.textMuted} strokeWidth={2} />}
@@ -202,7 +215,7 @@ export default function MenuItemDetailScreen() {
             </View>
             <Text style={{ color: tk.text, fontSize: fontSize.xs, lineHeight: 18 }}>
               {targetPrice
-                ? t('menuItem.raisePriceTo', { price: formatRWF(targetPrice, i18n.language), margin: TARGET_MARGIN * 100 })
+                ? t('menuItem.raisePriceTo', { price: formatMoney(targetPrice, costCurrency, i18n.language), margin: TARGET_MARGIN * 100 })
                 : t('menuItem.raisePrice')}
               {topCostLine ? ` ${t('menuItem.orReducePortion', { name: topCostLine.ingredient_name })}` : ''}
             </Text>
@@ -212,7 +225,7 @@ export default function MenuItemDetailScreen() {
                 <Text style={{ color: tk.text, fontSize: fontSize.xs }}>
                   {t('menuItem.highestCostIngredient', {
                     name: topCostLine.ingredient_name,
-                    cost: formatRWF(topCostLine.line_cost, i18n.language),
+                    cost: formatMoney(topCostLine.line_cost, costCurrency, i18n.language),
                   })}
                 </Text>
               </View>
@@ -271,8 +284,23 @@ export default function MenuItemDetailScreen() {
                     </View>
                     <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
                       {t('menuItem.perPortion', { qty: formatQuantity(line.qty_per_portion, i18n.language), unit: line.unit })}
-                      {costLine?.line_cost ? ` · ${formatRWF(costLine.line_cost, i18n.language)}` : ''}
+                      {costLine?.line_cost ? ` · ${formatMoney(costLine.line_cost, costCurrency, i18n.language)}` : ''}
                     </Text>
+                    {costLine?.rate_unavailable && costLine.cost_per_unit_currency ? (
+                      <Text style={{ color: tk.danger, fontSize: fontSize.xs, marginTop: 2 }}>
+                        {conversionEnabled
+                          ? t('menuItem.lineRateUnavailable', { currency: costLine.cost_per_unit_currency })
+                          : t('menuItem.lineConversionOff', { currency: costLine.cost_per_unit_currency })}
+                      </Text>
+                    ) : costLine?.rate && costLine.cost_per_unit && costLine.cost_per_unit_currency ? (
+                      <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
+                        {t('menuItem.lineConverted', {
+                          original: formatUnitCost(costLine.cost_per_unit, costLine.cost_per_unit_currency, i18n.language),
+                          rate: formatRate(costLine.rate, i18n.language),
+                          date: formatDate(costLine.rate.rate_date, i18n.language),
+                        })}
+                      </Text>
+                    ) : null}
                   </View>
                   <AppPressable
                     onPress={() => handleDeleteLine(line, name)}

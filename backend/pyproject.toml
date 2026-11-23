@@ -35,6 +35,12 @@ dependencies = [
     # HTTP client
     "httpx==0.28.0",
 
+    # Anthropic (Claude) SDK — primary AI provider (Phase 8). 2.x sends API version 2026-10-21.
+    "anthropic==2.10.0",
+    # IANA time zones + ISO 3166 country list (kitchen clocks, country validation);
+    # required on Windows and slim containers that have no system tz database.
+    "tzdata==2026.6",
+
     # Structured logging
     "structlog==24.4.0",
 
@@ -77,6 +83,13 @@ src = ["app", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "ANN", "S", "B", "A", "C4", "PT", "RUF"]
 ignore = ["ANN101", "ANN102", "ANN401", "S101", "S105"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares dependencies and form fields as argument defaults by design.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.File", "fastapi.Form", "fastapi.Header",
+    "fastapi.Query", "fastapi.Path", "fastapi.Body",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S"]

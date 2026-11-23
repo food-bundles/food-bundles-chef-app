@@ -1,5 +1,6 @@
 {
   "description": "Deterministic kitchen the chat tasks are written against. The runner creates it fresh for each run with --seed.",
+  "kitchen": { "currency": "RWF", "timezone": "Africa/Kigali", "country": "RW", "location": "Kigali" },
   "ingredients": [
     { "name": "Potato", "unit": "kg", "cost_per_unit": "600", "stock": "500" },
     { "name": "Cooking oil", "unit": "l", "cost_per_unit": "2500", "stock": "12" },

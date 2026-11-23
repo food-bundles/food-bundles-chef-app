@@ -3,13 +3,17 @@
 The agent plans actions but never executes them. Mobile confirms each
 action proposal before calling the corresponding API endpoint.
 """
+
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.modules.ai.clarifications import ClarifyOption, ScanAnswers
 
 
 class AgentRole(StrEnum):
@@ -24,6 +28,7 @@ class AgentMessage(BaseModel):
 
 
 # ── Action types the agent may propose ────────────────────────────────────────
+
 
 class ActionType(StrEnum):
     RECORD_SALE = "record_sale"
@@ -41,6 +46,7 @@ class ActionType(StrEnum):
 
 # ── Per-action parameter shapes ────────────────────────────────────────────────
 
+
 class RecordSaleParams(BaseModel):
     menu_item_id: str
     menu_item_name: str
@@ -55,6 +61,9 @@ class RecordInventoryParams(BaseModel):
     unit: str = ""
     change: Literal["set", "add", "remove"]
     notes: str | None = None
+    # Set by the server when it converted the chef's unit ("3 lb" → 1.361 kg).
+    original_quantity: str | None = None
+    original_unit: str | None = None
 
 
 class CreateIngredientParams(BaseModel):
@@ -64,8 +73,23 @@ class CreateIngredientParams(BaseModel):
 
 class AddMenuItemParams(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    selling_price: Decimal = Field(..., ge=0)
+    # agent/v3: the model sends the price AS SAID ("5 dollars", "2.5k"); the server reads it
+    # and sets `selling_price` in the kitchen's currency before any action card is shown.
+    selling_price: Decimal | None = Field(default=None, ge=0)
+    selling_price_text: str | None = Field(default=None, max_length=60)
     category: Literal["main", "side", "drink", "dessert"] | None = None
+    # Set by the server only (agent_checks), never taken from the model.
+    selling_price_currency: str | None = None
+    original_price: str | None = None
+    original_currency: str | None = None
+    rate: str | None = None
+    rate_date: str | None = None
+
+    @model_validator(mode="after")
+    def _has_price(self) -> AddMenuItemParams:
+        if self.selling_price is None and not self.selling_price_text:
+            raise ValueError("add_menu_item needs selling_price_text (or selling_price)")
+        return self
 
 
 class LinkRecipeIngredientParams(BaseModel):
@@ -75,6 +99,8 @@ class LinkRecipeIngredientParams(BaseModel):
     ingredient_name: str = ""
     qty_per_portion: Decimal = Field(..., gt=0)
     unit: str = Field(..., min_length=1, max_length=30)
+    original_quantity: str | None = None
+    original_unit: str | None = None
 
 
 class OrderLineParams(BaseModel):
@@ -117,12 +143,14 @@ class UndoParams(BaseModel):
 
 # ── Action proposal — what agent returns when it has enough info ───────────────
 
+
 class ActionProposal(BaseModel):
     """A planned action awaiting chef confirmation.
 
     Mobile shows this as a confirmation card. On approval the mobile
     calls the real API endpoint — the agent never writes to the DB.
     """
+
     action_type: ActionType
     summary: str  # e.g. "Record sale of 12 portions Jollof Rice"
     params: dict[str, Any]  # serialised from the specific Params model
@@ -131,12 +159,32 @@ class ActionProposal(BaseModel):
 
 # ── Clarifying question — what agent returns when it needs more info ───────────
 
+
 class ClarifyingQuestion(BaseModel):
     question: str
     options: list[str] | None = None  # optional multiple-choice suggestions
+    # agent/v3: a question the SERVER asks (price or unit unclear). The app shows it from
+    # i18n keys with tappable `choices`; the answer is sent back with `draft` in
+    # AgentRequest.resolve and finishes the proposal without another model call.
+    kind: str | None = None
+    key: str | None = None
+    question_key: str | None = None
+    params: dict[str, str] | None = None
+    choices: list[ClarifyOption] | None = None
+    preselected: str | None = None
+    draft: ActionProposal | None = None
+    answers: ScanAnswers | None = None
+
+
+class AgentResolve(BaseModel):
+    """Finish a draft proposal with the chef's answer to a server question (no model call)."""
+
+    draft: ActionProposal
+    answers: ScanAnswers
 
 
 # ── Top-level request / response ───────────────────────────────────────────────
+
 
 class AgentRequest(BaseModel):
     messages: list[AgentMessage] = Field(..., min_length=1)
@@ -144,6 +192,8 @@ class AgentRequest(BaseModel):
     last_confirmed_action: ActionProposal | None = None
     # Reply language selected in the app
     language: Literal["en", "fr", "rw"] = "en"
+    # Set when the chef answered a server question about a draft proposal.
+    resolve: AgentResolve | None = None
 
 
 # Params schema each action must satisfy before it reaches the chef as an action card.
@@ -172,6 +222,19 @@ class ModelAgentTurn(BaseModel):
     question: str | None = Field(default=None, max_length=500)
     options: list[str] | None = Field(default=None, max_length=6)
 
+    @field_validator("params", mode="before")
+    @classmethod
+    def _decode_params(cls, value: Any) -> Any:
+        """Anthropic sends params as a JSON-encoded string (see ModelAgentTurnWire)."""
+        if isinstance(value, str):
+            if not value.strip():
+                return None
+            decoded = json.loads(value)
+            if not isinstance(decoded, dict):
+                raise ValueError("params must be a JSON object")
+            return decoded
+        return value
+
     @model_validator(mode="after")
     def _check_shape(self) -> ModelAgentTurn:
         if self.type == "proposal":
@@ -187,13 +250,39 @@ class ModelAgentTurn(BaseModel):
         return self
 
 
+class ModelAgentTurnWire(BaseModel):
+    """JSON schema sent to providers with structured outputs (Anthropic).
+
+    Same fields as ModelAgentTurn, except `params` travels as a JSON-encoded string.
+    Under structured outputs a free-form dict only allows `{}`, and a union of the
+    eight typed action shapes is rejected by the API ("compiled grammar is too large",
+    verified live 2026-11-18). ModelAgentTurn decodes the string and validates it
+    against the typed params model of the chosen action, exactly as for Meta.
+    """
+
+    type: Literal["proposal", "clarification", "answer"]
+    reply_text: str
+    action_type: ActionType | None = None
+    summary: str | None = None
+    params: str | None = Field(
+        default=None,
+        description=(
+            "Only for a proposal: the params object of the chosen action_type, "
+            "serialised as a JSON string. null otherwise."
+        ),
+    )
+    question: str | None = None
+    options: list[str] | None = None
+
+
 class AgentResponse(BaseModel):
     """Either a clarifying question or an action proposal, never both."""
+
     proposal: ActionProposal | None = None
     clarification: ClarifyingQuestion | None = None
     # Reply text shown in the chat regardless of which branch
     reply_text: str
     # Echo last action for undo chaining
     last_action: ActionProposal | None = None
-    # Kigali time (HH:MM) the kitchen data behind this reply was read
+    # Kitchen-local time (HH:MM) the kitchen data behind this reply was read
     as_of: str | None = None

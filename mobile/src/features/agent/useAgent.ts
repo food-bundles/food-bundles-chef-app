@@ -3,6 +3,7 @@ import { useSessionStore } from '@/store/session-store';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { queryKeys } from '@/api/query-keys';
 import { agentTurn } from '@/api/agent-api';
+import { StreamUnsupportedError, streamAgentTurn } from '@/api/agent-stream';
 import { executeAction } from './executeAction';
 import type { AgentRequest, ActionProposal } from '@/api/agent-api';
 
@@ -12,13 +13,40 @@ function useAgentContext() {
   return { chefId, kitchenId: activeKitchen?.id ?? '' };
 }
 
-/** Send one conversation turn to the assistant (cancellable via `signal`). */
+export interface AgentTurnInput {
+  body: AgentRequest;
+  signal?: AbortSignal;
+  requestId: string;
+  language: string;
+  /** Streamed reply text so far (Step 1b). */
+  onText?: (textSoFar: string) => void;
+}
+
+/**
+ * Send one conversation turn to the assistant (cancellable via `signal`). The reply streams
+ * (Step 1b); a server without the streaming endpoint is answered by POST /agent instead.
+ */
 export function useAgentTurn() {
   const { kitchenId } = useAgentContext();
 
   return useMutation({
-    mutationFn: ({ body, signal, requestId }: { body: AgentRequest; signal?: AbortSignal; requestId?: string }) =>
-      agentTurn(kitchenId, body, signal, requestId),
+    mutationFn: async ({ body, signal, requestId, language, onText }: AgentTurnInput) => {
+      let soFar = '';
+      try {
+        return await streamAgentTurn(kitchenId, body, {
+          signal,
+          requestId,
+          language,
+          onDelta: (text) => {
+            soFar += text;
+            onText?.(soFar);
+          },
+        });
+      } catch (err) {
+        if (err instanceof StreamUnsupportedError) return agentTurn(kitchenId, body, signal, requestId);
+        throw err;
+      }
+    },
   });
 }
 

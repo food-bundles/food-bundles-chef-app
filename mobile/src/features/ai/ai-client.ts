@@ -19,6 +19,9 @@ export type AiErrorCode =
   | 'blurry'
   | 'too_small'
   | 'bad_output'
+  | 'refused'
+  /** Step 1b: the streamed reply broke after text was shown (offer Retry). */
+  | 'interrupted'
   | 'auth'
   | 'server';
 
@@ -66,6 +69,8 @@ function statusToCode(status: number, body: unknown): AiErrorCode {
   if (status === 503 || errorCode === 'AI_DISABLED') return 'unavailable';
   if (status === 504) return 'timeout';
   if (status === 422 && errorCode === 'AI_BAD_OUTPUT') return 'bad_output';
+  // The model declined; the server never retries a refusal on another provider.
+  if (status === 422 && errorCode === 'AI_REFUSED') return 'refused';
   return 'server';
 }
 

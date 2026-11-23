@@ -48,6 +48,57 @@
     "addKitchenLabel": "Ajouter une cuisine",
     "addLocationFor": "Ajouter un lieu pour {{name}}",
     "editKitchenLabel": "Modifier {{name}}",
-    "editArchivedLabel": "Modifier la cuisine archivée {{name}}"
+    "editArchivedLabel": "Modifier la cuisine archivée {{name}}",
+    "regionHeading": "Région et monnaie",
+    "countryLabel": "Pays",
+    "currencyLabel": "Devise",
+    "timezoneLabel": "Fuseau horaire",
+    "choose": "Choisir…",
+    "currencyLockedHint": "Les prix dépendent de la devise. Utilisez « Changer de devise » ci-dessous pour les convertir ou les renommer.",
+    "errors": {
+      "country": "Choisissez le pays de la cuisine.",
+      "currency": "Choisissez la devise de vos prix.",
+      "timezone": "Choisissez le fuseau horaire de la cuisine."
+    }
+  },
+  "currencyChange": {
+    "title": "Changer de devise",
+    "entryTitle": "Changer de devise",
+    "entrySubtitle": "Actuellement {{currency}} · convertir ou renommer vos prix",
+    "entryHint": "Ouvre un aperçu avant toute modification",
+    "currentLabel": "Devise actuelle",
+    "newLabel": "Nouvelle devise",
+    "newHint": "Choisissez la devise de votre cuisine",
+    "modeHeading": "Comment les prix doivent-ils changer ?",
+    "mode": {
+      "convert": "Convertir mes prix",
+      "relabel": "Changer l'étiquette seulement"
+    },
+    "modeHelp": {
+      "convert": "Chaque prix du menu et coût d'ingrédient est converti à un seul taux de change, indiqué ci-dessous avec sa date.",
+      "relabel": "À utiliser si vos prix ont été saisis dans la mauvaise devise. Les montants restent les mêmes ; seule la devise change."
+    },
+    "loading": "Chargement de l'aperçu",
+    "previewError": "Impossible de charger l'aperçu. Vérifiez votre connexion et réessayez.",
+    "rateOf": "Taux du {{date}}",
+    "crossRate": "calculé via l'USD",
+    "rateUnavailable": "Taux indisponible : aucun taux de change des 3 derniers jours. Réessayez plus tard, ou changez seulement l'étiquette.",
+    "relabelPrecision": "Certains prix ont plus de décimales que {{currency}} n'en permet. Corrigez-les d'abord, ou convertissez.",
+    "historyTitle": "Cette cuisine a déjà des enregistrements",
+    "historyBody": "{{sales}} ventes, {{orders}} commandes, {{stock}} mouvements de stock et {{deliveries}} livraisons gardent leur devise d'origine. Les rapports qui mélangent anciens et nouveaux enregistrements afficheront les deux devises.",
+    "pricesHeading": "Prix modifiés ({{count}})",
+    "noPrices": "Aucun prix à modifier pour l'instant.",
+    "unitCost": "coût unitaire",
+    "beforeAfter": "{{before}} → {{after}}",
+    "needsRounding": "arrondi nécessaire",
+    "noRate": "pas de taux",
+    "priceStepReset": "Votre pas d'arrondi des prix revient à la valeur par défaut de la nouvelle devise.",
+    "pastRecords": "Les ventes, commandes, livraisons et mouvements de stock passés ne sont pas modifiés.",
+    "typeToConfirm": "Tapez {{code}} pour confirmer",
+    "applyConvert": "Convertir les prix",
+    "applyRelabel": "Changer la devise",
+    "rateChanged": "Le taux de change a changé. Vérifiez le nouvel aperçu et confirmez à nouveau.",
+    "applyError": "Impossible de changer la devise. Rien n'a été modifié.",
+    "convertOff": "La conversion des prix n'est pas encore disponible pour les cuisines de votre pays. Vous pouvez toujours changer l'étiquette, ou garder vos prix dans votre devise."
   }
 }

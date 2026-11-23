@@ -34,14 +34,18 @@ import {
   ClarificationRow,
   MessageBubble,
   NoticeRow,
+  PickRow,
   RouteCard,
   TypingIndicator,
 } from '@/features/agent/ChatRows';
 import { ComposerNotice, VoiceBar } from '@/features/agent/VoiceBar';
 import type { ChatEntry } from '@/features/agent/chat-types';
+import { applyAnswer, NO_ANSWERS } from '@/features/ai/clarify';
 import { useMenuItems } from '@/features/menu/useMenuItems';
 import { AI_TIMEOUTS, AiError, newRequestId } from '@/features/ai/ai-client';
 import { classifyImage, sendAiFeedback, useAiFeatures } from '@/features/ai/api';
+import type { PickableKind } from '@/features/ai/PhotoKindPicker';
+import { ORDER_ON_ITS_WAY } from '@/features/orders/order-cancel';
 import { ImageTooLargeError, prepareImageForAi, type PreparedImage } from '@/features/ai/image-prep';
 import { getSpokenReplies } from '@/features/ai/consent';
 import { speakReply, stopSpeaking } from '@/features/ai/speak';
@@ -56,6 +60,7 @@ import type { ActionProposal, AgentRequest, AgentResponse } from '@/api/agent-ap
 type ProposalEntry = Extract<ChatEntry, { type: 'proposal' }>;
 type NoticeEntry = Extract<ChatEntry, { type: 'notice' }>;
 type RouteEntry = Extract<ChatEntry, { type: 'route' }>;
+type PickEntry = Extract<ChatEntry, { type: 'pick' }>;
 
 /** "Still working…" after this long. */
 const SLOW_AFTER_MS = 10_000;
@@ -103,6 +108,7 @@ function turnErrorKey(err: unknown, timedOut: boolean): string {
     if (err.status === 504) return 'ai.errors.timeout';
     if (err.status === 413) return 'ai.errors.too_large';
     if (err.errorCode === 'AI_BAD_OUTPUT') return 'ai.errors.bad_output';
+    if (err.errorCode === 'AI_REFUSED') return 'ai.errors.refused';
   }
   return 'ai.errors.server';
 }
@@ -110,6 +116,7 @@ function turnErrorKey(err: unknown, timedOut: boolean): string {
 /** i18n key for a failed confirmation — the write is safe to retry with the same key. */
 function confirmErrorKey(err: unknown): string {
   if (err instanceof ApiError) {
+    if (err.errorCode === ORDER_ON_ITS_WAY) return 'orders.onItsWay';
     if (err.kind === 'transport') return 'agent.card.failedOffline';
     if (err.kind === 'conflict') return 'agent.card.failedConflict';
     if (err.kind === 'validation') return 'agent.card.failedInvalid';
@@ -122,6 +129,8 @@ function confirmErrorKey(err: unknown): string {
 function cachedImage(uri: string): PreparedImage {
   return { uri, width: 0, height: 0, bytes: 0, mimeType: 'image/jpeg' };
 }
+
+type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
 
 export default function AgentScreen() {
   const { t, i18n } = useTranslation();
@@ -145,7 +154,7 @@ export default function AgentScreen() {
   const [attachment, setAttachment] = useState<PreparedImage | null>(null);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [pending, setPending] = useState<{ slow: boolean } | null>(null);
+  const [pending, setPending] = useState<{ slow: boolean; text?: string } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [snack, setSnack] = useState<{ message: string; onUndo?: () => void } | null>(null);
@@ -245,14 +254,20 @@ export default function AgentScreen() {
     }
   };
 
-  const askAgent = async (text: string, imageUri: string | null, prior: ChatEntry[], chefEntryId: string) => {
+  const askAgent = async (
+    text: string,
+    imageUri: string | null,
+    prior: ChatEntry[],
+    chefEntryId: string,
+    resolve?: AgentRequest['resolve'],
+  ) => {
     if (!kitchenId) return;
     const controller = new AbortController();
     abortRef.current = controller;
     stopReasonRef.current = null;
     const requestKitchen = kitchenId;
     setPending({ slow: false });
-    const slowTimer = setTimeout(() => setPending((p) => (p ? { slow: true } : p)), SLOW_AFTER_MS);
+    const slowTimer = setTimeout(() => setPending((p) => (p ? { ...p, slow: true } : p)), SLOW_AFTER_MS);
     const timeoutTimer = setTimeout(() => {
       stopReasonRef.current = 'timeout';
       controller.abort();
@@ -267,9 +282,18 @@ export default function AgentScreen() {
         }),
         last_confirmed_action: lastActionRef.current,
         language,
+        resolve: resolve ?? null,
       };
       const requestId = newRequestId();
-      const res = await agentTurn.mutateAsync({ body, signal: controller.signal, requestId });
+      const res = await agentTurn.mutateAsync({
+        body,
+        signal: controller.signal,
+        requestId,
+        language,
+        onText: (textSoFar) => {
+          if (kitchenRef.current === requestKitchen) setPending((p) => (p ? { ...p, text: textSoFar } : p));
+        },
+      });
       if (controller.signal.aborted || kitchenRef.current !== requestKitchen) return;
       append(entryFromResponse(res, requestId));
       AccessibilityInfo.announceForAccessibility(res.reply_text);
@@ -301,7 +325,12 @@ export default function AgentScreen() {
         onUploaded: () => undefined,
       });
       if (kitchenRef.current !== requestKitchen) return;
-      if (result.image_quality !== 'ok') {
+      if (result.status === 'classify_unavailable' || result.kind === null) {
+        // Ask the chef instead of waiting for a slower model.
+        append({ type: 'pick', id: newRequestId(), imageUri: image.uri });
+        return;
+      }
+      if (result.image_quality !== null && result.image_quality !== 'ok') {
         pushNotice(`ai.errors.${result.image_quality}`, 'error');
         return;
       }
@@ -338,6 +367,17 @@ export default function AgentScreen() {
     ]);
     if (image && features.image_classify) await classifyAndRoute(image, text, prior, chefEntry.id);
     else await askAgent(text, image?.uri ?? null, prior, chefEntry.id);
+  };
+
+  /** The chef answered a server question (price or unit): finish the draft, no model call. */
+  const answerServerQuestion = async (entry: ClarificationEntry, key: string, value: string, label: string) => {
+    const draft = entry.question.draft;
+    if (busy || !kitchenId || !available || !draft) return;
+    const prior = entries;
+    const chefEntry: ChatEntry = { type: 'message', id: newRequestId(), role: 'chef', content: label };
+    setEntries((prev) => [...prev.map((e) => (e.id === entry.id ? { ...e, answered: true } : e)), chefEntry]);
+    const answers = applyAnswer(entry.question.answers ?? NO_ANSWERS, key, value);
+    await askAgent(label, null, prior, chefEntry.id, { draft, answers });
   };
 
   const stop = () => {
@@ -398,6 +438,12 @@ export default function AgentScreen() {
     if (row.kind === 'receipt' || row.kind === 'delivery_note') {
       router.push({ pathname: '/(app)/receiving/quick', params: { photoUri: row.imageUri } });
     }
+  };
+
+  /** The chef said what the photo is: remember the answer and open the matching flow. */
+  const onPickKind = (row: PickEntry, kind: PickableKind) => {
+    setEntries((prev) => prev.map((e) => (e.id === row.id && e.type === 'pick' ? { ...e, chosen: kind } : e)));
+    openRoute({ type: 'route', id: row.id, kind, imageUri: row.imageUri });
   };
 
   // ── Attachments ─────────────────────────────────────────────────────────────
@@ -482,11 +528,21 @@ export default function AgentScreen() {
           </View>
         );
       case 'clarification':
-        return <ClarificationRow entry={item} disabled={busy || !available} onSelect={(option) => void send(option)} />;
+        return (
+          <ClarificationRow
+            entry={item}
+            disabled={busy || !available}
+            onSelect={(option) => void send(option)}
+            onAnswer={(key, value, label) => void answerServerQuestion(item, key, value, label)}
+            onAction={() => kitchenId && router.push({ pathname: '/(app)/kitchens/change-currency', params: { kitchenId } })}
+          />
+        );
       case 'notice':
         return <NoticeRow entry={item} onRetry={item.retryOf && !busy && available ? () => retry(item) : undefined} />;
       case 'route':
         return <RouteCard entry={item} onOpen={openRoute} />;
+      case 'pick':
+        return <PickRow entry={item} onPick={onPickKind} />;
     }
   };
 
@@ -535,7 +591,7 @@ export default function AgentScreen() {
             ))}
           </View>
         )}
-        {busy && <TypingIndicator slow={pending?.slow ?? false} />}
+        {busy && <TypingIndicator slow={pending?.slow ?? false} text={pending?.text} />}
       </ScrollView>
     );
   } else {
@@ -546,7 +602,7 @@ export default function AgentScreen() {
         keyExtractor={(e) => e.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={busy ? <TypingIndicator slow={pending?.slow ?? false} /> : undefined}
+        ListHeaderComponent={busy ? <TypingIndicator slow={pending?.slow ?? false} text={pending?.text} /> : undefined}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       />

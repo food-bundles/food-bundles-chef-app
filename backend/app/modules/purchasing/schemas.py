@@ -21,8 +21,11 @@ class PurchaseSuggestion(BaseModel):
     # Order calculation
     suggested_qty: Decimal
     selling_unit_size: Decimal
-    # Cost estimate (None if cost_per_unit not set)
+    # Cost estimate in the kitchen's currency (None if no cost, or no rate for a cost
+    # entered in another currency: then rate_unavailable is true)
     estimated_cost: Decimal | None
+    estimated_cost_currency: str | None = None
+    rate_unavailable: bool = False
 
 
 class PurchaseSuggestionsResponse(BaseModel):

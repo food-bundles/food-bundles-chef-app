@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.exchange_rates.schemas import RateOut
+
 
 class RecipeLineCreateRequest(BaseModel):
     ingredient_id: uuid.UUID
@@ -37,7 +39,11 @@ class RecipeCostResponse(BaseModel):
     """Calculated cost breakdown for one portion of a menu item."""
 
     menu_item_id: uuid.UUID
+    # In the kitchen's currency; lines without a cost or without a rate are left out.
     total_cost: Decimal
+    currency: str | None = None
+    # False when an ingredient cost in another currency had no usable rate.
+    complete: bool = True
     lines: list[RecipeLineCostDetail]
 
 
@@ -46,5 +52,10 @@ class RecipeLineCostDetail(BaseModel):
     ingredient_name: str
     qty_per_portion: Decimal
     yield_fraction: Decimal
+    # As entered (any currency), and converted to the kitchen's currency for food cost.
     cost_per_unit: Decimal | None
+    cost_per_unit_currency: str | None = None
+    cost_per_unit_converted: Decimal | None = None
+    rate: RateOut | None = None
+    rate_unavailable: bool = False
     line_cost: Decimal | None

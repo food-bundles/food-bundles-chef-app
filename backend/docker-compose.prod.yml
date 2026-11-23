@@ -1,0 +1,212 @@
+# Production stack: api, worker, Redis, Postgres. See docs/deployment.md.
+#
+#   docker compose -f docker-compose.prod.yml --env-file /etc/foodbundles/prod.env up -d
+#
+# Used ALONE (-f): the dev docker-compose.override.yml is NOT applied. Every setting is passed
+# BY NAME from the environment / --env-file; no values live in this file. Required names use
+# ${NAME:?} so a missing one stops `up` with an error instead of starting with a default.
+
+x-app-env: &app-env
+  # Core
+  - APP_ENV
+  - APP_NAME
+  - DEBUG
+  - SECRET_KEY
+  - ACCESS_TOKEN_EXPIRE_MINUTES
+  - REFRESH_TOKEN_EXPIRE_DAYS
+  - DATABASE_URL
+  - DATABASE_URL_SYNC
+  - REDIS_URL
+  - CORS_ORIGINS
+  # OTP / SMS
+  - OTP_PROVIDER
+  - OTP_EXPIRY_SECONDS
+  - OTP_MAX_ATTEMPTS
+  - OTP_RESEND_COOLDOWN_SECONDS
+  - SMS_API_KEY
+  - SMS_SENDER_ID
+  # AI: Meta (fallback)
+  - META_MODEL_API_BASE_URL
+  - MODEL_API_KEY
+  - META_MUSE_SPARK_MODEL
+  - META_MUSE_SPARK_FAST_MODEL
+  - META_MUSE_WONDER_MODEL
+  - META_MUSE_IMAGE_MODEL
+  - META_MUSE_VOICE_MODEL
+  - META_SAM_MODEL
+  # AI: features and limits
+  - AI_ENABLED
+  - AI_AGENT_ENABLED
+  - AI_DEFAULT_TIMEOUT_SECONDS
+  - AI_MAX_RETRIES
+  - AI_MAX_IMAGE_SIZE_BYTES
+  - AI_LOG_CONTENT
+  - AI_QUALITY_ASSESSMENT_ENABLED
+  - AI_TRANSCRIPTION_ENABLED
+  - AI_TRANSCRIPTION_LANGUAGES
+  - AI_IMAGE_CLASSIFY_ENABLED
+  - AI_MENU_SCAN_ENABLED
+  - AI_DISH_ANALYSIS_ENABLED
+  - AI_DOCUMENT_SCAN_ENABLED
+  - AI_CHAT_TIMEOUT_SECONDS
+  - AI_TARGET_FOOD_COST_LOW
+  - AI_TARGET_FOOD_COST_HIGH
+  - AI_MAX_REQUESTS_PER_KITCHEN_PER_DAY
+  - AI_MAX_REQUESTS_PER_CHEF_PER_DAY
+  # AI: Anthropic (primary) and router
+  - AI_PRIMARY_PROVIDER
+  - AI_FALLBACK_PROVIDER
+  - ANTHROPIC_API_KEY
+  - ANTHROPIC_ENABLED
+  - ANTHROPIC_MODEL_FAST
+  - ANTHROPIC_MODEL_STANDARD
+  - ANTHROPIC_MODEL_ADVANCED
+  - ANTHROPIC_EFFORT_CLASSIFY
+  - ANTHROPIC_EFFORT_EXTRACT
+  - ANTHROPIC_EFFORT_CHAT
+  - AI_MODEL_CAPABILITIES
+  - AI_MODEL_PRICES
+  - AI_TIMEOUT_CLASSIFY_MS
+  - AI_TIMEOUT_EXTRACT_MS
+  - AI_TIMEOUT_CHAT_TTFT_MS
+  - AI_PRIMARY_BUDGET_SHARE
+  - AI_ROUTER_MAX_RETRIES
+  - AI_BREAKER_FAILURE_THRESHOLD
+  - AI_BREAKER_COOLDOWN_MS
+  - AI_DAILY_BUDGET_USD
+  - AI_KITCHEN_DAILY_BUDGET_USD
+  - AI_BUDGET_EXCEEDED_ACTION
+  - AI_OPS_TOKEN
+  # Food Bundles catalogue
+  - FOOD_BUNDLES_CATALOG_PROVIDER
+  - FOOD_BUNDLES_COUNTRIES
+  - FOOD_BUNDLES_CATALOG_CURRENCY
+  - FOOD_BUNDLES_API_URL
+  - FOOD_BUNDLES_API_KEY
+  # Money, rates, reminders
+  - LOW_STOCK_REMINDER_LOCAL_HOUR
+  - PRICE_ROUNDING_STEPS
+  - EXCHANGE_RATE_API_KEY
+  - EXCHANGE_RATE_API_URL
+  - FRANKFURTER_API_URL
+  - EXCHANGE_RATE_TIMEOUT_SECONDS
+  - RATE_STALE_DAYS
+  - CURRENCY_CONVERSION_ENABLED_COUNTRIES
+  # Storage and push
+  - OBJECT_STORAGE_PROVIDER
+  - OBJECT_STORAGE_BUCKET
+  - OBJECT_STORAGE_ACCESS_KEY
+  - OBJECT_STORAGE_SECRET_KEY
+  - OBJECT_STORAGE_ENDPOINT_URL
+  - LOCAL_STORAGE_PATH
+  - CLOUDINARY_CLOUD_NAME
+  - CLOUDINARY_API_KEY
+  - CLOUDINARY_API_SECRET
+  - PUSH_NOTIFICATIONS_PROVIDER
+  - EXPO_ACCESS_TOKEN
+
+x-app: &app
+  image: ${APP_IMAGE:?set APP_IMAGE to the built backend image, e.g. registry/foodbundles-backend:<git-sha>}
+  environment: *app-env
+  restart: unless-stopped
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # No published port: only the stack's own network reaches it.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis: arq queue + scheduler, AI kill switch, rate limits ───────────────
+  # volatile-lru evicts only keys with a TTL, so the AI kill switch (no TTL) survives memory
+  # pressure. AOF persistence keeps the kill switch across restarts.
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+    command: >
+      sh -c 'exec redis-server --appendonly yes --maxmemory $${REDIS_MAXMEMORY:-256mb}
+             --maxmemory-policy volatile-lru --requirepass "$$REDIS_PASSWORD"'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── One-shot: database migrations, before the api starts ───────────────────
+  migrate:
+    <<: *app
+    command: python -m alembic upgrade head
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    <<: *app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${API_WORKERS:-2} --proxy-headers
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8000}:8000"  # behind a TLS reverse proxy
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Readiness: the app answers AND reaches the database.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Worker: rates job, low-stock reminders, catalogue refresh, order sync, push ─
+  worker:
+    <<: *app
+    command: arq app.workers.scheduler.WorkerSettings
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # arq writes a heartbeat key every 60 s (health_check_interval); --check reads it.
+      test: ["CMD", "arq", "app.workers.scheduler.WorkerSettings", "--check"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # ── One-shot: startup check that the worker is alive ───────────────────────
+  # Passes when the rates job (run by the worker at startup, then 01:15 / 13:15 UTC) has a
+  # successful fetch < 24 h old. Exit code 1 shows in `docker compose ps -a` and the deploy
+  # script must fail on it (docs/deployment.md).
+  worker-check:
+    <<: *app
+    command: python -m app.workers.check_worker --wait-seconds 600 --max-age-hours 24
+    restart: "no"
+    depends_on:
+      worker:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  storage:

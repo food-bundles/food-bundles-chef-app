@@ -1,5 +1,8 @@
 # AI evals — Food Bundles Chef
 
+> **Phase 8 (Claude vs Meta parity):** see [PARITY.md](PARITY.md) and `parity.py`. Its cases live
+> in `cases/` (one folder per image, `cases/assistant/cases.jsonl` for the Assistant).
+
 Measures the AI features through the **real backend AI gateway** (the same endpoints the app calls),
 so a prompt or model change can be checked against the release bar before it ships.
 
@@ -43,6 +46,9 @@ price config (see below).
 
    Write names **exactly as they appear** on the menu or document (they are not translated). Prices are
    whole RWF; use `null` when no price is shown.
+   (This is the Phase 7 `run_evals.py` manifest. The Phase 8 parity cases in `cases/` use answer-key
+   **format 2**: amount + currency per price, `should_clarify`, document totals and arithmetic flags;
+   see [cases/README.md](cases/README.md).)
 3. Never add photos showing faces, phone numbers or customer data. Record who consented in `consent`.
 
 ## Running
@@ -90,7 +96,7 @@ Each run writes `results/<timestamp>.json` (every call, request ids, prompt vers
 Change the bar only with product-owner approval (`RELEASE_BAR` in `run_evals.py`).
 
 **Re-run on every prompt or model change.** Prompt versions come back in each gateway response
-(`prompt_version`, e.g. `menu_extract.v1`) and are stored per call in the results JSON.
+(`prompt_version`, e.g. `menu_extract.v2`) and are stored per call in the results JSON.
 
 ## Kinyarwanda
 

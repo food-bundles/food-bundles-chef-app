@@ -7,10 +7,12 @@ Applies the deterministic demand → order quantity pipeline:
 4. Compute purchase_quantity using stock on hand, yield, selling unit, buffer
 5. Return PurchaseSuggestion list ordered by is_low_stock desc, then name
 """
+
 from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +25,7 @@ from app.domain.calculations import (
     purchase_quantity,
     weighted_demand,
 )
+from app.modules.exchange_rates.costs import kitchen_unit_costs
 from app.modules.ingredients.repository import IngredientRepository
 from app.modules.inventory.repository import InventoryRepository
 from app.modules.kitchens.models import Kitchen
@@ -30,30 +33,38 @@ from app.modules.menus.repository import MenuItemRepository
 from app.modules.purchasing.schemas import PurchaseSuggestion, PurchaseSuggestionsResponse
 from app.modules.recipes.repository import RecipeRepository
 from app.modules.sales.repository import SalesRepository
+from app.shared.kitchen_time import kitchen_today
 
 _ZERO = Decimal("0")
 
 
 class PurchasingService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._ingredient_repo = IngredientRepository(db)
         self._inventory_repo = InventoryRepository(db)
         self._recipe_repo = RecipeRepository(db)
         self._sales_repo = SalesRepository(db)
         self._item_repo = MenuItemRepository(db)
 
-    async def get_suggestions(self, kitchen: Kitchen) -> PurchaseSuggestionsResponse:
+    async def get_suggestions(
+        self, kitchen: Kitchen, now: datetime | None = None
+    ) -> PurchaseSuggestionsResponse:
         ingredients = await self._ingredient_repo.list_for_kitchen(kitchen.id, active_only=True)
         if not ingredients:
             return PurchaseSuggestionsResponse(kitchen_id=kitchen.id, suggestions=[])
+        unit_costs = await kitchen_unit_costs(self._db, kitchen, ingredients)
 
         # Map ingredient_id → aggregate weighted demand portions
         ingredient_demand: dict[uuid.UUID, Decimal] = defaultdict(lambda: _ZERO)
 
         # For each active menu item, get last-4-week sales and recipe lines
         items = await self._item_repo.list_for_menu_all(kitchen.id)
+        today = kitchen_today(kitchen, now)  # the kitchen's own calendar day
         for item in items:
-            weekly = await self._sales_repo.weekly_totals(kitchen.id, item.id, weeks=4)
+            weekly = await self._sales_repo.weekly_totals(
+                kitchen.id, item.id, weeks=4, reference_date=today
+            )
             if not any(total > 0 for _, total in weekly):
                 continue  # no sales history → skip this item's demand
 
@@ -97,8 +108,9 @@ class PurchasingService:
             )
 
             cost_est: Decimal | None = None
-            if ing.cost_per_unit is not None and suggested > _ZERO:
-                cost_est = (suggested * ing.cost_per_unit).quantize(Decimal("0.01"))
+            unit_cost = unit_costs.get(ing)
+            if unit_cost is not None and suggested > _ZERO:
+                cost_est = (suggested * unit_cost.amount).quantize(Decimal("0.01"))
 
             suggestions.append(
                 PurchaseSuggestion(
@@ -113,6 +125,8 @@ class PurchasingService:
                     suggested_qty=suggested,
                     selling_unit_size=ing.selling_unit_size,
                     estimated_cost=cost_est,
+                    estimated_cost_currency=kitchen.currency if cost_est is not None else None,
+                    rate_unavailable=unit_costs.is_rate_unavailable(ing),
                 )
             )
 

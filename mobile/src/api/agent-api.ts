@@ -1,4 +1,5 @@
 import { request } from './http-client';
+import type { ClarifyOption, ScanAnswers } from '@/features/ai/schemas';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,18 @@ export interface ActionProposal {
 export interface ClarifyingQuestion {
   question: string;
   options: string[] | null;
+  /**
+   * agent/v3: a question the SERVER asks about a price or unit. Shown from i18n keys with
+   * tappable `choices`; the answer goes back with `draft` in AgentRequest.resolve.
+   */
+  kind?: string | null;
+  key?: string | null;
+  question_key?: string | null;
+  params?: Record<string, string> | null;
+  choices?: ClarifyOption[] | null;
+  preselected?: string | null;
+  draft?: ActionProposal | null;
+  answers?: ScanAnswers | null;
 }
 
 export interface AgentRequest {
@@ -40,6 +53,8 @@ export interface AgentRequest {
   last_confirmed_action?: ActionProposal | null;
   /** Language the assistant must reply in. */
   language?: 'en' | 'fr' | 'rw';
+  /** Finish a draft proposal with the chef's answer to a server question (no model call). */
+  resolve?: { draft: ActionProposal; answers: ScanAnswers } | null;
 }
 
 export interface AgentResponse {
@@ -47,7 +62,7 @@ export interface AgentResponse {
   clarification: ClarifyingQuestion | null;
   reply_text: string;
   last_action: ActionProposal | null;
-  /** Kigali time (HH:MM) the kitchen data behind this reply was read. */
+  /** Kitchen-local time (HH:MM) the kitchen data behind this reply was read. */
   as_of?: string | null;
 }
 

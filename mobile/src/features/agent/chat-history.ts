@@ -46,6 +46,9 @@ function forStorage(entry: ChatEntry): ChatEntry {
   if (entry.type === 'route' && entry.imageUri) {
     return { type: 'route', id: entry.id, kind: entry.kind };
   }
+  if (entry.type === 'pick' && entry.imageUri) {
+    return { type: 'pick', id: entry.id, chosen: entry.chosen };
+  }
   return entry;
 }
 

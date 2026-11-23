@@ -518,6 +518,10 @@
       "status": "needs-review",
       "en": "Save changes"
     },
+    "agent.card.converted": {
+      "status": "needs-review",
+      "en": "Converted"
+    },
     "ai.badge": {
       "status": "needs-review",
       "en": "AI"
@@ -610,6 +614,14 @@
       "status": "needs-review",
       "en": "The menu or document is too small in the photo — move closer."
     },
+    "ai.errors.refused": {
+      "status": "needs-review",
+      "en": "I can't help with that. Try asking about your menu, stock, sales or deliveries."
+    },
+    "ai.errors.interrupted": {
+      "status": "needs-review",
+      "en": "Response interrupted. Tap Retry to ask again."
+    },
     "ai.consent.title": {
       "status": "needs-review",
       "en": "AI help with photos and voice"
@@ -629,6 +641,202 @@
     "ai.consent.policy": {
       "status": "needs-review",
       "en": "Privacy policy"
+    },
+    "ai.photoKind.title": {
+      "status": "needs-review",
+      "en": "What is this photo?"
+    },
+    "ai.photoKind.body": {
+      "status": "needs-review",
+      "en": "We couldn't tell automatically. Pick one to continue."
+    },
+    "ai.photoKind.menu": {
+      "status": "needs-review",
+      "en": "Menu"
+    },
+    "ai.photoKind.dish": {
+      "status": "needs-review",
+      "en": "Dish"
+    },
+    "ai.photoKind.delivery_note": {
+      "status": "needs-review",
+      "en": "Delivery note"
+    },
+    "clarify.currency_missing.question": {
+      "status": "needs-review",
+      "en": "Prices have no currency. Which is it?"
+    },
+    "clarify.currency_ambiguous.question": {
+      "status": "needs-review",
+      "en": "\"{{example}}\": which currency is it?"
+    },
+    "clarify.currency_mismatch.question": {
+      "status": "needs-review",
+      "en": "These prices are in {{currency}}. Your kitchen uses {{kitchen_currency}}."
+    },
+    "clarify.ambiguous_separator.question": {
+      "status": "needs-review",
+      "en": "Is \"{{example}}\" a whole number or a decimal?"
+    },
+    "clarify.k_suffix.question": {
+      "status": "needs-review",
+      "en": "Does \"{{example}}\" mean {{amount}}?"
+    },
+    "clarify.ambiguous_unit.us_or_uk": {
+      "status": "needs-review",
+      "en": "Is \"{{unit}}\" a US or a UK (imperial) measure?"
+    },
+    "clarify.ambiguous_unit.pack_size": {
+      "status": "needs-review",
+      "en": "How much is in one \"{{unit}}\"?"
+    },
+    "clarify.arithmetic_mismatch.line_arithmetic": {
+      "status": "needs-review",
+      "en": "Line {{row}} ({{label}}): {{quantity}} × {{unit_price}} = {{expected}}, but it says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.subtotal_mismatch": {
+      "status": "needs-review",
+      "en": "The lines add up to {{expected}}, but the subtotal says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.total_mismatch": {
+      "status": "needs-review",
+      "en": "The lines, tax and fees add up to {{expected}}, but the total says {{printed}}."
+    },
+    "clarify.arithmetic_mismatch.words_mismatch": {
+      "status": "needs-review",
+      "en": "The total in words reads {{expected}}, but the figures say {{printed}}."
+    },
+    "clarify.unreadable_value.question": {
+      "status": "needs-review",
+      "en": "I couldn't read the price of \"{{name}}\" ({{text}})."
+    },
+    "clarify.option.kitchen_currency": {
+      "status": "needs-review",
+      "en": "{{currency}} (your kitchen)"
+    },
+    "clarify.option.currency": {
+      "status": "needs-review",
+      "en": "{{currency}}"
+    },
+    "clarify.option.other_currency": {
+      "status": "needs-review",
+      "en": "Other currency…"
+    },
+    "clarify.option.amount": {
+      "status": "needs-review",
+      "en": "{{amount}}"
+    },
+    "clarify.option.yes": {
+      "status": "needs-review",
+      "en": "Yes"
+    },
+    "clarify.option.no": {
+      "status": "needs-review",
+      "en": "No"
+    },
+    "clarify.option.convert": {
+      "status": "needs-review",
+      "en": "Convert at 1 {{from}} = {{rate}} {{to}} ({{date}})"
+    },
+    "clarify.option.convert_disabled": {
+      "status": "needs-review",
+      "en": "Convert to {{to}}"
+    },
+    "clarify.option.change_kitchen_currency": {
+      "status": "needs-review",
+      "en": "Change the kitchen currency to {{currency}}"
+    },
+    "clarify.option.skip_prices": {
+      "status": "needs-review",
+      "en": "Import without these prices"
+    },
+    "clarify.option.type_it": {
+      "status": "needs-review",
+      "en": "Type it"
+    },
+    "clarify.option.skip": {
+      "status": "needs-review",
+      "en": "Skip"
+    },
+    "clarify.option.keep_amount": {
+      "status": "needs-review",
+      "en": "Keep {{amount}}"
+    },
+    "clarify.option.us": {
+      "status": "needs-review",
+      "en": "US"
+    },
+    "clarify.option.uk": {
+      "status": "needs-review",
+      "en": "UK (imperial)"
+    },
+    "clarify.option.pack_size": {
+      "status": "needs-review",
+      "en": "Size of one pack"
+    },
+    "clarify.option.keep_unit": {
+      "status": "needs-review",
+      "en": "Keep the unit as written"
+    },
+    "clarify.option.keep_printed": {
+      "status": "needs-review",
+      "en": "Keep as printed"
+    },
+    "clarify.option.edit": {
+      "status": "needs-review",
+      "en": "Edit the line"
+    },
+    "clarify.option.apply": {
+      "status": "needs-review",
+      "en": "Apply"
+    },
+    "clarify.reason.rate_unavailable": {
+      "status": "needs-review",
+      "en": "No exchange rate from the last 3 days."
+    },
+    "clarify.reason.conversion_off": {
+      "status": "needs-review",
+      "en": "Currency conversion is not available for this kitchen yet."
+    },
+    "clarify.remaining_one": {
+      "status": "needs-review",
+      "en": "{{count}} question left"
+    },
+    "clarify.remaining_other": {
+      "status": "needs-review",
+      "en": "{{count}} questions left"
+    },
+    "clarify.packSizePlaceholder": {
+      "status": "needs-review",
+      "en": "e.g. 50 kg"
+    },
+    "clarify.packSizeInvalid": {
+      "status": "needs-review",
+      "en": "Type a number and a unit, e.g. 50 kg."
+    },
+    "clarify.applying": {
+      "status": "needs-review",
+      "en": "Applying your answer…"
+    },
+    "clarify.pickCurrency": {
+      "status": "needs-review",
+      "en": "Choose the currency"
+    },
+    "clarify.skipAll": {
+      "status": "needs-review",
+      "en": "Skip the questions"
+    },
+    "clarify.skipAllHint": {
+      "status": "needs-review",
+      "en": "Rows with an open question keep an empty price for you to type."
+    },
+    "clarify.arithmeticFlag": {
+      "status": "needs-review",
+      "en": "Some lines do not add up. Nothing was changed: check them before saving."
+    },
+    "clarify.converted": {
+      "status": "needs-review",
+      "en": "{{original}} at 1 {{from}} = {{rate}} {{to}} ({{date}})"
     },
     "auth.welcome": {
       "status": "needs-review",
@@ -1312,7 +1520,7 @@
     },
     "receiving.refPrice": {
       "status": "needs-review",
-      "en": "Ref: {{price}} RWF/{{unit}}"
+      "en": "Ref: {{price}}/{{unit}}"
     },
     "receiving.statusSubmitted": {
       "status": "needs-review",
@@ -1994,6 +2202,178 @@
       "status": "needs-review",
       "en": "Edit archived kitchen {{name}}"
     },
+    "kitchens.regionHeading": {
+      "status": "needs-review",
+      "en": "Region & money"
+    },
+    "kitchens.countryLabel": {
+      "status": "needs-review",
+      "en": "Country"
+    },
+    "kitchens.currencyLabel": {
+      "status": "needs-review",
+      "en": "Currency"
+    },
+    "kitchens.timezoneLabel": {
+      "status": "needs-review",
+      "en": "Time zone"
+    },
+    "kitchens.choose": {
+      "status": "needs-review",
+      "en": "Choose…"
+    },
+    "kitchens.currencyLockedHint": {
+      "status": "needs-review",
+      "en": "Prices depend on the currency. Use \"Change currency\" below to convert or relabel them."
+    },
+    "kitchens.errors.country": {
+      "status": "needs-review",
+      "en": "Choose the kitchen's country."
+    },
+    "kitchens.errors.currency": {
+      "status": "needs-review",
+      "en": "Choose the currency your prices are in."
+    },
+    "kitchens.errors.timezone": {
+      "status": "needs-review",
+      "en": "Choose the kitchen's time zone."
+    },
+    "currencyChange.title": {
+      "status": "needs-review",
+      "en": "Change currency"
+    },
+    "currencyChange.entryTitle": {
+      "status": "needs-review",
+      "en": "Change currency"
+    },
+    "currencyChange.entrySubtitle": {
+      "status": "needs-review",
+      "en": "Now {{currency}} · convert or relabel your prices"
+    },
+    "currencyChange.entryHint": {
+      "status": "needs-review",
+      "en": "Opens a preview before anything changes"
+    },
+    "currencyChange.currentLabel": {
+      "status": "needs-review",
+      "en": "Current currency"
+    },
+    "currencyChange.newLabel": {
+      "status": "needs-review",
+      "en": "New currency"
+    },
+    "currencyChange.newHint": {
+      "status": "needs-review",
+      "en": "Choose the currency your kitchen will use"
+    },
+    "currencyChange.modeHeading": {
+      "status": "needs-review",
+      "en": "How should prices change?"
+    },
+    "currencyChange.mode.convert": {
+      "status": "needs-review",
+      "en": "Convert my prices"
+    },
+    "currencyChange.mode.relabel": {
+      "status": "needs-review",
+      "en": "Relabel only"
+    },
+    "currencyChange.modeHelp.convert": {
+      "status": "needs-review",
+      "en": "Every menu price and ingredient cost is converted at one exchange rate, shown below with its date."
+    },
+    "currencyChange.modeHelp.relabel": {
+      "status": "needs-review",
+      "en": "Use this if your prices were entered in the wrong currency. The amounts stay the same; only the currency changes."
+    },
+    "currencyChange.loading": {
+      "status": "needs-review",
+      "en": "Loading the preview"
+    },
+    "currencyChange.previewError": {
+      "status": "needs-review",
+      "en": "Couldn't load the preview. Check your connection and try again."
+    },
+    "currencyChange.rateOf": {
+      "status": "needs-review",
+      "en": "Rate of {{date}}"
+    },
+    "currencyChange.crossRate": {
+      "status": "needs-review",
+      "en": "calculated via USD"
+    },
+    "currencyChange.rateUnavailable": {
+      "status": "needs-review",
+      "en": "Rate unavailable: there is no exchange rate from the last 3 days. Try again later, or relabel instead."
+    },
+    "currencyChange.relabelPrecision": {
+      "status": "needs-review",
+      "en": "Some prices have more decimals than {{currency}} allows. Fix them first, or convert instead."
+    },
+    "currencyChange.historyTitle": {
+      "status": "needs-review",
+      "en": "This kitchen already has records"
+    },
+    "currencyChange.historyBody": {
+      "status": "needs-review",
+      "en": "{{sales}} sales, {{orders}} orders, {{stock}} stock entries and {{deliveries}} deliveries keep their original currency. Reports that mix old and new records will show both currencies."
+    },
+    "currencyChange.pricesHeading": {
+      "status": "needs-review",
+      "en": "Prices that change ({{count}})"
+    },
+    "currencyChange.noPrices": {
+      "status": "needs-review",
+      "en": "No prices to change yet."
+    },
+    "currencyChange.unitCost": {
+      "status": "needs-review",
+      "en": "cost per unit"
+    },
+    "currencyChange.beforeAfter": {
+      "status": "needs-review",
+      "en": "{{before}} → {{after}}"
+    },
+    "currencyChange.needsRounding": {
+      "status": "needs-review",
+      "en": "needs rounding"
+    },
+    "currencyChange.noRate": {
+      "status": "needs-review",
+      "en": "no rate"
+    },
+    "currencyChange.priceStepReset": {
+      "status": "needs-review",
+      "en": "Your price rounding step goes back to the default for the new currency."
+    },
+    "currencyChange.pastRecords": {
+      "status": "needs-review",
+      "en": "Past sales, orders, deliveries and stock records are not changed."
+    },
+    "currencyChange.typeToConfirm": {
+      "status": "needs-review",
+      "en": "Type {{code}} to confirm"
+    },
+    "currencyChange.applyConvert": {
+      "status": "needs-review",
+      "en": "Convert prices"
+    },
+    "currencyChange.applyRelabel": {
+      "status": "needs-review",
+      "en": "Relabel currency"
+    },
+    "currencyChange.rateChanged": {
+      "status": "needs-review",
+      "en": "The exchange rate changed. Check the new preview and confirm again."
+    },
+    "currencyChange.applyError": {
+      "status": "needs-review",
+      "en": "Couldn't change the currency. Nothing was changed."
+    },
+    "currencyChange.convertOff": {
+      "status": "needs-review",
+      "en": "Converting prices is not available for kitchens in your country yet. You can still relabel, or keep prices in your own currency."
+    },
     "menu.title": {
       "status": "needs-review",
       "en": "Menu"
@@ -2236,7 +2616,7 @@
     },
     "menu.scan.priceRequired": {
       "status": "needs-review",
-      "en": "Enter a price in RWF."
+      "en": "Enter a price."
     },
     "menu.scan.nameLabel": {
       "status": "needs-review",
@@ -2244,7 +2624,7 @@
     },
     "menu.scan.priceLabel": {
       "status": "needs-review",
-      "en": "Price of {{name}} in RWF"
+      "en": "Price of {{name}} in {{currency}}"
     },
     "menu.scan.importItem": {
       "status": "needs-review",
@@ -2420,7 +2800,7 @@
     },
     "menuItem.highestCostIngredient": {
       "status": "needs-review",
-      "en": "Highest cost ingredient: {{name}} · {{cost}} RWF/portion"
+      "en": "Highest cost ingredient: {{name}} · {{cost}}/portion"
     },
     "menuItem.title": {
       "status": "needs-review",
@@ -2566,6 +2946,22 @@
       "status": "needs-review",
       "en": "Add a new ingredient"
     },
+    "menuItem.lineConverted": {
+      "status": "needs-review",
+      "en": "{{original}} at {{rate}} ({{date}})"
+    },
+    "menuItem.lineRateUnavailable": {
+      "status": "needs-review",
+      "en": "Cost in {{currency}}: rate unavailable"
+    },
+    "menuItem.costIncomplete": {
+      "status": "needs-review",
+      "en": "Food cost is incomplete: some costs in another currency have no recent exchange rate."
+    },
+    "menuItem.lineConversionOff": {
+      "status": "needs-review",
+      "en": "Cost in {{currency}}: currency conversion is not available for this kitchen yet."
+    },
     "createItem.analysingDish": {
       "status": "needs-review",
       "en": "Analyzing dish…"
@@ -2636,7 +3032,7 @@
     },
     "createItem.priceLabel": {
       "status": "needs-review",
-      "en": "Selling Price (RWF)"
+      "en": "Selling price ({{currency}})"
     },
     "createItem.pricePlaceholder": {
       "status": "needs-review",
@@ -3077,6 +3473,14 @@
     "orders.submitOrderLabel": {
       "status": "needs-review",
       "en": "Submit order"
+    },
+    "orders.onItsWay": {
+      "status": "needs-review",
+      "en": "This order is on its way — contact Food Bundles support."
+    },
+    "orders.cancelFailed": {
+      "status": "needs-review",
+      "en": "The order could not be cancelled. Try again."
     },
     "profile.title": {
       "status": "needs-review",
@@ -3936,7 +4340,7 @@
     },
     "ingredients.costPerUnitLabel": {
       "status": "needs-review",
-      "en": "Cost per {{unit}} (RWF)"
+      "en": "Cost per {{unit}}"
     },
     "ingredients.costHint": {
       "status": "needs-review",
@@ -3965,6 +4369,18 @@
     "ingredients.levelAfter": {
       "status": "needs-review",
       "en": "Level after: {{qty}} {{unit}}"
+    },
+    "ingredients.costCurrencyLabel": {
+      "status": "needs-review",
+      "en": "Cost currency"
+    },
+    "ingredients.costCurrencyHint": {
+      "status": "needs-review",
+      "en": "Keep the currency your supplier charges in. Food cost converts it at the day's rate."
+    },
+    "ingredients.costCurrencyOff": {
+      "status": "needs-review",
+      "en": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
     }
   }
 }

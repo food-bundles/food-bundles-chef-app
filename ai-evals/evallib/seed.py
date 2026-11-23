@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -10,7 +11,9 @@ import httpx
 def seed_kitchen(client: httpx.Client, run_id: str, fixture: Path) -> dict:
     """Create a fresh kitchen with ingredients, stock, menu and recipes. Returns ids by name."""
     data = json.loads(fixture.read_text(encoding="utf-8"))
-    kitchen = _ok(client.post("/kitchens", json={"name": f"AI eval kitchen {run_id}", "location": "Kigali"})).json()
+    # Currency, time zone and country are required (Step 2a): taken from the fixture.
+    region = data.get("kitchen") or {"currency": "RWF", "timezone": "Africa/Kigali", "country": "RW", "location": "Kigali"}
+    kitchen = _ok(client.post("/kitchens", json={"name": f"AI eval kitchen {run_id}", **region})).json()
     kid = kitchen["id"]
 
     ingredients: dict[str, str] = {}
@@ -50,13 +53,15 @@ def seed_kitchen(client: httpx.Client, run_id: str, fixture: Path) -> dict:
                     },
                 )
             )
-    return {"kitchen_id": kid, "ingredients": ingredients, "menu_items": items}
+    return {"kitchen_id": kid, "currency": region["currency"], "ingredients": ingredients, "menu_items": items}
 
 
 def snapshot(client: httpx.Client, kitchen_id: str) -> dict:
     """Stock levels and today's sales — compared before/after the chat suite (0 unconfirmed writes)."""
     stock = _ok(client.get(f"/kitchens/{kitchen_id}/inventory")).json()
-    sales = _ok(client.get(f"/kitchens/{kitchen_id}/sales/daily-summary")).json()
+    # Kitchen-local day (Kigali, UTC+2); the endpoint requires ?date=YYYY-MM-DD.
+    today = (datetime.now(UTC) + timedelta(hours=2)).date().isoformat()
+    sales = _ok(client.get(f"/kitchens/{kitchen_id}/sales/daily-summary", params={"date": today})).json()
     return {
         "stock": {row["ingredient_id"]: row["current_stock"] for row in stock},
         "portions_today": sales.get("portions"),

@@ -1,0 +1,28 @@
+# Secret scanning for the whole repository (pre-commit hook and CI).
+# Extends the gitleaks default rules with the AI provider keys this project uses.
+title = "food-bundles-chef-app"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[A-Za-z0-9_\-]{20,}'''
+keywords = ["sk-ant-"]
+
+[[rules]]
+id = "env-assigned-provider-key"
+description = "A provider key assigned a value in an env-style file"
+regex = '''(?i)^\s*(MODEL_API_KEY|ANTHROPIC_API_KEY|ANTROPIC_API_KEY|SMS_API_KEY|CLOUDINARY_API_SECRET|EXPO_ACCESS_TOKEN|FOOD_BUNDLES_API_KEY|AI_OPS_TOKEN|EXCHANGE_RATE_API_KEY)\s*=\s*["']?([^\s"'#]{12,})'''
+secretGroup = 2
+keywords = ["_key", "secret", "token"]
+
+[allowlist]
+description = "Generated or vendored content"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.venv/''',
+  '''(^|/)htmlcov/''',
+  '''(^|/)package-lock\.json$''',
+]

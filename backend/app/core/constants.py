@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-# Financial
-DEFAULT_CURRENCY = "RWF"
-
 # Purchasing calculations
-SAFETY_BUFFER_FRACTION = 0.10  # 10% buffer applied to weighted expected portions (mobile: weighted * 1.1)
+# 10% buffer applied to weighted expected portions (mobile: weighted * 1.1)
+SAFETY_BUFFER_FRACTION = 0.10
 SHORT_DELIVERY_THRESHOLD = 0.05  # flag when accepted < ordered by more than 5%
 LOW_STOCK_DAYS_THRESHOLD = 1.0  # < 1 day of cover = low stock
 TARGET_DAYS_COVER = 3  # purchasing screen target stock cover in days

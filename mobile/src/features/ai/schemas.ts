@@ -5,6 +5,68 @@ import { z } from 'zod';
 const confidence = z.number().min(0).max(1);
 const category = z.enum(['main', 'side', 'drink', 'dessert']);
 
+/** Money on the wire: a decimal string and an ISO 4217 code (never a float). */
+export const moneySchema = z.object({ amount: z.string(), currency: z.string() });
+
+const rateSchema = z.object({
+  base: z.string(),
+  quote: z.string(),
+  rate: z.string(),
+  rate_date: z.string(),
+  source: z.string(),
+  cross: z.boolean(),
+});
+
+// ── Clarifying questions (Step 2a build step 5): the SERVER decides what to ask ──
+
+export const clarificationKindSchema = z.enum([
+  'currency_mismatch',
+  'currency_missing',
+  'ambiguous_separator',
+  'k_suffix',
+  'ambiguous_unit',
+  'arithmetic_mismatch',
+  'unreadable_value',
+]);
+export type ClarificationKind = z.infer<typeof clarificationKindSchema>;
+
+export const clarifyOptionSchema = z.object({
+  /** Sent back as the answer for the question's key. */
+  value: z.string(),
+  /** i18n key of the option label, with its params. */
+  label_key: z.string(),
+  params: z.record(z.string()).default({}),
+  disabled: z.boolean().default(false),
+  disabled_reason_key: z.string().nullable().default(null),
+  /** The chef picks a currency or types a pack size; that becomes the answer. */
+  input: z.enum(['currency', 'pack_size']).nullable().default(null),
+  /** Handled in the app; no answer is sent. */
+  action: z.enum(['change_currency', 'edit']).nullable().default(null),
+});
+export type ClarifyOption = z.infer<typeof clarifyOptionSchema>;
+
+export const clarificationSchema = z.object({
+  key: z.string(),
+  kind: clarificationKindSchema,
+  question_key: z.string(),
+  params: z.record(z.string()).default({}),
+  options: z.array(clarifyOptionSchema),
+  preselected: z.string().nullable().default(null),
+  targets: z.array(z.number().int()).default([]),
+});
+export type Clarification = z.infer<typeof clarificationSchema>;
+
+export const scanAnswersSchema = z.object({
+  currency: z.string().nullable().default(null),
+  decimal_separator: z.enum(['.', ',']).nullable().default(null),
+  k_suffix: z.enum(['yes', 'no']).nullable().default(null),
+  mismatch: z.enum(['convert', 'skip']).nullable().default(null),
+  rows: z.record(z.string()).default({}),
+});
+export type ScanAnswers = z.infer<typeof scanAnswersSchema>;
+
+const priceStatusSchema = z.enum(['ok', 'needs_answer', 'none', 'unreadable', 'skipped']);
+
 export const aiFeaturesSchema = z.object({
   image_classify: z.boolean(),
   menu_scan: z.boolean(),
@@ -22,9 +84,12 @@ export const imageKindSchema = z.enum(['menu', 'dish', 'receipt', 'delivery_note
 export type ImageKind = z.infer<typeof imageKindSchema>;
 
 export const imageClassificationSchema = z.object({
-  kind: imageKindSchema,
-  confidence,
-  image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']),
+  /** 'classify_unavailable': the AI could not classify the photo (kind, confidence and
+   * image_quality are null) — ask the chef what it is instead of guessing. */
+  status: z.enum(['ok', 'classify_unavailable']).default('ok'),
+  kind: imageKindSchema.nullable(),
+  confidence: confidence.nullable(),
+  image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']).nullable(),
   request_id: z.string(),
   prompt_version: z.string(),
 });
@@ -39,6 +104,12 @@ export const menuExtractItemSchema = z.object({
   name_confidence: confidence,
   price_confidence: confidence,
   source_text: z.string().nullable(),
+  /** v2: the price as printed, its reading, and (when converted) the original and rate. */
+  price_text: z.string().nullable().optional(),
+  price_money: moneySchema.nullable().optional(),
+  price_original: moneySchema.nullable().optional(),
+  price_rate: rateSchema.nullable().optional(),
+  price_status: priceStatusSchema.optional(),
 });
 export type MenuExtractItem = z.infer<typeof menuExtractItemSchema>;
 
@@ -48,6 +119,12 @@ export const menuExtractionSchema = z.object({
   image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']),
   request_id: z.string(),
   prompt_version: z.string(),
+  currency: z.string().nullable().optional(),
+  /** Questions still open: ask the first one, send the answer with model_items to resolve. */
+  clarifications: z.array(clarificationSchema).default([]),
+  answers: scanAnswersSchema.default({}),
+  /** The model's rows, sent back unchanged with each answer (opaque to the app). */
+  model_items: z.array(z.record(z.unknown())).default([]),
 });
 export type MenuExtraction = z.infer<typeof menuExtractionSchema>;
 
@@ -59,6 +136,14 @@ export const documentLineSchema = z.object({
   unit_price: z.number().int().nonnegative().nullable(),
   line_total: z.number().int().nonnegative().nullable(),
   confidence,
+  row: z.number().int().nullable().optional(),
+  unit_price_money: moneySchema.nullable().optional(),
+  line_total_money: moneySchema.nullable().optional(),
+  /** Printed quantity and unit when the server converted them (3 lb → 1.361 kg). */
+  original_quantity: z.string().nullable().optional(),
+  original_unit: z.string().nullable().optional(),
+  unit_status: z.enum(['ok', 'ask', 'unknown']).optional(),
+  price_status: priceStatusSchema.optional(),
 });
 export type DocumentLine = z.infer<typeof documentLineSchema>;
 
@@ -70,6 +155,30 @@ export const documentExtractionSchema = z.object({
   image_quality: z.enum(['ok', 'too_dark', 'blurry', 'too_small']),
   request_id: z.string(),
   prompt_version: z.string(),
+  currency: z.string().nullable().optional(),
+  total: moneySchema.nullable().optional(),
+  /** Arithmetic is flagged, never corrected: 'mismatch' lists what does not add up. */
+  arithmetic: z
+    .object({
+      status: z.enum(['ok', 'mismatch', 'not_applicable']),
+      issues: z.array(
+        z.object({
+          kind: z.string(),
+          row: z.number().int().nullable(),
+          label: z.string().nullable(),
+          expected: z.string(),
+          printed: z.string(),
+        }),
+      ),
+      tax_included: z.boolean(),
+      skipped: z.array(z.string()),
+    })
+    .nullable()
+    .optional(),
+  clarifications: z.array(clarificationSchema).default([]),
+  answers: scanAnswersSchema.default({}),
+  /** The model's reading, sent back unchanged with each answer (opaque to the app). */
+  model_extraction: z.record(z.unknown()).nullable().optional(),
 });
 export type DocumentExtraction = z.infer<typeof documentExtractionSchema>;
 
@@ -83,8 +192,12 @@ export const dishIngredientSchema = z.object({
 export type DishIngredient = z.infer<typeof dishIngredientSchema>;
 
 export const dishPriceSchema = z.object({
-  low: z.number().int().nonnegative(),
-  high: z.number().int().nonnegative(),
+  /** In the kitchen's currency (decimals for EUR, USD, ...); exact values in *_money. */
+  low: z.number().nonnegative(),
+  high: z.number().nonnegative(),
+  currency: z.string().optional(),
+  low_money: moneySchema.nullable().optional(),
+  high_money: moneySchema.nullable().optional(),
   cost_per_portion: z.number().nonnegative(),
   food_cost_low_pct: z.number(),
   food_cost_high_pct: z.number(),
