@@ -25,6 +25,8 @@ export interface OrderLineCreateBody {
 export interface OrderCreateBody {
   delivery_date?: string | null;  // ISO date "YYYY-MM-DD"
   notes?: string | null;
+  /** Phase 9: how the requisition is bought. */
+  route?: 'pay' | 'restaurant' | 'whatsapp' | null;
   lines: OrderLineCreateBody[];
 }
 
@@ -50,6 +52,7 @@ export interface OrderDto {
   status: OrderStatus;
   delivery_date: string | null;
   notes: string | null;
+  route?: 'pay' | 'restaurant' | 'whatsapp' | null;
   created_at: string;
   updated_at: string;
 }

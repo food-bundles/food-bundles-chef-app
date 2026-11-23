@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useOrderDetail, useOrders } from '@/features/orders/useOrders';
-import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
+import { useSuggestedRequisition } from '@/features/purchasing/requisition-draft';
 import { kitchenISODate } from '@/lib/format';
 import { sumByCurrency } from '@/lib/money';
 import {
@@ -104,7 +104,7 @@ export function useHome(): HomeData {
   const orders = useOrders();
   const due = useMemo(() => todaysDelivery(orders.data ?? [], today), [orders.data, today]);
   const detail = useOrderDetail(due?.id ?? '');
-  const suggestions = usePurchaseSuggestions();
+  const suggestions = useSuggestedRequisition();
   const commands = useCommandsToday();
 
   const deliveryConfirmed = isDeliveryConfirmed(due, flags.deliverySkipped || flags.deliveryReceived);
@@ -136,17 +136,15 @@ export function useHome(): HomeData {
     };
   }, [due, detail.data, kitchen?.currency]);
 
+  // Tomorrow's suggested requisition (spec formula, Food Bundles prices).
   const requisition = useMemo<RequisitionSummary>(() => {
-    const lines = (suggestions.data?.suggestions ?? []).filter((s) => Number(s.suggested_qty) > 0);
+    const data = suggestions.data;
+    if (!data) return { itemCount: 0, totals: [] };
     return {
-      itemCount: lines.length,
-      totals: sumByCurrency(
-        lines
-          .filter((s) => s.estimated_cost !== null)
-          .map((s) => ({ amount: Number(s.estimated_cost), currency: kitchen?.currency ?? '' })),
-      ),
+      itemCount: data.items,
+      totals: data.items > 0 ? [{ amount: Number(data.total), currency: data.currency }] : [],
     };
-  }, [suggestions.data, kitchen?.currency]);
+  }, [suggestions.data]);
 
   const { refetch: refetchOrders } = orders;
   const { refetch: refetchDetail } = detail;

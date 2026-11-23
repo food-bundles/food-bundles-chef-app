@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -24,6 +26,8 @@ class OrderLineCreate(BaseModel):
 class OrderCreateRequest(BaseModel):
     delivery_date: date | None = None
     notes: str | None = None
+    # Phase 9: how the requisition is bought (pay myself / send to restaurant / WhatsApp).
+    route: Literal["pay", "restaurant", "whatsapp"] | None = None
     lines: list[OrderLineCreate] = Field(..., min_length=1)
 
 
@@ -53,6 +57,7 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     delivery_date: date | None
     notes: str | None
+    route: str | None = None
     created_at: datetime
     updated_at: datetime
 

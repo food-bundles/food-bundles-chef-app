@@ -21,6 +21,7 @@ export default function AppLayout() {
       <Stack.Screen name="commands/new" />
       <Stack.Screen name="commands/saved" options={{ gestureEnabled: false }} />
       <Stack.Screen name="staff" />
+      <Stack.Screen name="requisition/send" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="agent" />
       <Stack.Screen name="kitchens/index" />

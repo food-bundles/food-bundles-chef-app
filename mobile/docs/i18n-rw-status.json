@@ -1574,6 +1574,366 @@
       "status": "needs-review",
       "en": "Commands you record or accept will show here."
     },
+    "commands.newCommand": {
+      "status": "needs-review",
+      "en": "New command"
+    },
+    "commands.filterAll": {
+      "status": "needs-review",
+      "en": "All · {{count}}"
+    },
+    "commands.filterDineIn": {
+      "status": "needs-review",
+      "en": "Dine-in · {{count}}"
+    },
+    "commands.filterToGo": {
+      "status": "needs-review",
+      "en": "To go · {{count}}"
+    },
+    "commands.countNew": {
+      "status": "needs-review",
+      "en": "new"
+    },
+    "commands.countCooking": {
+      "status": "needs-review",
+      "en": "cooking"
+    },
+    "commands.countServed": {
+      "status": "needs-review",
+      "en": "served"
+    },
+    "commands.countCancelled": {
+      "status": "needs-review",
+      "en": "cancelled"
+    },
+    "commands.loadError": {
+      "status": "needs-review",
+      "en": "Couldn't load today's commands. Pull down to try again."
+    },
+    "commands.newSection": {
+      "status": "needs-review",
+      "en": "New · waiting for you"
+    },
+    "commands.cookingSection": {
+      "status": "needs-review",
+      "en": "Cooking"
+    },
+    "commands.acceptedSnack": {
+      "status": "needs-review",
+      "en": "{{no}} accepted"
+    },
+    "commands.declinedSnack": {
+      "status": "needs-review",
+      "en": "{{no}} declined"
+    },
+    "commands.servedSnack": {
+      "status": "needs-review",
+      "en": "{{no}} served"
+    },
+    "commands.handedSnack": {
+      "status": "needs-review",
+      "en": "{{no}} handed"
+    },
+    "commands.dineIn": {
+      "status": "needs-review",
+      "en": "Dine-in"
+    },
+    "commands.dineInTable": {
+      "status": "needs-review",
+      "en": "Dine-in · T{{table}}"
+    },
+    "commands.toGo": {
+      "status": "needs-review",
+      "en": "To go"
+    },
+    "commands.dineInShort": {
+      "status": "needs-review",
+      "en": "In"
+    },
+    "commands.toGoShort": {
+      "status": "needs-review",
+      "en": "To go"
+    },
+    "commands.by": {
+      "status": "needs-review",
+      "en": "by {{name}}"
+    },
+    "commands.byAt": {
+      "status": "needs-review",
+      "en": "by {{name}} · {{time}}"
+    },
+    "commands.enough": {
+      "status": "needs-review",
+      "en": "✓ Enough stock for this command"
+    },
+    "commands.enoughShort": {
+      "status": "needs-review",
+      "en": "✓ Enough stock"
+    },
+    "commands.notEnough": {
+      "status": "needs-review",
+      "en": "✕ Not enough stock"
+    },
+    "commands.needHave": {
+      "status": "needs-review",
+      "en": "{{name}}: need {{need}} {{unit}} · have {{have}} {{unit}}"
+    },
+    "commands.accept": {
+      "status": "needs-review",
+      "en": "Accept"
+    },
+    "commands.decline": {
+      "status": "needs-review",
+      "en": "Decline"
+    },
+    "commands.served": {
+      "status": "needs-review",
+      "en": "Served"
+    },
+    "commands.handed": {
+      "status": "needs-review",
+      "en": "Handed"
+    },
+    "commands.doneLabel": {
+      "status": "needs-review",
+      "en": "{{action}}: {{no}}"
+    },
+    "commands.declineTitle": {
+      "status": "needs-review",
+      "en": "Decline command"
+    },
+    "commands.missingHeader": {
+      "status": "needs-review",
+      "en": "Missing ingredients"
+    },
+    "commands.colItem": {
+      "status": "needs-review",
+      "en": "Item"
+    },
+    "commands.colNeed": {
+      "status": "needs-review",
+      "en": "Need"
+    },
+    "commands.colHave": {
+      "status": "needs-review",
+      "en": "Have"
+    },
+    "commands.colShort": {
+      "status": "needs-review",
+      "en": "Short"
+    },
+    "commands.restaurantWillSee": {
+      "status": "needs-review",
+      "en": "Restaurant will see:"
+    },
+    "commands.addMissingToReq": {
+      "status": "needs-review",
+      "en": "Add missing items to tomorrow's requisition"
+    },
+    "commands.acceptXofY": {
+      "status": "needs-review",
+      "en": "Accept {{x}} of {{y}}"
+    },
+    "commands.chef": {
+      "status": "needs-review",
+      "en": "Chef"
+    },
+    "commands.pickDishes": {
+      "status": "needs-review",
+      "en": "Tap a dish to start"
+    },
+    "commands.save": {
+      "status": "needs-review",
+      "en": "Save"
+    },
+    "commands.portions_one": {
+      "status": "needs-review",
+      "en": "{{count}} dish"
+    },
+    "commands.portions_other": {
+      "status": "needs-review",
+      "en": "{{count}} dishes"
+    },
+    "commands.roles.chef": {
+      "status": "needs-review",
+      "en": "Chef"
+    },
+    "commands.roles.waiter": {
+      "status": "needs-review",
+      "en": "Waiter"
+    },
+    "commands.roles.cashier": {
+      "status": "needs-review",
+      "en": "Cashier"
+    },
+    "commands.newHint": {
+      "status": "needs-review",
+      "en": "Tap a dish, then set how many"
+    },
+    "commands.numberLabel": {
+      "status": "needs-review",
+      "en": "Command number {{no}}"
+    },
+    "commands.catAll": {
+      "status": "needs-review",
+      "en": "All"
+    },
+    "commands.noDishesTitle": {
+      "status": "needs-review",
+      "en": "No dishes on today's menu"
+    },
+    "commands.noDishesBody": {
+      "status": "needs-review",
+      "en": "Add dishes and their recipes from Menu & recipes on Home."
+    },
+    "commands.tileOutLabel": {
+      "status": "needs-review",
+      "en": "{{name}}: out of stock"
+    },
+    "commands.tileLabel": {
+      "status": "needs-review",
+      "en": "{{name}}: {{ordered}} ordered today, can make {{can}}"
+    },
+    "commands.orderedToday": {
+      "status": "needs-review",
+      "en": "ordered today"
+    },
+    "commands.less": {
+      "status": "needs-review",
+      "en": "One less {{name}}"
+    },
+    "commands.more": {
+      "status": "needs-review",
+      "en": "One more {{name}}"
+    },
+    "commands.outOfStock": {
+      "status": "needs-review",
+      "en": "Out of stock"
+    },
+    "commands.canMake_one": {
+      "status": "needs-review",
+      "en": "Can make {{count}}"
+    },
+    "commands.canMake_other": {
+      "status": "needs-review",
+      "en": "Can make {{count}}"
+    },
+    "commands.noRecipe": {
+      "status": "needs-review",
+      "en": "No recipe yet"
+    },
+    "commands.table": {
+      "status": "needs-review",
+      "en": "Table"
+    },
+    "commands.tableLabel": {
+      "status": "needs-review",
+      "en": "Table number"
+    },
+    "commands.recordedBy": {
+      "status": "needs-review",
+      "en": "Recorded by"
+    },
+    "commands.you": {
+      "status": "needs-review",
+      "en": "(you)"
+    },
+    "commands.change": {
+      "status": "needs-review",
+      "en": "change"
+    },
+    "commands.recordedByTitle": {
+      "status": "needs-review",
+      "en": "Recorded by"
+    },
+    "commands.manageStaff": {
+      "status": "needs-review",
+      "en": "Manage staff"
+    },
+    "commands.status.new": {
+      "status": "needs-review",
+      "en": "New"
+    },
+    "commands.status.cooking": {
+      "status": "needs-review",
+      "en": "Cooking"
+    },
+    "commands.status.served": {
+      "status": "needs-review",
+      "en": "Served"
+    },
+    "commands.status.handed": {
+      "status": "needs-review",
+      "en": "Handed"
+    },
+    "commands.status.declined": {
+      "status": "needs-review",
+      "en": "Declined"
+    },
+    "commands.status.cancelled": {
+      "status": "needs-review",
+      "en": "Cancelled"
+    },
+    "commands.savedTitle": {
+      "status": "needs-review",
+      "en": "Command {{no}} saved"
+    },
+    "commands.savedSub": {
+      "status": "needs-review",
+      "en": "This is the {{ordinal}} command since opening at {{time}}"
+    },
+    "commands.dishToday": {
+      "status": "needs-review",
+      "en": "{{name}} today"
+    },
+    "commands.orderedWas": {
+      "status": "needs-review",
+      "en": "ordered (was {{was}})"
+    },
+    "commands.canMakeMore_one": {
+      "status": "needs-review",
+      "en": "Stock left: can make {{count}} more"
+    },
+    "commands.canMakeMore_other": {
+      "status": "needs-review",
+      "en": "Stock left: can make {{count}} more"
+    },
+    "commands.nextCommand": {
+      "status": "needs-review",
+      "en": "+ Next command"
+    },
+    "commands.backToCommands": {
+      "status": "needs-review",
+      "en": "Back to commands"
+    },
+    "staff.title": {
+      "status": "needs-review",
+      "en": "Staff"
+    },
+    "staff.hint": {
+      "status": "needs-review",
+      "en": "Names to pick for \"Recorded by\" on new commands. Waiters' and cashiers' commands wait for your Accept."
+    },
+    "staff.empty": {
+      "status": "needs-review",
+      "en": "No staff yet."
+    },
+    "staff.removeNamed": {
+      "status": "needs-review",
+      "en": "Remove {{name}}"
+    },
+    "staff.name": {
+      "status": "needs-review",
+      "en": "Name"
+    },
+    "staff.add": {
+      "status": "needs-review",
+      "en": "Add staff member"
+    },
+    "staff.saveError": {
+      "status": "needs-review",
+      "en": "Couldn't save. Check your connection and try again."
+    },
     "receiving.title": {
       "status": "needs-review",
       "en": "Log Delivery"
@@ -2229,6 +2589,154 @@
     "receiving.openDeliveryLabel": {
       "status": "needs-review",
       "en": "Open delivery for order {{id}}"
+    },
+    "receive.title": {
+      "status": "needs-review",
+      "en": "Receive delivery"
+    },
+    "receive.supplierFb": {
+      "status": "needs-review",
+      "en": "Food Bundles"
+    },
+    "receive.noDeliverySub": {
+      "status": "needs-review",
+      "en": "Nothing expected from Food Bundles today"
+    },
+    "receive.photoDelivery": {
+      "status": "needs-review",
+      "en": "Take a photo of the whole delivery"
+    },
+    "receive.photoTaken": {
+      "status": "needs-review",
+      "en": "Photo taken"
+    },
+    "receive.helper": {
+      "status": "needs-review",
+      "en": "Weigh each item. Enter what you really received and mark quality."
+    },
+    "receive.noDeliveryTitle": {
+      "status": "needs-review",
+      "en": "No delivery expected"
+    },
+    "receive.noDeliveryBody": {
+      "status": "needs-review",
+      "en": "Bought something elsewhere? Add it below."
+    },
+    "receive.itemsHeader": {
+      "status": "needs-review",
+      "en": "Items · ordered → received"
+    },
+    "receive.checked": {
+      "status": "needs-review",
+      "en": "{{checked}} of {{total}} checked"
+    },
+    "receive.ordered": {
+      "status": "needs-review",
+      "en": "Ordered {{qty}} {{unit}}"
+    },
+    "receive.receivedLabel": {
+      "status": "needs-review",
+      "en": "Received quantity of {{name}}, in {{unit}}"
+    },
+    "receive.tagCheckLabel": {
+      "status": "needs-review",
+      "en": "Weigh first, then mark quality"
+    },
+    "receive.tagGoodLabel": {
+      "status": "needs-review",
+      "en": "{{name}}: Good. Tap to mark an issue"
+    },
+    "receive.tagIssueLabel": {
+      "status": "needs-review",
+      "en": "{{name}}: Issue. Tap to mark Good"
+    },
+    "receive.check": {
+      "status": "needs-review",
+      "en": "Check"
+    },
+    "receive.good": {
+      "status": "needs-review",
+      "en": "Good"
+    },
+    "receive.issue": {
+      "status": "needs-review",
+      "en": "Issue"
+    },
+    "receive.reasons.short_weight": {
+      "status": "needs-review",
+      "en": "Short weight"
+    },
+    "receive.reasons.damaged": {
+      "status": "needs-review",
+      "en": "Damaged"
+    },
+    "receive.reasons.not_fresh": {
+      "status": "needs-review",
+      "en": "Not fresh"
+    },
+    "receive.addPhoto": {
+      "status": "needs-review",
+      "en": "Add a photo of the issue"
+    },
+    "receive.photo": {
+      "status": "needs-review",
+      "en": "Photo"
+    },
+    "receive.elsewhereHeader": {
+      "status": "needs-review",
+      "en": "Bought elsewhere"
+    },
+    "receive.addElsewhere": {
+      "status": "needs-review",
+      "en": "Add item bought elsewhere"
+    },
+    "receive.elsewhereNote": {
+      "status": "needs-review",
+      "en": "Items from other suppliers are valued at Food Bundles price."
+    },
+    "receive.photosLocal": {
+      "status": "needs-review",
+      "en": "Photos are kept on this phone for now."
+    },
+    "receive.addElsewhereError": {
+      "status": "needs-review",
+      "en": "Couldn't add that item. Check your connection and try again."
+    },
+    "receive.confirmError": {
+      "status": "needs-review",
+      "en": "Couldn't save the delivery. Try again."
+    },
+    "receive.confirm": {
+      "status": "needs-review",
+      "en": "Confirm & add to stock"
+    },
+    "receive.scanReceipt": {
+      "status": "needs-review",
+      "en": "Scan receipt"
+    },
+    "receive.uncheckedTitle": {
+      "status": "needs-review",
+      "en": "Some items aren't checked"
+    },
+    "receive.uncheckedBody_one": {
+      "status": "needs-review",
+      "en": "{{count}} item has no weight. It will count as not received."
+    },
+    "receive.uncheckedBody_other": {
+      "status": "needs-review",
+      "en": "{{count}} items have no weight. They will count as not received."
+    },
+    "receive.confirmAnyway": {
+      "status": "needs-review",
+      "en": "Confirm anyway"
+    },
+    "receive.keepChecking": {
+      "status": "needs-review",
+      "en": "Keep checking"
+    },
+    "receive.added": {
+      "status": "needs-review",
+      "en": "Added to stock"
     },
     "errors.boundary.title": {
       "status": "needs-review",
@@ -3458,6 +3966,150 @@
       "status": "needs-review",
       "en": "{{name}} will be removed from your menu. Past sales stay in your records."
     },
+    "dish.title": {
+      "status": "needs-review",
+      "en": "Dish recipe"
+    },
+    "dish.save": {
+      "status": "needs-review",
+      "en": "Save"
+    },
+    "dish.saving": {
+      "status": "needs-review",
+      "en": "Saving…"
+    },
+    "dish.name": {
+      "status": "needs-review",
+      "en": "Dish name"
+    },
+    "dish.sellingPrice": {
+      "status": "needs-review",
+      "en": "Selling price ({{currency}})"
+    },
+    "dish.sellingPriceShort": {
+      "status": "needs-review",
+      "en": "Selling price"
+    },
+    "dish.onMenu": {
+      "status": "needs-review",
+      "en": "On today's menu"
+    },
+    "dish.onMenuHint": {
+      "status": "needs-review",
+      "en": "Shows in New command"
+    },
+    "dish.offMenuHint": {
+      "status": "needs-review",
+      "en": "Switched off: kept in the menu, hidden from New command"
+    },
+    "dish.ingredientsFor1": {
+      "status": "needs-review",
+      "en": "Ingredients · for 1 portion"
+    },
+    "dish.cost": {
+      "status": "needs-review",
+      "en": "Cost"
+    },
+    "dish.noPrice": {
+      "status": "needs-review",
+      "en": "No price"
+    },
+    "dish.ownPrice": {
+      "status": "needs-review",
+      "en": "own price"
+    },
+    "dish.noFbPrice": {
+      "status": "needs-review",
+      "en": "No Food Bundles price yet"
+    },
+    "dish.qtyLabel": {
+      "status": "needs-review",
+      "en": "Quantity of {{name}} for 1 portion, in {{unit}}"
+    },
+    "dish.removeNamed": {
+      "status": "needs-review",
+      "en": "Remove {{name}}"
+    },
+    "dish.noIngredients": {
+      "status": "needs-review",
+      "en": "No ingredients yet. A dish without a recipe can't take stock out."
+    },
+    "dish.addIngredient": {
+      "status": "needs-review",
+      "en": "Add ingredient"
+    },
+    "dish.photoWorking": {
+      "status": "needs-review",
+      "en": "Reading the photo…"
+    },
+    "dish.costPerPortion": {
+      "status": "needs-review",
+      "en": "Cost per portion"
+    },
+    "dish.margin": {
+      "status": "needs-review",
+      "en": "Margin ({{currency}} · %)"
+    },
+    "dish.costIncomplete": {
+      "status": "needs-review",
+      "en": "* Some ingredients have no price, so the cost is partial."
+    },
+    "dish.saveError": {
+      "status": "needs-review",
+      "en": "Couldn't save the dish. Check your connection and try again."
+    },
+    "dish.fromPhoto": {
+      "status": "needs-review",
+      "en": "From a photo"
+    },
+    "dish.fromPhotoHint": {
+      "status": "needs-review",
+      "en": "Take or pick a photo of the dish. You check every ingredient before saving."
+    },
+    "dish.alreadyAdded": {
+      "status": "needs-review",
+      "en": "{{name}} is already in the recipe"
+    },
+    "dish.addNamed": {
+      "status": "needs-review",
+      "en": "Add {{name}}"
+    },
+    "dish.added": {
+      "status": "needs-review",
+      "en": "Added"
+    },
+    "dish.add": {
+      "status": "needs-review",
+      "en": "Add"
+    },
+    "dish.customHint": {
+      "status": "needs-review",
+      "en": "Not in the Food Bundles catalogue? Add it with your own price."
+    },
+    "dish.customName": {
+      "status": "needs-review",
+      "en": "Ingredient name"
+    },
+    "dish.customPrice": {
+      "status": "needs-review",
+      "en": "Price per {{unit}} ({{currency}}, optional)"
+    },
+    "dish.addCustom": {
+      "status": "needs-review",
+      "en": "Add a custom ingredient"
+    },
+    "dish.addCustomNamed": {
+      "status": "needs-review",
+      "en": "Add \"{{name}}\" as a custom ingredient"
+    },
+    "dish.searchCatalog": {
+      "status": "needs-review",
+      "en": "Search the Food Bundles catalogue"
+    },
+    "dish.noResults": {
+      "status": "needs-review",
+      "en": "Nothing found."
+    },
     "purchasing.title": {
       "status": "needs-review",
       "en": "Requisition"
@@ -3734,6 +4386,138 @@
       "status": "needs-review",
       "en": "The order could not be cancelled. Try again."
     },
+    "req.title": {
+      "status": "needs-review",
+      "en": "Requisition"
+    },
+    "req.subtitle": {
+      "status": "needs-review",
+      "en": "For {{date}} · suggested from today's stock and sales"
+    },
+    "req.loadError": {
+      "status": "needs-review",
+      "en": "Couldn't load the suggestion. Pull down to try again."
+    },
+    "req.suggested": {
+      "status": "needs-review",
+      "en": "Suggested · edit any line"
+    },
+    "req.fbPrices": {
+      "status": "needs-review",
+      "en": "Food Bundles prices"
+    },
+    "req.emptyTitle": {
+      "status": "needs-review",
+      "en": "Nothing to buy for tomorrow"
+    },
+    "req.emptyBody": {
+      "status": "needs-review",
+      "en": "Your stock covers the usual sales. Add an item if you need something."
+    },
+    "req.left": {
+      "status": "needs-review",
+      "en": "Left {{qty}}"
+    },
+    "req.need": {
+      "status": "needs-review",
+      "en": "need {{qty}}"
+    },
+    "req.less": {
+      "status": "needs-review",
+      "en": "Less {{name}}"
+    },
+    "req.more": {
+      "status": "needs-review",
+      "en": "More {{name}}"
+    },
+    "req.qtyLabel": {
+      "status": "needs-review",
+      "en": "{{qty}} {{unit}} of {{name}}"
+    },
+    "req.addItem": {
+      "status": "needs-review",
+      "en": "Add item"
+    },
+    "req.items_one": {
+      "status": "needs-review",
+      "en": "{{count}} item"
+    },
+    "req.items_other": {
+      "status": "needs-review",
+      "en": "{{count}} items"
+    },
+    "req.continue": {
+      "status": "needs-review",
+      "en": "Continue"
+    },
+    "req.sendTitle": {
+      "status": "needs-review",
+      "en": "Send requisition"
+    },
+    "req.howToBuy": {
+      "status": "needs-review",
+      "en": "How do you want to buy?"
+    },
+    "req.payMyself": {
+      "status": "needs-review",
+      "en": "Pay myself"
+    },
+    "req.payMyselfBody": {
+      "status": "needs-review",
+      "en": "MoMo or card. Food Bundles delivers tomorrow morning."
+    },
+    "req.sendRestaurant": {
+      "status": "needs-review",
+      "en": "Send to restaurant"
+    },
+    "req.sendRestaurantBody": {
+      "status": "needs-review",
+      "en": "Owner approves, edits or pays from the restaurant account."
+    },
+    "req.shareWhatsApp": {
+      "status": "needs-review",
+      "en": "Share on WhatsApp"
+    },
+    "req.shareWhatsAppBody": {
+      "status": "needs-review",
+      "en": "Send the list to the owner, manager or your market buyer."
+    },
+    "req.comingSoon": {
+      "status": "needs-review",
+      "en": "Coming soon"
+    },
+    "req.comingSoonLabel": {
+      "status": "needs-review",
+      "en": "{{name}}: coming soon"
+    },
+    "req.preview": {
+      "status": "needs-review",
+      "en": "Message preview"
+    },
+    "req.msgTitle": {
+      "status": "needs-review",
+      "en": "Requisition · {{kitchen}} kitchen"
+    },
+    "req.msgSubtitle": {
+      "status": "needs-review",
+      "en": "{{date}} · {{chef}}"
+    },
+    "req.msgTotal": {
+      "status": "needs-review",
+      "en": "Total: {{total}} {{currency}} (Food Bundles prices)"
+    },
+    "req.msgFooter": {
+      "status": "needs-review",
+      "en": "Order or pay: food.rw"
+    },
+    "req.orderNote": {
+      "status": "needs-review",
+      "en": "Requisition shared on WhatsApp"
+    },
+    "req.sendError": {
+      "status": "needs-review",
+      "en": "Couldn't save the requisition. Check your connection and try again."
+    },
     "profile.title": {
       "status": "needs-review",
       "en": "Profile"
@@ -3925,6 +4709,14 @@
     "profile.assistant": {
       "status": "needs-review",
       "en": "Kitchen Assistant"
+    },
+    "profile.staff": {
+      "status": "needs-review",
+      "en": "Staff"
+    },
+    "profile.staffHint": {
+      "status": "needs-review",
+      "en": "Waiters and cashiers for \"Recorded by\""
     },
     "sales.title": {
       "status": "needs-review",
@@ -4645,6 +5437,130 @@
     "ingredients.costCurrencyOff": {
       "status": "needs-review",
       "en": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
+    },
+    "stockDay.title": {
+      "status": "needs-review",
+      "en": "Today's stock"
+    },
+    "stockDay.subtitle": {
+      "status": "needs-review",
+      "en": "Updates with every delivery and command"
+    },
+    "stockDay.count": {
+      "status": "needs-review",
+      "en": "Count"
+    },
+    "stockDay.loadError": {
+      "status": "needs-review",
+      "en": "Couldn't load today's stock. Pull down to try again."
+    },
+    "stockDay.emptyTitle": {
+      "status": "needs-review",
+      "en": "No ingredients yet"
+    },
+    "stockDay.emptyBody": {
+      "status": "needs-review",
+      "en": "Ingredients appear here once your dishes have recipes."
+    },
+    "stockDay.colItem": {
+      "status": "needs-review",
+      "en": "Item"
+    },
+    "stockDay.colStart": {
+      "status": "needs-review",
+      "en": "Start"
+    },
+    "stockDay.colIn": {
+      "status": "needs-review",
+      "en": "In"
+    },
+    "stockDay.colUsed": {
+      "status": "needs-review",
+      "en": "Used"
+    },
+    "stockDay.colLeft": {
+      "status": "needs-review",
+      "en": "Left"
+    },
+    "stockDay.rowLabel": {
+      "status": "needs-review",
+      "en": "{{name}} in {{unit}}: start {{start}}, in {{received}}, used {{used}}, left {{left}}, {{level}}. Tap to see which dishes used it."
+    },
+    "stockDay.level.ok": {
+      "status": "needs-review",
+      "en": "enough"
+    },
+    "stockDay.level.low": {
+      "status": "needs-review",
+      "en": "low"
+    },
+    "stockDay.level.very_low": {
+      "status": "needs-review",
+      "en": "very low"
+    },
+    "stockDay.note": {
+      "status": "needs-review",
+      "en": "Used = served and cooking commands × recipe. Tap an item to see which dishes used it. Use Count to correct after a physical check."
+    },
+    "stockDay.endOfDay": {
+      "status": "needs-review",
+      "en": "End of day · Make requisition"
+    },
+    "stockDay.countSaved": {
+      "status": "needs-review",
+      "en": "{{name}} counted"
+    },
+    "stockDay.countWhat": {
+      "status": "needs-review",
+      "en": "What did you count?"
+    },
+    "stockDay.countNamed": {
+      "status": "needs-review",
+      "en": "Count {{name}}"
+    },
+    "stockDay.expected": {
+      "status": "needs-review",
+      "en": "Expected {{qty}} {{unit}}"
+    },
+    "stockDay.countTitle": {
+      "status": "needs-review",
+      "en": "Count {{name}}"
+    },
+    "stockDay.countedLabel": {
+      "status": "needs-review",
+      "en": "Counted quantity of {{name}}, in {{unit}}"
+    },
+    "stockDay.difference": {
+      "status": "needs-review",
+      "en": "Difference: {{diff}} {{unit}}. Why?"
+    },
+    "stockDay.reasons.waste": {
+      "status": "needs-review",
+      "en": "Waste"
+    },
+    "stockDay.reasons.spoilage": {
+      "status": "needs-review",
+      "en": "Spoilage"
+    },
+    "stockDay.reasons.error": {
+      "status": "needs-review",
+      "en": "Error"
+    },
+    "stockDay.saveCount": {
+      "status": "needs-review",
+      "en": "Save count"
+    },
+    "stockDay.usedByTitle": {
+      "status": "needs-review",
+      "en": "{{name}} used today"
+    },
+    "stockDay.usedByNone": {
+      "status": "needs-review",
+      "en": "No dish has used it today."
+    },
+    "stockDay.usedByRow": {
+      "status": "needs-review",
+      "en": "{{portions}} portions · {{qty}} {{unit}}"
     }
   }
 }

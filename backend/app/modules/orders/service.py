@@ -54,6 +54,7 @@ class OrderService:
             chef_id=chef.id,
             delivery_date=data.delivery_date,
             notes=data.notes,
+            route=data.route,
             status=OrderStatus.CONFIRMED,
         )
         order = await self._repo.create(order)
