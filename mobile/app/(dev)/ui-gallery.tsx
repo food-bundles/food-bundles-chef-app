@@ -24,6 +24,30 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { colors, spacing, fontSize, radius } from '@/lib/theme';
+import {
+  BeforeServiceCard,
+  EndOfDayCard,
+  HomeHeader,
+  NoDeliveryCard,
+  ProgressSteps,
+  ServiceCard,
+} from '@/features/home/HomeViews';
+import type { DeliveryCardData } from '@/features/home/useHome';
+
+/** The Food Bundles UX mockups' sample data (screens 01–03), for side-by-side checks. */
+const SAMPLE_DELIVERY: DeliveryCardData = {
+  orderId: 'sample',
+  status: 'out_for_delivery',
+  orderNo: 'FB-2418',
+  totals: [{ amount: 28700, currency: 'RWF' }],
+  itemCount: 5,
+  items: [
+    { name: 'Chicken', quantity: '4', unit: 'kg' },
+    { name: 'Cooking banana', quantity: '6', unit: 'kg' },
+    { name: 'Rice', quantity: '3', unit: 'kg' },
+  ],
+};
+const noop = () => {};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const isDark = useColorScheme() === 'dark';
@@ -76,6 +100,27 @@ export default function UIGalleryScreen() {
           <SelectableChip key={p} label={p} selected={preference === p} onPress={() => void setPreference(p)} />
         ))}
       </View>
+
+      {/* Phase 9: Home screens 01–03 with the mockups' sample numbers */}
+      <Section title="Home 01 — Before service (mockup p.1)">
+        <HomeHeader kitchenName="Food Court" onMenu={noop} onProfile={noop} onSwitch={noop} />
+        <ProgressSteps steps={{ receive: 'current', commands: 'upcoming', requisition: 'upcoming' }} />
+        <BeforeServiceCard delivery={SAMPLE_DELIVERY} expectedAt="Expected around 07:30" onReceive={noop} onSkip={noop} />
+        <NoDeliveryCard onAddElsewhere={noop} />
+      </Section>
+      <Section title="Home 02 — Service (mockup p.2)">
+        <ProgressSteps steps={{ receive: 'done', commands: 'current', requisition: 'upcoming' }} />
+        <ServiceCard counts={{ new: 2, cooking: 3, served: 43, cancelled: 1 }} onOpenCommands={noop} />
+      </Section>
+      <Section title="Home 03 — End of day (mockup p.3)">
+        <ProgressSteps steps={{ receive: 'done', commands: 'done', requisition: 'current' }} />
+        <EndOfDayCard
+          served={61}
+          cancelled={2}
+          requisition={{ totals: [{ amount: 28700, currency: 'RWF' }], itemCount: 5 }}
+          onReview={noop}
+        />
+      </Section>
 
       {/* Root-cause proof: left tile must render WITHOUT a green background, right tile WITH one */}
       <Section title="Root cause — Pressable style function">

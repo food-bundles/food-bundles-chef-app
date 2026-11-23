@@ -9,11 +9,16 @@ from app.core.exceptions import (
     CurrencyChangeNotAllowedError,
     KitchenAccessDeniedError,
     NotFoundError,
+    ValidationError,
 )
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.models import Kitchen
 from app.modules.kitchens.repository import KitchenRepository
-from app.modules.kitchens.schemas import KitchenCreateRequest, KitchenUpdateRequest
+from app.modules.kitchens.schemas import (
+    KitchenCreateRequest,
+    KitchenUpdateRequest,
+    check_service_hours,
+)
 from app.shared.enums import KitchenStatus
 from app.shared.money_fields import exact_money
 
@@ -35,6 +40,8 @@ class KitchenService:
             currency=data.currency,
             timezone=data.timezone,
             country=data.country,
+            opening_time=data.opening_time,
+            closing_time=data.closing_time,
         )
         return await self._repo.create(kitchen)
 
@@ -67,6 +74,16 @@ class KitchenService:
                 if data.price_step == 0
                 else exact_money(data.price_step, kitchen.currency).amount
             )
+
+        if data.opening_time is not None or data.closing_time is not None:
+            opening = data.opening_time or kitchen.opening_time
+            closing = data.closing_time or kitchen.closing_time
+            try:
+                check_service_hours(opening, closing)
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from None
+            kitchen.opening_time = opening
+            kitchen.closing_time = closing
 
         return await self._repo.update(kitchen)
 

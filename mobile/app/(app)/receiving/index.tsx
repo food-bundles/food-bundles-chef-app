@@ -142,7 +142,7 @@ export default function ReceivingIndexScreen() {
               {/* CTAs */}
               <View className="w-full gap-2 mt-1">
                 <Pressable
-                  onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
+                  onPress={() => router.push('/(app)/(tabs)/requisition' as never)}
                   accessibilityRole="button"
                   className="bg-brand-500 rounded-xl px-5 py-4 flex-row items-center justify-center gap-2 active:opacity-80"
                 >

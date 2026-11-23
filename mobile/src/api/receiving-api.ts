@@ -10,6 +10,9 @@ export interface ReceivingLineBody {
   quantity_received: string;    // decimal string
   decision?: ReceivingDecision;
   rejection_reason?: string | null;
+  /** Phase 9: Good / Issue and the reasons (delivery-quality signals). */
+  quality?: 'good' | 'issue' | null;
+  issue_reasons?: ('short_weight' | 'damaged' | 'not_fresh')[];
 }
 
 export interface BulkReceivingBody {
@@ -24,6 +27,8 @@ export interface ReceivingLineDto {
   decision: ReceivingDecision;
   rejection_reason: string | null;
   short_delivery: boolean;
+  quality?: 'good' | 'issue' | null;
+  issue_reasons?: string[];
   received_by: string | null;
   received_at: string;
 }

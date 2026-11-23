@@ -125,5 +125,42 @@
     "costCurrencyLabel": "Devise du coût",
     "costCurrencyHint": "Gardez la devise de votre fournisseur. Le coût matière la convertit au taux du jour.",
     "costCurrencyOff": "La conversion de devises n'est pas encore disponible pour cette cuisine : ce coût n'entre pas dans le coût matière."
+  },
+  "stockDay": {
+    "title": "Stock du jour",
+    "subtitle": "Mis à jour à chaque livraison et commande",
+    "count": "Compter",
+    "loadError": "Impossible de charger le stock du jour. Tirez vers le bas pour réessayer.",
+    "emptyTitle": "Pas encore d'ingrédients",
+    "emptyBody": "Les ingrédients apparaissent ici dès que vos plats ont des recettes.",
+    "colItem": "Article",
+    "colStart": "Début",
+    "colIn": "Entré",
+    "colUsed": "Utilisé",
+    "colLeft": "Reste",
+    "rowLabel": "{{name}} en {{unit}} : début {{start}}, entré {{received}}, utilisé {{used}}, reste {{left}}, {{level}}. Touchez pour voir les plats qui l'ont utilisé.",
+    "level": {
+      "ok": "suffisant",
+      "low": "bas",
+      "very_low": "très bas"
+    },
+    "note": "Utilisé = commandes servies et en cuisine × recette. Touchez un article pour voir les plats qui l'ont utilisé. Utilisez Compter pour corriger après un contrôle.",
+    "endOfDay": "Fin de journée · Faire la réquisition",
+    "countSaved": "{{name}} compté",
+    "countWhat": "Qu'avez-vous compté ?",
+    "countNamed": "Compter {{name}}",
+    "expected": "Attendu {{qty}} {{unit}}",
+    "countTitle": "Compter {{name}}",
+    "countedLabel": "Quantité comptée de {{name}}, en {{unit}}",
+    "difference": "Écart : {{diff}} {{unit}}. Pourquoi ?",
+    "reasons": {
+      "waste": "Perte",
+      "spoilage": "Abîmé",
+      "error": "Erreur"
+    },
+    "saveCount": "Enregistrer le comptage",
+    "usedByTitle": "{{name}} utilisé aujourd'hui",
+    "usedByNone": "Aucun plat ne l'a utilisé aujourd'hui.",
+    "usedByRow": "{{portions}} portions · {{qty}} {{unit}}"
   }
 }

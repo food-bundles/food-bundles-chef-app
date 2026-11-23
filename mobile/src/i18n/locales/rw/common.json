@@ -45,7 +45,11 @@
     "dashboard": "Ikibaho",
     "menu": "Menu",
     "purchasing": "Kugura",
-    "stock": "Bubiko",
-    "profile": "Umwirondoro"
+    "stock": "Ububiko",
+    "profile": "Umwirondoro",
+    "home": "Ahabanza",
+    "receive": "Kwakira",
+    "commands": "Komande",
+    "requisition": "Ibisabwa"
   }
 }

@@ -18,7 +18,10 @@ from typing import Any
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, ValidationError
+from app.modules.commands.schemas import AcceptRequest, CommandCreateRequest, DeclineRequest
+from app.modules.commands.service import CommandService
+from app.modules.synchronization.models import SyncOperation
 from app.modules.chefs.models import Chef
 from app.modules.ingredients.schemas import IngredientUpdateRequest
 from app.modules.ingredients.service import IngredientService
@@ -85,8 +88,27 @@ class SyncService:
     async def _dispatch(
         self, kitchen: Kitchen, chef: Chef, mutation: QueuedMutation
     ) -> MutationResult:
+        # Phase 9: an operation applied in an earlier sync (the app retried after a lost
+        # response) is skipped, never applied twice.
+        done = await self._db.get(SyncOperation, mutation.operation_id)
+        if done is not None:
+            return MutationResult(
+                operation_id=mutation.operation_id,
+                status="skipped",
+                error_message="Already applied.",
+                server_id=done.server_id,
+            )
         try:
-            server_id = await self._apply(kitchen, chef, mutation)
+            async with self._db.begin_nested():
+                server_id = await self._apply(kitchen, chef, mutation)
+                self._db.add(
+                    SyncOperation(
+                        operation_id=mutation.operation_id,
+                        kitchen_id=kitchen.id,
+                        operation_type=mutation.operation_type,
+                        server_id=str(server_id) if server_id else None,
+                    )
+                )
             return MutationResult(
                 operation_id=mutation.operation_id,
                 status="applied",
@@ -202,10 +224,50 @@ class SyncService:
                             quantity_received=Decimal(str(line["quantity_received"])),
                             decision=ReceivingDecision(line.get("decision", "accepted")),
                             rejection_reason=line.get("rejection_reason"),
+                            quality=line.get("quality"),
+                            issue_reasons=line.get("issue_reasons") or [],
                         )
                         for line in p["lines"]
                     ]
                 ),
+            )
+            return None
+
+        if op == "create_command":
+            command = await CommandService(self._db).create(
+                kitchen, chef, CommandCreateRequest(**p)
+            )
+            return command.id
+
+        if op == "command_action":
+            svc = CommandService(self._db)
+            command_id = uuid.UUID(mutation.resource_id)
+            action = p.get("action")
+            if action == "accept":
+                await svc.accept(kitchen, chef, command_id, AcceptRequest(portions=p.get("portions")))
+            elif action == "decline":
+                await svc.decline(
+                    kitchen,
+                    command_id,
+                    DeclineRequest(add_to_requisition=p.get("add_to_requisition", True)),
+                )
+            elif action == "serve":
+                await svc.serve(kitchen, chef, command_id)
+            elif action == "cancel":
+                await svc.cancel(kitchen, chef, command_id)
+            else:
+                raise ValidationError(f"Unknown command action: {action}")
+            return command_id
+
+        if op == "count_stock":
+            from app.modules.inventory.stock_day import StockDayService
+
+            await StockDayService(self._db).count(
+                kitchen,
+                chef.id,
+                uuid.UUID(p["ingredient_id"]),
+                Decimal(str(p["counted"])),
+                p.get("reason", "error"),
             )
             return None
 

@@ -20,6 +20,9 @@ class IngredientCreateRequest(BaseModel):
     days_open_per_week: int = Field(7, ge=1, le=7)
     safety_buffer_fraction: Decimal | None = Field(None, gt=0, le=1)
     notes: str | None = None
+    # Food Bundles catalogue product: the cost is copied from its price when not given,
+    # and follows it when the catalogue refreshes.
+    catalog_product_id: uuid.UUID | None = None
 
 
 class IngredientUpdateRequest(BaseModel):
@@ -35,6 +38,7 @@ class IngredientUpdateRequest(BaseModel):
     days_open_per_week: int | None = Field(None, ge=1, le=7)
     safety_buffer_fraction: Decimal | None = Field(None, gt=0, le=1)
     notes: str | None = None
+    catalog_product_id: uuid.UUID | None = None
 
 
 class IngredientResponse(BaseModel):
@@ -53,5 +57,6 @@ class IngredientResponse(BaseModel):
     safety_buffer_fraction: Decimal | None
     is_active: bool
     notes: str | None
+    catalog_product_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime

@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 class TranscriptionRequest(BaseModel):
     audio_bytes: bytes
-    language: str = "rw"  # Kinyarwanda default
+    # en | fr | rw: chosen by the app, else default_speech_language (no country assumed).
+    language: str
 
 
 class TranscriptionResponse(BaseModel):

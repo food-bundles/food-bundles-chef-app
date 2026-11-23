@@ -120,6 +120,8 @@ export const fontSize = {
   xl: 20,
   '2xl': 24,
   '3xl': 30,
+  /** Large bold numbers on Home cards (spec: numbers first). */
+  '4xl': 34,
 } as const;
 
 export const fontWeight = {
@@ -170,6 +172,11 @@ export interface ThemeTokens {
   warningText: string;
   warningTint: string;
   info: string;
+  /** Dine-in tag (blue) and To go tag (purple) on commands: text on tint. */
+  infoTint: string;
+  onInfoTint: string;
+  accentTint: string;
+  onAccentTint: string;
   overlay: string;
   shadow: string;
   /** Glow under the keyboard action bar: white in dark, soft black in light. */
@@ -201,6 +208,10 @@ export const lightTheme: ThemeTokens = {
   warningText: '#92400E',
   warningTint: '#FEF3C7',
   info: '#1D4ED8',
+  infoTint: '#E3EBFB',
+  onInfoTint: '#1E3A8A',
+  accentTint: '#F1E6FB',
+  onAccentTint: '#5B21B6',
   overlay: 'rgba(11, 15, 12, 0.5)',
   shadow: colors.black,
   actionShadow: colors.black,
@@ -231,6 +242,10 @@ export const darkTheme: ThemeTokens = {
   warningText: '#FCD34D',
   warningTint: '#3A2A0A',
   info: '#60A5FA',
+  infoTint: '#172554',
+  onInfoTint: '#BFDBFE',
+  accentTint: '#2E1065',
+  onAccentTint: '#DDD6FE',
   overlay: 'rgba(0, 0, 0, 0.6)',
   shadow: colors.black,
   actionShadow: colors.white,

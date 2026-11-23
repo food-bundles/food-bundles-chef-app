@@ -1,248 +1,336 @@
-import { useState, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
+/**
+ * 10 · Today's stock (Food Bundles UX spec): ITEM · START · IN · USED · LEFT, with LEFT in amber
+ * (low) or red (very low). Count corrects LEFT after a physical check (the difference is saved
+ * with a reason). Tap an item to see which dishes used it today. Footer: End of day · Make
+ * requisition (this is "End service" for Home).
+ */
+import { useState, type ReactNode } from 'react';
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
-import { RefreshCw, Plus, Package, Utensils, ShoppingCart } from 'lucide-react-native';
-import { colors } from '@/lib/theme';
-import { useStockLevels } from '@/features/inventory/useStockLevels';
-import { useSyncStatus } from '@/hooks/useSyncStatus';
-import { usePurchaseSuggestions } from '@/features/purchasing/usePurchaseSuggestions';
-import { SearchInput } from '@/components/ui/SearchInput';
-import { StockIndicator } from '@/components/ui/StockIndicator';
-import { SyncStatusBadge } from '@/components/ui/SyncStatusBadge';
-import type { StockLevelDto } from '@/api/inventory-api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Box } from 'lucide-react-native';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppPressable } from '@/components/ui/AppPressable';
+import { SelectableChip } from '@/components/ui/SelectableChip';
+import { Snackbar } from '@/components/ui/Snackbar';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { useTheme } from '@/providers/ThemeProvider';
+import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/theme';
+import { formatQuantity, kitchenISODate } from '@/lib/format';
+import { useKitchenStore } from '@/store/kitchen-store';
+import { useSessionStore } from '@/store/session-store';
+import { getStockToday, getUsedBy, type CountReason, type StockDayRowDto } from '@/api/stock-api';
+import { mutationQueueRepo } from '@/data/service-container';
+import { flushPendingMutations } from '@/services/sync/sync-service';
+import { countDifference } from '@/domain/calculations/stock-day';
+import { useDayFlagsStore } from '@/features/home/day-flags';
 
-type StockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'in_recipes';
+const REASONS: CountReason[] = ['waste', 'spoilage', 'error'];
 
 export default function StockScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: allItems = [], isLoading, refetch } = useStockLevels();
-  const { phase, pendingCount, sync } = useSyncStatus();
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<StockFilter>('all');
+  const qc = useQueryClient();
+  const kitchen = useKitchenStore((s) => s.activeKitchen);
+  const chefId = useSessionStore((s) => s.chef?.id ?? '');
+  const kitchenId = kitchen?.id ?? '';
+  const setFlags = useDayFlagsStore((s) => s.set);
+  const stock = useQuery({
+    queryKey: ['inventory', 'stock-day', chefId, kitchenId],
+    queryFn: () => getStockToday(kitchenId),
+    enabled: Boolean(chefId && kitchenId),
+    staleTime: 15_000,
+  });
+  const [counting, setCounting] = useState<StockDayRowDto | null>(null);
+  const [pickCount, setPickCount] = useState(false);
+  const [usedBy, setUsedBy] = useState<StockDayRowDto | null>(null);
+  const [snack, setSnack] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
+  const rows = stock.data?.rows ?? [];
+  const q = (v: string | number) => formatQuantity(v, i18n.language);
 
-  const outOfStockCount = useMemo(() => allItems.filter((i) => parseFloat(i.current_stock) === 0).length, [allItems]);
-
-  // Build set of ingredient IDs used in menu items (from recipe lines cached in query)
-  // useMenuItems doesn't directly return recipe lines; we approximate by checking if
-  // expected_daily_use > 0 which indicates the ingredient is linked to a recipe
-  const inRecipesIds = useMemo(() => {
-    return new Set(allItems.filter((i) => i.expected_daily_use != null && parseFloat(i.expected_daily_use) > 0).map((i) => i.ingredient_id));
-  }, [allItems]);
-
-  const inRecipesCount = inRecipesIds.size;
-
-  const { data: suggestionsData } = usePurchaseSuggestions();
-  const reorderItems = useMemo(() => {
-    return (suggestionsData?.suggestions ?? [])
-      .filter((s) => s.is_low_stock || (s.days_cover != null && parseFloat(s.days_cover) < 2))
-      .slice(0, 5);
-  }, [suggestionsData]);
-
-  const items = useMemo(() => {
-    let list = query.trim()
-      ? allItems.filter((i) => i.ingredient_name.toLowerCase().includes(query.toLowerCase()))
-      : allItems;
-    if (filter === 'in_stock') list = list.filter((i) => parseFloat(i.current_stock) > 0);
-    if (filter === 'out_of_stock') list = list.filter((i) => parseFloat(i.current_stock) === 0);
-    if (filter === 'in_recipes') list = list.filter((i) => inRecipesIds.has(i.ingredient_id));
-    return list.slice().sort((a, b) => {
-      const da = a.days_cover != null ? parseFloat(a.days_cover) : Infinity;
-      const db = b.days_cover != null ? parseFloat(b.days_cover) : Infinity;
-      return da - db;
+  const saveCount = async (row: StockDayRowDto, counted: number, reason: CountReason) => {
+    await mutationQueueRepo.enqueue({
+      kitchenId,
+      operation: 'stock.count',
+      payload: { resourceId: '', ingredient_id: row.ingredient_id, counted: String(counted), reason },
     });
-  }, [allItems, query, filter, inRecipesIds]);
+    setCounting(null);
+    setSnack(t('stockDay.countSaved', { name: row.name }));
+    try {
+      await flushPendingMutations(kitchenId);
+    } finally {
+      await qc.invalidateQueries({ queryKey: ['inventory'] });
+    }
+  };
 
-  async function handleSync() {
-    await sync();
-    void refetch();
-  }
+  const endOfDay = () => {
+    if (kitchen) void setFlags(kitchen.id, kitchenISODate(kitchen.timezone), { serviceEnded: true });
+    router.push('/(app)/(tabs)/requisition');
+  };
+
+  const levelStyle = (row: StockDayRowDto) =>
+    row.level === 'very_low'
+      ? { backgroundColor: tk.dangerTint, color: tk.danger }
+      : row.level === 'low'
+        ? { backgroundColor: tk.warningTint, color: tk.warningText }
+        : { backgroundColor: 'transparent', color: tk.text };
 
   return (
-    <View className="flex-1 bg-surface-50 dark:bg-surface-900" style={{ paddingTop: insets.top }}>
-      <View className="px-4 py-3 border-b border-surface-200 dark:border-surface-800 flex-row items-center justify-between">
-        <Text className="text-surface-900 dark:text-white text-lg font-bold">{t('stock.title')}</Text>
-        <View className="flex-row items-center gap-3">
-          {phase !== 'idle' && <SyncStatusBadge phase={phase} pendingCount={pendingCount} />}
-          <TouchableOpacity
-            onPress={handleSync}
-            disabled={phase === 'syncing'}
-            accessibilityLabel={t('stock.syncNow')}
-            hitSlop={8}
-          >
-            <RefreshCw
-              size={18}
-              color={phase === 'syncing' ? colors.info : colors.surface[400]}
-              strokeWidth={2}
-            />
-          </TouchableOpacity>
-          <Pressable
-            onPress={() => router.push('/(app)/ingredients/create' as never)}
-            accessibilityRole="button"
-            accessibilityLabel={t('stock.addIngredientLabel')}
-            hitSlop={8}
-          >
-            <Plus size={22} color={colors.brand[500]} strokeWidth={2.5} />
-          </Pressable>
+    <View style={[styles.root, { backgroundColor: tk.surface, paddingTop: insets.top }]}>
+      <View style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}>
+        <View style={styles.flex}>
+          <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
+            {t('stockDay.title')}
+          </Text>
+          <Text style={[styles.sub, { color: tk.textMuted }]}>{t('stockDay.subtitle')}</Text>
         </View>
-      </View>
-
-      <View className="px-4 pt-3 pb-0 gap-3">
-        <SearchInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('stock.searchPlaceholder')}
-        />
-        <View className="flex-row gap-2 pb-2">
-          {([
-            ['all', t('stock.filterAll'), allItems.length],
-            ['in_stock', t('stock.filterInStock'), allItems.length - outOfStockCount],
-            ['out_of_stock', t('stock.filterOutOfStock'), outOfStockCount],
-            ['in_recipes', t('stock.filterInRecipes'), inRecipesCount],
-          ] as [StockFilter, string, number][]).map(([key, label, count]) => (
-            <Pressable
-              key={key}
-              onPress={() => setFilter(key)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: filter === key }}
-              className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border ${filter === key ? 'bg-brand-500/10 border-brand-500/40' : 'bg-white dark:bg-surface-800 border-surface-200 dark:border-surface-700'}`}
-            >
-              <Text className={`text-xs font-semibold ${filter === key ? 'text-brand-600 dark:text-brand-300' : 'text-surface-600 dark:text-surface-400'}`}>{label}</Text>
-              <View className={`min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 ${filter === key ? 'bg-brand-500/20' : 'bg-surface-200 dark:bg-surface-700'}`}>
-                <Text className={`text-[10px] font-bold ${filter === key ? 'text-brand-600 dark:text-brand-300' : 'text-surface-500'}`}>{count}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {/* Smart Reorder strip — appears only when low-stock items need ordering */}
-      {reorderItems.length > 0 && (
-        <Pressable
-          onPress={() => router.push('/(app)/(tabs)/purchasing' as never)}
+        <AppPressable
+          onPress={() => setPickCount(true)}
+          disabled={rows.length === 0}
           accessibilityRole="button"
-          accessibilityLabel={t('stock.reorderTapHint', { count: reorderItems.length })}
-          className="mx-4 mb-2 rounded-xl overflow-hidden active:opacity-80"
+          accessibilityLabel={t('stockDay.count')}
+          style={({ pressed }) => [styles.countBtn, { borderColor: tk.border }, pressed && styles.pressed]}
         >
-          <View className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl px-4 py-3 gap-2">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <ShoppingCart size={14} color={colors.warning} strokeWidth={2} />
-                <Text className="text-amber-700 dark:text-amber-400 font-semibold text-sm">
-                  {t('stock.reorderNeed', { count: reorderItems.length })}
-                </Text>
-              </View>
-              <Text className="text-amber-600 dark:text-amber-500 text-xs font-medium">{t('stock.orderNow')}</Text>
-            </View>
-            <View className="gap-1">
-              {reorderItems.map((s) => (
-                <Text key={s.ingredient_id} className="text-amber-800 dark:text-amber-300 text-xs" numberOfLines={1}>
-                  {t('stock.reorderSuggest', { name: s.ingredient_name, qty: parseFloat(s.suggested_qty) % 1 === 0 ? Math.round(parseFloat(s.suggested_qty)) : parseFloat(s.suggested_qty).toFixed(1), unit: s.unit })}
-                </Text>
-              ))}
-            </View>
-          </View>
-        </Pressable>
-      )}
+          <Text style={[styles.countText, { color: tk.link }]}>{t('stockDay.count')}</Text>
+        </AppPressable>
+      </View>
 
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.brand[500]} />
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(i) => i.ingredient_id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 88, gap: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />}
-          renderItem={({ item }) => <StockRow item={item} />}
-          ListEmptyComponent={
-            query || filter !== 'all' ? (
-              <View className="items-center py-10 px-6 gap-2">
-                <Text className="text-surface-900 dark:text-white font-semibold text-base">
-                  {filter === 'out_of_stock' ? t('stock.emptyOutOfStockTitle') : filter === 'in_stock' ? t('stock.emptyInStockTitle') : filter === 'in_recipes' ? t('stock.emptyInRecipesTitle') : t('stock.emptySearchTitle')}
-                </Text>
-                <Text className="text-surface-500 text-sm text-center">
-                  {filter === 'out_of_stock' ? t('stock.emptyOutOfStockDesc') : filter === 'in_stock' ? t('stock.emptyInStockDesc') : filter === 'in_recipes' ? t('stock.emptyInRecipesDesc') : t('stock.emptySearchDesc')}
-                </Text>
-              </View>
-            ) : (
-              <View className="items-center py-10 px-6 gap-4">
-                <View className="w-16 h-16 rounded-full bg-brand-500/10 items-center justify-center">
-                  <Package size={28} color={colors.brand[500]} strokeWidth={1.75} />
-                </View>
-                <View className="items-center gap-1">
-                  <Text className="text-surface-900 dark:text-white font-semibold text-base">{t('stock.emptyTitle')}</Text>
-                  <Text className="text-surface-500 text-sm text-center">{t('stock.emptyDesc')}</Text>
-                </View>
-                <Pressable
-                  onPress={() => router.push('/(app)/ingredients/create' as never)}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void stock.refetch().finally(() => setRefreshing(false));
+            }}
+            tintColor={tk.primary}
+            colors={[tk.primary]}
+          />
+        }
+      >
+        {stock.isError && !stock.data ? <Text style={[styles.error, { color: tk.danger }]}>{t('stockDay.loadError')}</Text> : null}
+        {stock.data && rows.length === 0 ? (
+          <EmptyState Icon={Box} title={t('stockDay.emptyTitle')} description={t('stockDay.emptyBody')} />
+        ) : null}
+        {rows.length > 0 ? (
+          <View style={[styles.table, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}>
+            <View style={[styles.row, styles.headRow, { borderBottomColor: tk.border }]}>
+              <Text style={[styles.item, styles.th, { color: tk.textMuted }]}>{t('stockDay.colItem')}</Text>
+              <Text style={[styles.num, styles.th, { color: tk.textMuted }]}>{t('stockDay.colStart')}</Text>
+              <Text style={[styles.num, styles.th, { color: tk.textMuted }]}>{t('stockDay.colIn')}</Text>
+              <Text style={[styles.num, styles.th, { color: tk.textMuted }]}>{t('stockDay.colUsed')}</Text>
+              <Text style={[styles.num, styles.th, { color: tk.textMuted }]}>{t('stockDay.colLeft')}</Text>
+            </View>
+            {rows.map((row, i) => {
+              const lvl = levelStyle(row);
+              const received = Number(row.received);
+              const used = Number(row.used);
+              return (
+                <AppPressable
+                  key={row.ingredient_id}
+                  onPress={() => setUsedBy(row)}
                   accessibilityRole="button"
-                  accessibilityLabel={t('stock.addFirstIngredientLabel')}
-                  className="bg-brand-500 rounded-xl px-6 py-3 flex-row items-center gap-2 active:opacity-80"
+                  accessibilityLabel={t('stockDay.rowLabel', {
+                    name: row.name,
+                    unit: row.unit,
+                    start: q(row.start),
+                    received: q(received),
+                    used: q(used),
+                    left: q(row.left),
+                    level: t(`stockDay.level.${row.level}`),
+                  })}
+                  style={({ pressed }) => [styles.row, i < rows.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: tk.border }, pressed && styles.pressed]}
                 >
-                  <Plus size={16} color={colors.white} strokeWidth={2.5} />
-                  <Text className="text-white font-semibold text-sm">{t('stock.addIngredient')}</Text>
-                </Pressable>
-                <Text className="text-surface-400 text-xs text-center">{t('stock.aiHint')}</Text>
-              </View>
-            )
-          }
-        />
-      )}
+                  <Text style={[styles.item, styles.name, { color: tk.text }]}>
+                    {row.name} <Text style={[styles.unit, { color: tk.textMuted }]}>{row.unit}</Text>
+                  </Text>
+                  <Text style={[styles.num, { color: tk.text }]}>{q(row.start)}</Text>
+                  <Text style={[styles.num, { color: received > 0 ? tk.link : tk.textMuted }]}>{received > 0 ? `+${q(received)}` : '—'}</Text>
+                  <Text style={[styles.num, { color: tk.textMuted }]}>{used > 0 ? `−${q(used)}` : used < 0 ? `+${q(-used)}` : '—'}</Text>
+                  <View style={styles.num}>
+                    <Text style={[styles.left, { backgroundColor: lvl.backgroundColor, color: lvl.color }]}>{q(row.left)}</Text>
+                  </View>
+                </AppPressable>
+              );
+            })}
+          </View>
+        ) : null}
+        {rows.length > 0 ? (
+          <View style={[styles.note, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}>
+            <Text style={[styles.noteText, { color: tk.textMuted }]}>{t('stockDay.note')}</Text>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View style={[styles.footer, { backgroundColor: tk.surfaceRaised, borderTopColor: tk.border }]}>
+        <AppButton label={t('stockDay.endOfDay')} size="lg" onPress={endOfDay} />
+      </View>
+
+      <CountPicker rows={rows} visible={pickCount} onClose={() => setPickCount(false)} onPick={(r) => { setPickCount(false); setCounting(r); }} />
+      <CountSheet row={counting} onClose={() => setCounting(null)} onSave={(row, n, reason) => void saveCount(row, n, reason)} />
+      <UsedBySheet row={usedBy} kitchenId={kitchenId} onClose={() => setUsedBy(null)} />
+      <Snackbar visible={Boolean(snack)} message={snack ?? ''} onDismiss={() => setSnack(null)} />
     </View>
   );
 }
 
-function StockRow({ item }: { item: StockLevelDto }) {
+function SheetFrame({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: ReactNode }) {
   const { t } = useTranslation();
-  const days = item.days_cover != null ? parseFloat(item.days_cover) : Infinity;
-  const dailyUse = item.expected_daily_use != null ? parseFloat(item.expected_daily_use) : null;
-  const stock = parseFloat(item.current_stock);
-  const isOut = stock === 0;
-  const isLow = !isOut && item.is_low_stock;
-  const isInRecipe = dailyUse != null && dailyUse > 0;
-  const coverLabel = isFinite(days) ? t('stock.daysCoverLabel', { days: days.toFixed(1) }) : t('stock.unlimitedCover');
-  const stockDisplay = stock % 1 === 0 ? Math.round(stock) : parseFloat(stock.toFixed(2).replace(/\.?0+$/, ''));
+  const tk = useTheme();
   return (
-    <Pressable
-      onPress={() => router.push(`/(app)/ingredients/${item.ingredient_id}` as never)}
-      accessibilityRole="button"
-      accessibilityLabel={t('stock.accessibilityRow', { name: item.ingredient_name, stock: stockDisplay, unit: item.unit, cover: coverLabel })}
-      className={`rounded-xl p-4 flex-row items-center justify-between active:opacity-70 ${isOut ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50' : isLow ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-transparent'}`}
-    >
-      <View className="flex-1 mr-3">
-        <View className="flex-row items-center gap-2 flex-wrap">
-          <Text className="text-surface-900 dark:text-white font-medium">{item.ingredient_name}</Text>
-          {isOut && (
-            <View className="bg-red-100 dark:bg-red-900/40 rounded px-1.5 py-0.5">
-              <Text className="text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wide">{t('stock.outOfStock')}</Text>
-            </View>
-          )}
-          {isLow && !isOut && (
-            <View className="bg-amber-100 dark:bg-amber-900/40 rounded px-1.5 py-0.5">
-              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">{t('stock.lowStock')}</Text>
-            </View>
-          )}
-          {isInRecipe && (
-            <View className="bg-brand-500/10 rounded px-1.5 py-0.5 flex-row items-center gap-0.5">
-              <Utensils size={8} color={colors.brand[500]} strokeWidth={2.5} />
-              <Text className="text-brand-600 dark:text-brand-300 text-[10px] font-bold uppercase tracking-wide">{t('stock.inRecipe')}</Text>
-            </View>
-          )}
-        </View>
-        <Text className={`text-sm mt-0.5 ${isOut ? 'text-red-500 dark:text-red-400' : isLow ? 'text-amber-600 dark:text-amber-400' : 'text-surface-600 dark:text-surface-400'}`}>
-          {isOut
-            ? t('stock.noStockReorder')
-            : t('stock.onHand', { qty: stockDisplay, unit: item.unit })}
-          {!isOut && dailyUse != null && dailyUse > 0 ? ` · ${t('stock.dailyUseRate', { qty: dailyUse % 1 === 0 ? Math.round(dailyUse) : dailyUse.toFixed(1), unit: item.unit })}` : ''}
-        </Text>
-      </View>
-      <StockIndicator daysOfCover={days} />
-    </Pressable>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={[styles.backdrop, { backgroundColor: tk.overlay }]} onPress={onClose} accessibilityLabel={t('common.close')} />
+      <View style={[styles.sheet, { backgroundColor: tk.surfaceRaised }]}>{children}</View>
+    </Modal>
   );
 }
+
+function CountPicker({ rows, visible, onClose, onPick }: { rows: StockDayRowDto[]; visible: boolean; onClose: () => void; onPick: (r: StockDayRowDto) => void }) {
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
+  return (
+    <SheetFrame visible={visible} onClose={onClose}>
+      <Text style={[styles.sheetTitle, { color: tk.text }]} accessibilityRole="header">
+        {t('stockDay.countWhat')}
+      </Text>
+      <ScrollView style={styles.pickList}>
+        {rows.map((r) => (
+          <AppPressable
+            key={r.ingredient_id}
+            onPress={() => onPick(r)}
+            accessibilityRole="button"
+            accessibilityLabel={t('stockDay.countNamed', { name: r.name })}
+            style={({ pressed }) => [styles.pickRow, { borderBottomColor: tk.border }, pressed && styles.pressed]}
+          >
+            <Text style={[styles.name, { color: tk.text }]}>{r.name}</Text>
+            <Text style={[styles.sub, { color: tk.textMuted }]}>
+              {t('stockDay.expected', { qty: formatQuantity(r.left, i18n.language), unit: r.unit })}
+            </Text>
+          </AppPressable>
+        ))}
+      </ScrollView>
+    </SheetFrame>
+  );
+}
+
+function CountSheet({
+  row,
+  onClose,
+  onSave,
+}: {
+  row: StockDayRowDto | null;
+  onClose: () => void;
+  onSave: (row: StockDayRowDto, counted: number, reason: CountReason) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
+  const [text, setText] = useState('');
+  const [reason, setReason] = useState<CountReason>('waste');
+  if (!row) return null;
+  const counted = Number(text.replace(',', '.'));
+  const valid = text.trim() !== '' && Number.isFinite(counted) && counted >= 0;
+  const diff = valid ? countDifference(Number(row.left), counted) : null;
+  return (
+    <SheetFrame visible onClose={onClose}>
+      <Text style={[styles.sheetTitle, { color: tk.text }]} accessibilityRole="header">
+        {t('stockDay.countTitle', { name: row.name })}
+      </Text>
+      <Text style={[styles.sub, { color: tk.textMuted }]}>
+        {t('stockDay.expected', { qty: formatQuantity(row.left, i18n.language), unit: row.unit })}
+      </Text>
+      <View style={styles.countRow}>
+        <TextInput
+          value={text}
+          onChangeText={(v) => setText(v.replace(/[^0-9.,]/g, ''))}
+          keyboardType="decimal-pad"
+          autoFocus
+          placeholder="0"
+          placeholderTextColor={tk.placeholder}
+          accessibilityLabel={t('stockDay.countedLabel', { name: row.name, unit: row.unit })}
+          style={[styles.countInput, { color: tk.text, borderColor: tk.border }]}
+        />
+        <Text style={[styles.name, { color: tk.textMuted }]}>{row.unit}</Text>
+      </View>
+      {diff !== null && diff !== 0 ? (
+        <Text style={[styles.sub, { color: diff < 0 ? tk.danger : tk.link }]}>
+          {t('stockDay.difference', { diff: `${diff > 0 ? '+' : '−'}${formatQuantity(Math.abs(diff), i18n.language)}`, unit: row.unit })}
+        </Text>
+      ) : null}
+      {diff !== null && diff !== 0 ? (
+        <View style={styles.reasons}>
+          {REASONS.map((r) => (
+            <SelectableChip key={r} label={t(`stockDay.reasons.${r}`)} selected={reason === r} onPress={() => setReason(r)} />
+          ))}
+        </View>
+      ) : null}
+      <AppButton label={t('stockDay.saveCount')} size="lg" disabled={!valid} onPress={() => onSave(row, counted, diff === 0 ? 'error' : reason)} />
+    </SheetFrame>
+  );
+}
+
+function UsedBySheet({ row, kitchenId, onClose }: { row: StockDayRowDto | null; kitchenId: string; onClose: () => void }) {
+  const { t, i18n } = useTranslation();
+  const tk = useTheme();
+  const used = useQuery({
+    queryKey: ['inventory', 'used-by', kitchenId, row?.ingredient_id ?? ''],
+    queryFn: () => getUsedBy(kitchenId, row?.ingredient_id ?? ''),
+    enabled: Boolean(row && kitchenId),
+  });
+  if (!row) return null;
+  return (
+    <SheetFrame visible onClose={onClose}>
+      <Text style={[styles.sheetTitle, { color: tk.text }]} accessibilityRole="header">
+        {t('stockDay.usedByTitle', { name: row.name })}
+      </Text>
+      {used.isLoading ? <Text style={[styles.sub, { color: tk.textMuted }]}>{t('common.loading')}</Text> : null}
+      {used.isError ? <Text style={[styles.sub, { color: tk.danger }]}>{t('stockDay.loadError')}</Text> : null}
+      {used.data && used.data.length === 0 ? <Text style={[styles.sub, { color: tk.textMuted }]}>{t('stockDay.usedByNone')}</Text> : null}
+      {(used.data ?? []).map((u) => (
+        <View key={u.menu_item_id} style={[styles.pickRow, { borderBottomColor: tk.border }]}>
+          <Text style={[styles.name, { color: tk.text }]}>{u.dish_name}</Text>
+          <Text style={[styles.sub, { color: tk.textMuted }]}>
+            {t('stockDay.usedByRow', { portions: u.portions, qty: formatQuantity(u.quantity, i18n.language), unit: row.unit })}
+          </Text>
+        </View>
+      ))}
+    </SheetFrame>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.75 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
+  title: { fontSize: fontSize['3xl'], fontWeight: fontWeight.bold },
+  sub: { fontSize: fontSize.sm },
+  countBtn: { minHeight: MIN_TOUCH_SIZE + 4, paddingHorizontal: spacing.md + 4, borderRadius: radius.full, borderWidth: 1.5, justifyContent: 'center' },
+  countText: { fontSize: fontSize.base, fontWeight: fontWeight.bold },
+  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] },
+  table: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: MIN_TOUCH_SIZE + 16, paddingHorizontal: spacing.md },
+  headRow: { minHeight: MIN_TOUCH_SIZE, borderBottomWidth: StyleSheet.hairlineWidth },
+  th: { fontSize: fontSize.xs + 1, fontWeight: fontWeight.bold, letterSpacing: 1 },
+  item: { flex: 2.2 },
+  name: { fontSize: fontSize.base, fontWeight: fontWeight.bold },
+  unit: { fontWeight: fontWeight.regular },
+  num: { flex: 1, textAlign: 'right', alignItems: 'flex-end', fontSize: fontSize.base },
+  left: { fontSize: fontSize.base, fontWeight: fontWeight.bold, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.full, overflow: 'hidden' },
+  note: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, padding: spacing.md },
+  noteText: { fontSize: fontSize.base },
+  footer: { padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  error: { fontSize: fontSize.sm, textAlign: 'center' },
+  backdrop: { flex: 1 },
+  sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md, maxHeight: '75%' },
+  sheetTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.bold },
+  pickList: { maxHeight: 420 },
+  pickRow: { minHeight: MIN_TOUCH_SIZE + 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth },
+  countRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  countInput: { flex: 1, minHeight: MIN_TOUCH_SIZE + 12, borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: fontSize['2xl'], fontWeight: fontWeight.bold },
+  reasons: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+});

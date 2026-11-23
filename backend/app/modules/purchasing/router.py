@@ -10,6 +10,7 @@ from app.modules.authentication.dependencies import get_current_chef
 from app.modules.chefs.models import Chef
 from app.modules.kitchens.service import KitchenService
 from app.modules.purchasing.schemas import PurchaseSuggestionsResponse
+from app.modules.purchasing.requisition import RequisitionResponse, RequisitionService
 from app.modules.purchasing.service import PurchasingService
 
 router = APIRouter(prefix="/kitchens/{kitchen_id}/purchasing", tags=["purchasing"])
@@ -31,3 +32,13 @@ async def get_purchase_suggestions(
 ) -> PurchaseSuggestionsResponse:
     svc = PurchasingService(db)
     return await svc.get_suggestions(kitchen)
+
+
+@router.get("/requisition", response_model=RequisitionResponse)
+async def get_suggested_requisition(
+    kitchen=Depends(_get_kitchen),
+    db: AsyncSession = Depends(get_db),
+) -> RequisitionResponse:
+    """Phase 9 (screen 11): tomorrow's suggested requisition with the spec's formula
+    (last 7 same weekdays, declined shortages, rounded up to the pack size)."""
+    return await RequisitionService(db).suggested(kitchen)

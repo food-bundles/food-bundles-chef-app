@@ -125,5 +125,42 @@
     "costCurrencyLabel": "Cost currency",
     "costCurrencyHint": "Keep the currency your supplier charges in. Food cost converts it at the day's rate.",
     "costCurrencyOff": "Currency conversion is not available for this kitchen yet, so this cost is left out of food cost."
+  },
+  "stockDay": {
+    "title": "Today's stock",
+    "subtitle": "Updates with every delivery and command",
+    "count": "Count",
+    "loadError": "Couldn't load today's stock. Pull down to try again.",
+    "emptyTitle": "No ingredients yet",
+    "emptyBody": "Ingredients appear here once your dishes have recipes.",
+    "colItem": "Item",
+    "colStart": "Start",
+    "colIn": "In",
+    "colUsed": "Used",
+    "colLeft": "Left",
+    "rowLabel": "{{name}} in {{unit}}: start {{start}}, in {{received}}, used {{used}}, left {{left}}, {{level}}. Tap to see which dishes used it.",
+    "level": {
+      "ok": "enough",
+      "low": "low",
+      "very_low": "very low"
+    },
+    "note": "Used = served and cooking commands × recipe. Tap an item to see which dishes used it. Use Count to correct after a physical check.",
+    "endOfDay": "End of day · Make requisition",
+    "countSaved": "{{name}} counted",
+    "countWhat": "What did you count?",
+    "countNamed": "Count {{name}}",
+    "expected": "Expected {{qty}} {{unit}}",
+    "countTitle": "Count {{name}}",
+    "countedLabel": "Counted quantity of {{name}}, in {{unit}}",
+    "difference": "Difference: {{diff}} {{unit}}. Why?",
+    "reasons": {
+      "waste": "Waste",
+      "spoilage": "Spoilage",
+      "error": "Error"
+    },
+    "saveCount": "Save count",
+    "usedByTitle": "{{name}} used today",
+    "usedByNone": "No dish has used it today.",
+    "usedByRow": "{{portions}} portions · {{qty}} {{unit}}"
   }
 }

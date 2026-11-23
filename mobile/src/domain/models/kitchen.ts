@@ -24,4 +24,7 @@ export interface Kitchen {
    * Off outside the enabled countries until a licensed rate source is confirmed.
    */
   conversionEnabled: boolean;
+  /** Service hours, "HH:MM" in the kitchen's time zone (Home's state; default 11:00–22:00). */
+  openingTime: string;
+  closingTime: string;
 }

@@ -13,6 +13,7 @@ import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useUpdateKitchen, useArchiveKitchen } from '@/features/kitchens/useKitchens';
 import { kitchenSchema, type KitchenFormValues } from '@/features/kitchens/kitchen-schema';
+import { DEFAULT_CLOSING_TIME, DEFAULT_OPENING_TIME } from '@/store/kitchen-store';
 import { KitchenFormFields } from '@/features/kitchens/KitchenFormFields';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, radius, spacing } from '@/lib/theme';
@@ -38,6 +39,8 @@ export default function KitchenDetailScreen() {
       country: kitchen?.country ?? '',
       currency: kitchen?.currency ?? '',
       timezone: kitchen?.timezone ?? '',
+      openingTime: kitchen?.openingTime ?? DEFAULT_OPENING_TIME,
+      closingTime: kitchen?.closingTime ?? DEFAULT_CLOSING_TIME,
     },
   });
 
@@ -83,6 +86,8 @@ export default function KitchenDetailScreen() {
           location: values.cuisineType || null,
           country: values.country,
           timezone: values.timezone,
+          opening_time: values.openingTime,
+          closing_time: values.closingTime,
         },
       });
       router.back();

@@ -38,6 +38,8 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default=OrderStatus.DRAFT)
     delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
+    # Phase 9 (screen 12): how the requisition is bought: pay | restaurant | whatsapp.
+    route: Mapped[str | None] = mapped_column(String(12))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

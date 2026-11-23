@@ -17,7 +17,10 @@ type BackendOperationType =
   | 'update_menu_item'
   | 'add_recipe_line'
   | 'update_recipe_line'
-  | 'delete_recipe_line';
+  | 'delete_recipe_line'
+  | 'create_command'
+  | 'command_action'
+  | 'count_stock';
 
 // ── Operation name mapping ────────────────────────────────────────────────────
 // Mobile local names (dot-notation) → backend names (snake_case).
@@ -34,6 +37,9 @@ const OPERATION_MAP: Partial<Record<MutationOperation, BackendOperationType>> = 
   'order.cancel':              'cancel_order',
   'delivery.start':            'start_delivery',
   'delivery.complete':         'receive_delivery',
+  'command.create':            'create_command',
+  'command.action':            'command_action',
+  'stock.count':               'count_stock',
 };
 
 // Operations that have no backend handler.

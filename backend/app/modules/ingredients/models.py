@@ -56,6 +56,14 @@ class Ingredient(Base):
     # safety_buffer_fraction: override per ingredient (null → use SAFETY_BUFFER_FRACTION)
     safety_buffer_fraction: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Phase 9: the Food Bundles catalogue product this ingredient is. Its cost follows the
+    # catalogue price ("every price is the Food Bundles price"). Null = custom ingredient.
+    catalog_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("catalog_products.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

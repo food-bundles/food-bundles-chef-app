@@ -25,7 +25,7 @@ interface QueueCounts {
 }
 
 /** Attempt a fetch to the backend base URL to check connectivity. */
-async function isReachable(): Promise<boolean> {
+export async function isReachable(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE_URL}/health`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
     return res.ok || res.status < 500;

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.shared.enums import KitchenStatus
 from app.shared.geo import is_timezone, normalise_country
@@ -25,6 +25,12 @@ def _country(value: str | None) -> str | None:
     return None if value is None else normalise_country(value)
 
 
+def check_service_hours(opening: time, closing: time) -> None:
+    """Closing must be after opening on the same day."""
+    if closing <= opening:
+        raise ValueError("closing_time must be after opening_time")
+
+
 class KitchenCreateRequest(BaseModel):
     """Currency, time zone and country are required: no country's defaults are assumed."""
 
@@ -35,6 +41,13 @@ class KitchenCreateRequest(BaseModel):
     currency: str = Field(..., min_length=3, max_length=3, description="ISO 4217, e.g. RWF, EUR")
     timezone: str = Field(..., max_length=50, description="IANA zone, e.g. Africa/Kigali")
     country: str = Field(..., min_length=2, max_length=2, description="ISO 3166-1 alpha-2")
+    opening_time: time = Field(time(11, 0), description="Service opens, kitchen time zone")
+    closing_time: time = Field(time(22, 0), description="Service closes, same day")
+
+    @model_validator(mode="after")
+    def _check_hours(self) -> KitchenCreateRequest:
+        check_service_hours(self.opening_time, self.closing_time)
+        return self
 
     @field_validator("currency")
     @classmethod
@@ -63,6 +76,8 @@ class KitchenUpdateRequest(BaseModel):
     country: str | None = Field(None, min_length=2, max_length=2)
     # Step for suggested selling prices (major units); 0 clears it (currency default).
     price_step: Decimal | None = Field(None, ge=0)
+    opening_time: time | None = None
+    closing_time: time | None = None
 
     @field_validator("currency")
     @classmethod
@@ -95,6 +110,8 @@ class KitchenResponse(BaseModel):
     catalog_available: bool
     conversion_enabled: bool = False
     price_step: Decimal | None = None
+    opening_time: time
+    closing_time: time
     status: KitchenStatus
     created_at: datetime
     updated_at: datetime

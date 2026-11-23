@@ -11,7 +11,11 @@ export type MutationOperation =
   | 'order.cancel'
   | 'delivery.start'
   | 'delivery.complete'
-  | 'delivery.update_line_item';
+  | 'delivery.update_line_item'
+  // Phase 9: commands and counts work offline during service.
+  | 'command.create'
+  | 'command.action'
+  | 'stock.count';
 
 export interface QueuedMutation {
   id: string;

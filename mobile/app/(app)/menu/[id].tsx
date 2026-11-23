@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Utensils, Plus, Trash2, TrendingUp, AlertTriangle, TrendingDown } from 'lucide-react-native';
+import { Utensils, Plus, Trash2, AlertTriangle, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { AppScreen, AppHeader } from '@/components/ui/AppScreen';
@@ -317,16 +317,6 @@ export default function MenuItemDetailScreen() {
           </View>
         )}
 
-        <View style={[card, { overflow: 'hidden' }]}>
-          <ListRow
-            icon={<TrendingUp size={18} color={tk.link} strokeWidth={2} />}
-            iconBg={tk.primaryTint}
-            title={t('menuItem.recordSale')}
-            subtitle={t('menuItem.recordSaleSub')}
-            onPress={() => router.push('/(app)/sales/entry' as never)}
-            separator={false}
-          />
-        </View>
       </ScrollView>
 
       <AddToRecipeSheet

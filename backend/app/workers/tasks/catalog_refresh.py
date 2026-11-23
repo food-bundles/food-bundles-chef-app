@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionFactory
 from app.modules.catalog.models import CatalogProduct
 from app.modules.catalog.repository import CatalogRepository
+from app.modules.ingredients.service import sync_catalog_prices
 
 logger = structlog.get_logger(__name__)
 
@@ -52,7 +53,8 @@ async def refresh_catalog(ctx: dict) -> None:  # type: ignore[type-arg]
                     description=item.get("description"),
                     is_active=item.get("is_active", True),
                 )
-                await repo.upsert_by_sku(product)
+                saved = await repo.upsert_by_sku(product)
+                await sync_catalog_prices(db, saved)
                 upserted += 1
             except Exception:
                 logger.exception("catalog_upsert_failed", sku=item.get("sku"))

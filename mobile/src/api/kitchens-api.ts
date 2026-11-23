@@ -14,6 +14,9 @@ export interface KitchenCreateBody {
   timezone: string;
   /** ISO 3166-1 alpha-2. */
   country: string;
+  /** "HH:MM"; the server defaults to 11:00–22:00. */
+  opening_time?: string;
+  closing_time?: string;
 }
 
 export interface KitchenUpdateBody {
@@ -27,6 +30,9 @@ export interface KitchenUpdateBody {
   country?: string | null;
   /** Step for suggested prices; "0" clears it. */
   price_step?: string | null;
+  /** "HH:MM", closing after opening on the same day. */
+  opening_time?: string | null;
+  closing_time?: string | null;
 }
 
 export interface KitchenDto {
@@ -45,6 +51,9 @@ export interface KitchenDto {
   conversion_enabled?: boolean;
   /** Step for suggested selling prices (major units); null = the currency's default. */
   price_step: string | null;
+  /** "HH:MM:SS"; older servers omit them (the app then uses 11:00–22:00). */
+  opening_time?: string;
+  closing_time?: string;
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;

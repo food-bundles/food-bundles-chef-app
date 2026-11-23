@@ -16,6 +16,14 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="menu/index" />
+      <Stack.Screen name="menu/dish" />
+      <Stack.Screen name="commands/new" />
+      <Stack.Screen name="commands/saved" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="staff" />
+      <Stack.Screen name="requisition/send" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="agent" />
       <Stack.Screen name="kitchens/index" />
       <Stack.Screen name="kitchens/create" />
       <Stack.Screen name="kitchens/[kitchenId]" />

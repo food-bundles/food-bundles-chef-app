@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import type { Kitchen } from '@/domain/models/kitchen';
 import type { KitchenDto } from '@/api/kitchens-api';
 
+/** The spec's sample service hours, used when the server sends none. */
+export const DEFAULT_OPENING_TIME = '11:00';
+export const DEFAULT_CLOSING_TIME = '22:00';
+
 function dtoToKitchen(dto: KitchenDto): Kitchen {
   return {
     id: dto.id,
@@ -17,6 +21,8 @@ function dtoToKitchen(dto: KitchenDto): Kitchen {
     country: dto.country,
     catalogAvailable: dto.catalog_available,
     conversionEnabled: dto.conversion_enabled ?? false,
+    openingTime: (dto.opening_time ?? DEFAULT_OPENING_TIME).slice(0, 5),
+    closingTime: (dto.closing_time ?? DEFAULT_CLOSING_TIME).slice(0, 5),
   };
 }
 

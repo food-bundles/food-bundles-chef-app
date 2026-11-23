@@ -26,12 +26,12 @@ export function FloatingAIButton({ bottomOffset = 72 }: FloatingAIButtonProps) {
   }, []);
 
   // Hide on agent screen itself and while keyboard is open (D2)
-  const isAgentScreen = pathname === '/(app)/(tabs)/agent' || pathname.includes('/agent');
+  const isAgentScreen = pathname === '/(app)/agent' || pathname.includes('/agent');
   if (isAgentScreen || keyboardVisible) return null;
 
-  const openAssistant = () => router.push('/(app)/(tabs)/agent');
+  const openAssistant = () => router.push('/(app)/agent');
   // Hands-busy shortcut: long-press goes straight to push-to-talk.
-  const openVoice = () => router.push({ pathname: '/(app)/(tabs)/agent', params: { voice: '1' } });
+  const openVoice = () => router.push({ pathname: '/(app)/agent', params: { voice: '1' } });
 
   return (
     <AppPressable

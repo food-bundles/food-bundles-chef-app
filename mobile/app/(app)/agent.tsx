@@ -10,12 +10,12 @@ import {
   View,
   type TextInput,
 } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import { Bot, MessageSquarePlus, Mic, Paperclip, Send, Square, X, type LucideIcon } from 'lucide-react-native';
+import { Bot, ChevronLeft, MessageSquarePlus, Mic, Paperclip, Send, Square, X, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppPressable } from '@/components/ui/AppPressable';
@@ -51,6 +51,7 @@ import { getSpokenReplies } from '@/features/ai/consent';
 import { speakReply, stopSpeaking } from '@/features/ai/speak';
 import { useVoiceInput, voiceAvailability, type VoiceState } from '@/features/ai/useVoiceInput';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { FEATURES } from '@/constants/features';
 import { ApiError } from '@/api/errors';
 import { toAppLanguage } from '@/lib/format';
 import { fontSize, fontWeight, radius, spacing } from '@/lib/theme';
@@ -132,7 +133,13 @@ function cachedImage(uri: string): PreparedImage {
 
 type ClarificationEntry = Extract<ChatEntry, { type: 'clarification' }>;
 
-export default function AgentScreen() {
+/** Not in the Food Bundles UX spec: reachable from Profile only when FEATURES.assistant is on. */
+export default function AgentRoute() {
+  if (!FEATURES.assistant) return <Redirect href="/(app)/profile" />;
+  return <AgentScreen />;
+}
+
+function AgentScreen() {
   const { t, i18n } = useTranslation();
   const tokens = useTheme();
   const insets = useSafeAreaInsets();
@@ -433,7 +440,7 @@ export default function AgentScreen() {
 
   const openRoute = (row: RouteEntry) => {
     if (!row.imageUri) return;
-    if (row.kind === 'menu') router.push({ pathname: '/(app)/(tabs)/menu', params: { scanPhotoUri: row.imageUri } });
+    if (row.kind === 'menu') router.push({ pathname: '/(app)/menu', params: { scanPhotoUri: row.imageUri } });
     if (row.kind === 'dish') router.push({ pathname: '/(app)/menu/create-item', params: { photoUri: row.imageUri } });
     if (row.kind === 'receipt' || row.kind === 'delivery_note') {
       router.push({ pathname: '/(app)/receiving/quick', params: { photoUri: row.imageUri } });
@@ -708,6 +715,7 @@ export default function AgentScreen() {
           { paddingTop: insets.top + spacing.sm, backgroundColor: tokens.surfaceRaised, borderBottomColor: tokens.border },
         ]}
       >
+        <IconButton Icon={ChevronLeft} label={t('common.back')} onPress={() => router.back()} />
         <View style={[styles.headerIcon, { backgroundColor: tokens.primaryTint }]}>
           <Bot size={20} color={tokens.onPrimaryTint} />
         </View>
