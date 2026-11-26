@@ -32,6 +32,10 @@ export interface ChefProfile {
   name: string | null;
   email: string | null;
   preferred_locale: string;
+  country: string | null;
+  tin: string | null;
+  restaurant_id: string | null;
+  restaurant_name: string | null;
   expo_push_token: string | null;
   created_at: string;
   updated_at: string;
@@ -45,6 +49,10 @@ export interface ProfileUpdateBody {
   name?: string | null;
   email?: string | null;
   preferred_locale?: string | null;
+  country?: string | null;
+  tin?: string | null;
+  restaurant_id?: string | null;
+  restaurant_name?: string | null;
 }
 
 // ── API calls ───────────────────────────────────────────────────────────────
