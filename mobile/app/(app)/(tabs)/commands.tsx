@@ -3,9 +3,9 @@
  * counter line, NEW · WAITING FOR YOU cards with their stock check (Accept / Decline), and the
  * COOKING section with Served (Dine-in) or Handed (To go). Undo for 5 s after each action.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { FileText, Plus } from 'lucide-react-native';
@@ -26,31 +26,82 @@ import {
 import { allocatePortions, filterCounts } from '@/features/commands/command-list';
 import { CookingRow, NewCommandCard } from '@/features/commands/CommandCard';
 import { DeclineSheet } from '@/features/commands/DeclineSheet';
-import { doneStatus, formatCommandNo, type CommandType } from '@/domain/rules/commands';
+import {
+  doneStatus,
+  formatCommandNo,
+  type CommandType,
+  type CommandStatus,
+} from '@/domain/rules/commands';
 import type { CommandDto } from '@/api/commands-api';
 import { UNDO_SECONDS } from '@/features/receiving/receive-queue';
+import { formatMoney } from '@/lib/money';
 
 type Filter = 'all' | CommandType;
+type StatusFilter = 'all' | CommandStatus;
 
 export default function CommandsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tk = useTheme();
   const insets = useSafeAreaInsets();
   const qc = useCommandsClient();
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
   const today = useCommandsToday();
-  // Initialize filter state - when status filtering is supported, read from route params
+  const params = useLocalSearchParams<{ filterStatus?: string }>();
+
   const [filter, setFilter] = useState<Filter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [declining, setDeclining] = useState<CommandDto | null>(null);
   const [pending, setPending] = useState<{ action: PendingAction; message: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Apply status filter from route params
+  useEffect(() => {
+    if (params.filterStatus) {
+      const status = params.filterStatus as CommandStatus;
+      const validStatuses: CommandStatus[] = [
+        'new',
+        'cooking',
+        'served',
+        'handed',
+        'declined',
+        'cancelled',
+      ];
+      if (validStatuses.includes(status)) {
+        setStatusFilter(status);
+      }
+    }
+  }, [params.filterStatus]);
+
   const commands = useMemo(() => today.data?.commands ?? [], [today.data]);
   const pills = filterCounts(commands);
-  const shown = commands.filter((c) => filter === 'all' || c.type === filter);
+
+  // Apply both type and status filters
+  const shown = commands.filter((c) => {
+    const typeMatch = filter === 'all' || c.type === filter;
+    const statusMatch = statusFilter === 'all' || c.status === statusFilter;
+    return typeMatch && statusMatch;
+  });
+
   const newOnes = shown.filter((c) => c.status === 'new').sort((a, b) => a.number - b.number);
   const cooking = shown.filter((c) => c.status === 'cooking').sort((a, b) => a.number - b.number);
   const counts = today.data?.counts;
+
+  // Calculate summary for status filter
+  const statusSummary = useMemo(() => {
+    if (statusFilter === 'all') return null;
+
+    const filtered = commands.filter((c) => c.status === statusFilter);
+    const count = filtered.length;
+    const total = filtered.reduce((sum, c) => {
+      const commandTotal = c.lines.reduce((lineSum, line) => {
+        return lineSum + Number(line.unit_price) * line.qty;
+      }, 0);
+      return sum + commandTotal;
+    }, 0);
+
+    const currency = filtered[0]?.lines[0]?.unit_price_currency ?? 'RWF';
+    return { count, total, currency };
+  }, [commands, statusFilter]);
 
   const act = async (command: CommandDto, run: () => Promise<PendingAction>, message: string) => {
     if (pending) clearTimeout(pending.action.timer);
@@ -166,6 +217,32 @@ export default function CommandsScreen() {
             <Text style={[styles.countNum, { color: tk.danger }]}>{counts.cancelled}</Text>{' '}
             {t('commands.countCancelled')}
           </Text>
+        ) : null}
+        {statusSummary ? (
+          <View
+            style={[
+              styles.statusSummary,
+              { backgroundColor: tk.primaryTint, borderColor: tk.border },
+            ]}
+          >
+            <Text style={[styles.summaryText, { color: tk.text }]}>
+              <Text style={[styles.summaryBold, { color: tk.text }]}>{statusSummary.count}</Text>{' '}
+              {t(`commands.status.${statusFilter}`, { count: statusSummary.count })} ·{' '}
+              <Text style={[styles.summaryBold, { color: tk.text }]}>
+                {formatMoney(statusSummary.total, statusSummary.currency, i18n.language)}
+              </Text>
+            </Text>
+            <AppPressable
+              onPress={() => setStatusFilter('all')}
+              accessibilityRole="button"
+              accessibilityLabel={t('commands.clearFilter')}
+              style={[styles.clearFilter, { backgroundColor: tk.surface }]}
+            >
+              <Text style={[styles.clearText, { color: tk.link }]}>
+                {t('commands.clearFilter')}
+              </Text>
+            </AppPressable>
+          </View>
         ) : null}
       </View>
 
@@ -283,6 +360,25 @@ const styles = StyleSheet.create({
   pills: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   counters: { fontSize: fontSize.base },
   countNum: { fontWeight: fontWeight.bold },
+  statusSummary: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  summaryText: { fontSize: fontSize.base, flex: 1 },
+  summaryBold: { fontWeight: fontWeight.bold },
+  clearFilter: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+  },
+  clearText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] },
   section: {
     fontSize: fontSize.sm,

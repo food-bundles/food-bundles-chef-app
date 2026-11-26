@@ -123,6 +123,7 @@
     "countCooking": "cooking",
     "countServed": "served",
     "countCancelled": "cancelled",
+    "clearFilter": "Clear filter",
     "loadError": "Couldn't load today's commands. Pull down to try again.",
     "newSection": "New · waiting for you",
     "cookingSection": "Cooking",
