@@ -39,6 +39,7 @@ export default function CommandsScreen() {
   const qc = useCommandsClient();
   const kitchenId = useKitchenStore((s) => s.activeKitchen?.id ?? '');
   const today = useCommandsToday();
+  // Initialize filter state - when status filtering is supported, read from route params
   const [filter, setFilter] = useState<Filter>('all');
   const [declining, setDeclining] = useState<CommandDto | null>(null);
   const [pending, setPending] = useState<{ action: PendingAction; message: string } | null>(null);
@@ -64,7 +65,10 @@ export default function CommandsScreen() {
         queueCommandAction(
           kitchenId,
           command.id,
-          { action: 'accept', ...(portions !== undefined ? { portions: allocatePortions(command, portions) } : {}) },
+          {
+            action: 'accept',
+            ...(portions !== undefined ? { portions: allocatePortions(command, portions) } : {}),
+          },
           'cooking',
           qc,
         ),
@@ -73,13 +77,27 @@ export default function CommandsScreen() {
   const decline = (command: CommandDto, addToRequisition: boolean) =>
     void act(
       command,
-      () => queueCommandAction(kitchenId, command.id, { action: 'decline', add_to_requisition: addToRequisition }, 'declined', qc),
+      () =>
+        queueCommandAction(
+          kitchenId,
+          command.id,
+          { action: 'decline', add_to_requisition: addToRequisition },
+          'declined',
+          qc,
+        ),
       'commands.declinedSnack',
     );
   const done = (command: CommandDto) =>
     void act(
       command,
-      () => queueCommandAction(kitchenId, command.id, { action: 'serve' }, doneStatus(command.type), qc),
+      () =>
+        queueCommandAction(
+          kitchenId,
+          command.id,
+          { action: 'serve' },
+          doneStatus(command.type),
+          qc,
+        ),
       command.type === 'to_go' ? 'commands.handedSnack' : 'commands.servedSnack',
     );
 
@@ -94,7 +112,9 @@ export default function CommandsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: tk.surface, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}>
+      <View
+        style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}
+      >
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
             {t('commands.title')}
@@ -103,49 +123,101 @@ export default function CommandsScreen() {
             onPress={() => router.push('/(app)/commands/new')}
             accessibilityRole="button"
             accessibilityLabel={t('commands.newCommand')}
-            style={({ pressed }) => [styles.newBtn, { backgroundColor: tk.primary }, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.newBtn,
+              { backgroundColor: tk.primary },
+              pressed && styles.pressed,
+            ]}
           >
             <Plus size={18} color={tk.onPrimary} strokeWidth={2.5} />
-            <Text style={[styles.newText, { color: tk.onPrimary }]}>{t('commands.newCommand')}</Text>
+            <Text style={[styles.newText, { color: tk.onPrimary }]}>
+              {t('commands.newCommand')}
+            </Text>
           </AppPressable>
         </View>
         <View style={styles.pills}>
-          <SelectableChip label={t('commands.filterAll', { count: pills.all })} selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <SelectableChip label={t('commands.filterDineIn', { count: pills.dine_in })} selected={filter === 'dine_in'} onPress={() => setFilter('dine_in')} />
-          <SelectableChip label={t('commands.filterToGo', { count: pills.to_go })} selected={filter === 'to_go'} onPress={() => setFilter('to_go')} />
+          <SelectableChip
+            label={t('commands.filterAll', { count: pills.all })}
+            selected={filter === 'all'}
+            onPress={() => setFilter('all')}
+          />
+          <SelectableChip
+            label={t('commands.filterDineIn', { count: pills.dine_in })}
+            selected={filter === 'dine_in'}
+            onPress={() => setFilter('dine_in')}
+          />
+          <SelectableChip
+            label={t('commands.filterToGo', { count: pills.to_go })}
+            selected={filter === 'to_go'}
+            onPress={() => setFilter('to_go')}
+          />
         </View>
         {counts ? (
           <Text style={[styles.counters, { color: tk.textMuted }]}>
-            <Text style={[styles.countNum, { color: tk.link }]}>{counts.new}</Text> {t('commands.countNew')}{'   '}
-            <Text style={[styles.countNum, { color: tk.text }]}>{counts.cooking}</Text> {t('commands.countCooking')}{'   '}
-            <Text style={[styles.countNum, { color: tk.text }]}>{counts.served}</Text> {t('commands.countServed')}{'   '}
-            <Text style={[styles.countNum, { color: tk.danger }]}>{counts.cancelled}</Text> {t('commands.countCancelled')}
+            <Text style={[styles.countNum, { color: tk.link }]}>{counts.new}</Text>{' '}
+            {t('commands.countNew')}
+            {'   '}
+            <Text style={[styles.countNum, { color: tk.text }]}>{counts.cooking}</Text>{' '}
+            {t('commands.countCooking')}
+            {'   '}
+            <Text style={[styles.countNum, { color: tk.text }]}>{counts.served}</Text>{' '}
+            {t('commands.countServed')}
+            {'   '}
+            <Text style={[styles.countNum, { color: tk.danger }]}>{counts.cancelled}</Text>{' '}
+            {t('commands.countCancelled')}
           </Text>
         ) : null}
       </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tk.primary} colors={[tk.primary]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={tk.primary}
+            colors={[tk.primary]}
+          />
+        }
       >
-        {today.isError && !today.data ? <Text style={[styles.error, { color: tk.danger }]}>{t('commands.loadError')}</Text> : null}
+        {today.isError && !today.data ? (
+          <Text style={[styles.error, { color: tk.danger }]}>{t('commands.loadError')}</Text>
+        ) : null}
         {newOnes.length === 0 && cooking.length === 0 && today.data ? (
-          <EmptyState Icon={FileText} title={t('commands.emptyTitle')} description={t('commands.emptyBody')} />
+          <EmptyState
+            Icon={FileText}
+            title={t('commands.emptyTitle')}
+            description={t('commands.emptyBody')}
+          />
         ) : null}
 
         {newOnes.length > 0 ? (
           <>
-            <Text style={[styles.section, { color: tk.textMuted }]}>{t('commands.newSection')}</Text>
+            <Text style={[styles.section, { color: tk.textMuted }]}>
+              {t('commands.newSection')}
+            </Text>
             {newOnes.map((c) => (
-              <NewCommandCard key={c.id} command={c} onAccept={() => accept(c)} onDecline={() => setDeclining(c)} />
+              <NewCommandCard
+                key={c.id}
+                command={c}
+                onAccept={() => accept(c)}
+                onDecline={() => setDeclining(c)}
+              />
             ))}
           </>
         ) : null}
 
         {cooking.length > 0 ? (
           <>
-            <Text style={[styles.section, { color: tk.textMuted }]}>{t('commands.cookingSection')}</Text>
-            <View style={[styles.cookCard, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}>
+            <Text style={[styles.section, { color: tk.textMuted }]}>
+              {t('commands.cookingSection')}
+            </Text>
+            <View
+              style={[
+                styles.cookCard,
+                { backgroundColor: tk.surfaceRaised, borderColor: tk.border },
+              ]}
+            >
               {cooking.map((c) => (
                 <CookingRow key={c.id} command={c} onDone={() => done(c)} />
               ))}
@@ -185,16 +257,43 @@ export default function CommandsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   pressed: { opacity: 0.8 },
-  header: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm + 4, gap: spacing.sm + 4, borderBottomWidth: StyleSheet.hairlineWidth },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  header: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm + 4,
+    gap: spacing.sm + 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   title: { fontSize: fontSize['3xl'], fontWeight: fontWeight.bold },
-  newBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: MIN_TOUCH_SIZE + 4, paddingHorizontal: spacing.md, borderRadius: radius.full },
+  newBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: MIN_TOUCH_SIZE + 4,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
   newText: { fontSize: fontSize.base, fontWeight: fontWeight.bold },
   pills: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   counters: { fontSize: fontSize.base },
   countNum: { fontWeight: fontWeight.bold },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] },
-  section: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1.2, textTransform: 'uppercase' },
-  cookCard: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.md },
+  section: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  cookCard: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
+  },
   error: { fontSize: fontSize.sm, textAlign: 'center' },
 });

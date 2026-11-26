@@ -79,8 +79,13 @@ export default function HomeScreen() {
     card = (
       <ServiceCard
         counts={home.commandCounts}
-        newest={home.newestCommand ? <CommandSummaryCard command={home.newestCommand} /> : undefined}
+        newest={
+          home.newestCommand ? <CommandSummaryCard command={home.newestCommand} /> : undefined
+        }
         onOpenCommands={() => router.push('/(app)/(tabs)/commands')}
+        onOpenStatus={(status) =>
+          router.push({ pathname: '/(app)/(tabs)/commands', params: { filterStatus: status } })
+        }
       />
     );
   } else {
@@ -100,18 +105,24 @@ export default function HomeScreen() {
         kitchenName={kitchen.name}
         onMenu={() => router.push('/(app)/menu')}
         onProfile={() => router.push('/(app)/profile')}
-        onSwitch={() => router.push('/(app)/kitchens')}
         onAssistant={FEATURES.assistant ? () => router.push('/(app)/agent') : undefined}
       />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tk.primary} colors={[tk.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={tk.primary}
+            colors={[tk.primary]}
+          />
         }
       >
         <ProgressSteps steps={home.steps} />
         <Text style={[styles.dateLine, { color: tk.textMuted }]}>{dateLine}</Text>
-        {home.error ? <Text style={[styles.error, { color: tk.danger }]}>{t('home.loadError')}</Text> : null}
+        {home.error ? (
+          <Text style={[styles.error, { color: tk.danger }]}>{t('home.loadError')}</Text>
+        ) : null}
         {card}
       </ScrollView>
     </View>
