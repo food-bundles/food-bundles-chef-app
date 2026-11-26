@@ -204,6 +204,8 @@
     "orderedWas": "byatumijwe (mbere {{was}})",
     "canMakeMore_one": "Ububiko busigaye: hashobora gukorwa {{count}} kindi",
     "canMakeMore_other": "Ububiko busigaye: hashobora gukorwa {{count}} ibindi",
+    "batchRecorded_one": "Komande {{count}} yanditswe",
+    "batchRecorded_other": "Komande {{count}} zanditswe",
     "nextCommand": "+ Komande ikurikira",
     "backToCommands": "Subira kuri komande"
   },

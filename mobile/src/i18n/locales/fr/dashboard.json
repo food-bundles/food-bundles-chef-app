@@ -204,6 +204,8 @@
     "orderedWas": "commandés (avant {{was}})",
     "canMakeMore_one": "Stock restant : encore {{count}} possible",
     "canMakeMore_other": "Stock restant : encore {{count}} possibles",
+    "batchRecorded_one": "{{count}} commande enregistrée",
+    "batchRecorded_other": "{{count}} commandes enregistrées",
     "nextCommand": "+ Commande suivante",
     "backToCommands": "Retour aux commandes"
   },

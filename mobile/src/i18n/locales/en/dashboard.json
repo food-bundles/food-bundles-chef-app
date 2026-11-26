@@ -205,6 +205,8 @@
     "orderedWas": "ordered (was {{was}})",
     "canMakeMore_one": "Stock left: can make {{count}} more",
     "canMakeMore_other": "Stock left: can make {{count}} more",
+    "batchRecorded_one": "{{count}} command recorded",
+    "batchRecorded_other": "{{count}} commands recorded",
     "nextCommand": "+ Next command",
     "backToCommands": "Back to commands"
   },
