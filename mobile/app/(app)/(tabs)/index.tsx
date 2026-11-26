@@ -17,6 +17,7 @@ import {
 } from '@/features/home/HomeViews';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { CommandSummaryCard } from '@/features/commands/CommandCard';
+import { FloatingAIButton } from '@/components/ui/FloatingAIButton';
 import { formatDayShort } from '@/lib/format';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, spacing } from '@/lib/theme';
@@ -105,7 +106,6 @@ export default function HomeScreen() {
         kitchenName={kitchen.name}
         onMenu={() => router.push('/(app)/menu')}
         onProfile={() => router.push('/(app)/profile')}
-        onAssistant={FEATURES.assistant ? () => router.push('/(app)/agent') : undefined}
       />
       <ScrollView
         contentContainerStyle={styles.content}
@@ -125,6 +125,7 @@ export default function HomeScreen() {
         ) : null}
         {card}
       </ScrollView>
+      {FEATURES.assistant ? <FloatingAIButton /> : null}
     </View>
   );
 }
