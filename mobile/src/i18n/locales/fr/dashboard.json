@@ -133,6 +133,7 @@
     "declinedSnack": "{{no}} refusée",
     "servedSnack": "{{no}} servie",
     "handedSnack": "{{no}} remise",
+    "sold": "vendus",
     "dineIn": "Sur place",
     "dineInTable": "Sur place · T{{table}}",
     "toGo": "À emporter",

@@ -134,6 +134,7 @@
     "declinedSnack": "{{no}} declined",
     "servedSnack": "{{no}} served",
     "handedSnack": "{{no}} handed",
+    "sold": "sold",
     "dineIn": "Dine-in",
     "dineInTable": "Dine-in · T{{table}}",
     "toGo": "To go",

@@ -35,6 +35,7 @@ import {
 import type { CommandDto } from '@/api/commands-api';
 import { UNDO_SECONDS } from '@/features/receiving/receive-queue';
 import { formatMoney } from '@/lib/money';
+import { calculateCommandRevenue } from '@/domain/calculations/command-revenue';
 
 type Filter = 'all' | CommandType;
 type StatusFilter = 'all' | CommandStatus;
@@ -103,10 +104,16 @@ export default function CommandsScreen() {
     return { count, total, currency };
   }, [commands, statusFilter]);
 
-  const act = async (command: CommandDto, run: () => Promise<PendingAction>, message: string) => {
+  const act = async (
+    command: CommandDto,
+    run: () => Promise<PendingAction>,
+    message: string,
+    extra?: string,
+  ) => {
     if (pending) clearTimeout(pending.action.timer);
     const action = await run();
-    setPending({ action, message: t(message, { no: formatCommandNo(command.number) }) });
+    const fullMessage = t(message, { no: formatCommandNo(command.number) }) + (extra ?? '');
+    setPending({ action, message: fullMessage });
   };
 
   const accept = (command: CommandDto, portions?: number) =>
@@ -138,7 +145,13 @@ export default function CommandsScreen() {
         ),
       'commands.declinedSnack',
     );
-  const done = (command: CommandDto) =>
+  const done = (command: CommandDto) => {
+    const revenue = calculateCommandRevenue(command);
+    const baseMessage = command.type === 'to_go' ? 'commands.handedSnack' : 'commands.servedSnack';
+    const revenueText = revenue
+      ? ` · ${formatMoney(revenue.amount, revenue.currency, i18n.language)} ${t('commands.sold')}`
+      : '';
+
     void act(
       command,
       () =>
@@ -149,8 +162,10 @@ export default function CommandsScreen() {
           doneStatus(command.type),
           qc,
         ),
-      command.type === 'to_go' ? 'commands.handedSnack' : 'commands.servedSnack',
+      baseMessage,
+      revenueText,
     );
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);

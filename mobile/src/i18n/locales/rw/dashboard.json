@@ -133,6 +133,7 @@
     "declinedSnack": "{{no}} yanzwe",
     "servedSnack": "{{no}} yatanzwe",
     "handedSnack": "{{no}} yahawe",
+    "sold": "yagurishijwe",
     "dineIn": "Kurira hano",
     "dineInTable": "Kurira hano · T{{table}}",
     "toGo": "Gutwara",
