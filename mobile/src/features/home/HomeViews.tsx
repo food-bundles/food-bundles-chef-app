@@ -8,6 +8,7 @@ import { Sparkles, Truck, User, UtensilsCrossed } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppPressable } from '@/components/ui/AppPressable';
+import { Avatar } from '@/components/ui/Avatar';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/theme';
 import { formatMoneyList } from '@/lib/money';
@@ -19,20 +20,30 @@ import type { CommandCounts, DeliveryCardData, RequisitionSummary } from './useH
 
 export interface HomeHeaderProps {
   kitchenName: string;
+  chefName: string | null;
+  chefPhotoUri?: string | null;
   onMenu: () => void;
   onProfile: () => void;
   /** Opens the Kitchen Assistant; the button is hidden when not given. */
   onAssistant?: () => void;
 }
 
-/** "KITCHEN" + name, the menu & recipes icon, and the profile icon. Switch moved to Profile screen. */
-export function HomeHeader({ kitchenName, onMenu, onProfile, onAssistant }: HomeHeaderProps) {
+/** Avatar (photo or initials) on left, kitchen name, menu icon on right. */
+export function HomeHeader({
+  kitchenName,
+  chefName,
+  chefPhotoUri,
+  onMenu,
+  onProfile,
+  onAssistant,
+}: HomeHeaderProps) {
   const { t } = useTranslation();
   const tk = useTheme();
   return (
     <View
       style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}
     >
+      <Avatar uri={chefPhotoUri} name={chefName} size={40} onPress={onProfile} />
       <View style={styles.headerText}>
         <Text style={[styles.eyebrow, { color: tk.textMuted }]}>{t('home.kitchenEyebrow')}</Text>
         <Text
@@ -69,18 +80,6 @@ export function HomeHeader({ kitchenName, onMenu, onProfile, onAssistant }: Home
         ]}
       >
         <UtensilsCrossed size={22} color={tk.text} strokeWidth={2} />
-      </AppPressable>
-      <AppPressable
-        onPress={onProfile}
-        accessibilityRole="button"
-        accessibilityLabel={t('home.profile')}
-        style={({ pressed }) => [
-          styles.iconButton,
-          { backgroundColor: tk.surfaceSunken },
-          pressed && styles.pressed,
-        ]}
-      >
-        <User size={22} color={tk.text} strokeWidth={2} />
       </AppPressable>
     </View>
   );
