@@ -13,13 +13,15 @@ from app.core.database import Base
 class Chef(Base):
     __tablename__ = "chefs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     phone_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(200))
     email: Mapped[str | None] = mapped_column(String(254), unique=True)
     preferred_locale: Mapped[str] = mapped_column(String(5), default="en")
+    country: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    tin: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    restaurant_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    restaurant_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     expo_push_token: Mapped[str | None] = mapped_column(String(300), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(

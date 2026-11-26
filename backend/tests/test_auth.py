@@ -1,4 +1,5 @@
 """Authentication flow: OTP request → verify → JWT → refresh → logout."""
+
 from __future__ import annotations
 
 import pytest
@@ -54,7 +55,6 @@ async def test_otp_verify_with_mock_code(client: AsyncClient, monkeypatch) -> No
 
 
 async def test_otp_verify_wrong_code(client: AsyncClient, monkeypatch) -> None:
-
     monkeypatch.setattr(
         "app.modules.authentication.service.generate_otp", lambda: "999999"
     )  # pin the random OTP for the test
@@ -74,7 +74,6 @@ async def test_get_me_unauthenticated(client: AsyncClient) -> None:
 
 
 async def _authenticate(client: AsyncClient, monkeypatch, phone: str) -> dict:
-
     monkeypatch.setattr(
         "app.modules.authentication.service.generate_otp", lambda: "111111"
     )  # pin the random OTP for the test
@@ -126,3 +125,37 @@ async def test_logout(client: AsyncClient, monkeypatch) -> None:
         json={"refresh_token": tokens["refresh_token"]},
     )
     assert resp2.status_code == 401
+
+
+async def test_update_profile_with_country_tin(client: AsyncClient, monkeypatch) -> None:
+    """Test that new country/tin/restaurant fields can be updated."""
+    tokens = await _authenticate(client, monkeypatch, "+250780000008")
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        json={
+            "name": "Test Chef",
+            "country": "RW",
+            "tin": "123456789",
+            "restaurant_id": "rest123",
+            "restaurant_name": "Test Restaurant",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"] == "Test Chef"
+    assert body["country"] == "RW"
+    assert body["tin"] == "123456789"
+    assert body["restaurant_id"] == "rest123"
+    assert body["restaurant_name"] == "Test Restaurant"
+
+
+async def test_profile_country_validation(client: AsyncClient, monkeypatch) -> None:
+    """Test that country must be 2 characters if provided."""
+    tokens = await _authenticate(client, monkeypatch, "+250780000009")
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        json={"country": "USA"},
+    )
+    assert resp.status_code == 422  # Validation error
