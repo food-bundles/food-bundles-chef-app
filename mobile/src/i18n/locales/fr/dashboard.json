@@ -207,6 +207,26 @@
     "nextCommand": "+ Commande suivante",
     "backToCommands": "Retour aux commandes"
   },
+  "reports": {
+    "totalCommands": "Total des commandes",
+    "totalSold": "Total vendu",
+    "topDishes": "Plats populaires",
+    "allCommands": "Toutes les commandes",
+    "noCommandsStatus": "Aucune commande {{status}}",
+    "portionsSold_one": "{{count}} portion vendue",
+    "portionsSold_other": "{{count}} portions vendues",
+    "viewCommandLabel": "Voir la commande {{no}}",
+    "commandNo": "Commande #{{no}}",
+    "todaysSummary": "Résumé du jour",
+    "commandsCompleted": "Commandes terminées",
+    "totalRevenue": "Revenu total",
+    "viewFullReport": "Voir le rapport complet",
+    "recentDeliveries": "Livraisons récentes",
+    "deliveriesReceived": "Livraisons reçues",
+    "requisitionSummary": "Résumé de réquisition",
+    "itemsToOrder": "Articles à commander",
+    "estimatedTotal": "Total estimé"
+  },
   "staff": {
     "title": "Personnel",
     "hint": "Noms à choisir pour « Saisie par » sur les nouvelles commandes. Les commandes des serveurs et caissiers attendent votre acceptation.",

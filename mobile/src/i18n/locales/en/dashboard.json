@@ -208,6 +208,26 @@
     "nextCommand": "+ Next command",
     "backToCommands": "Back to commands"
   },
+  "reports": {
+    "totalCommands": "Total Commands",
+    "totalSold": "Total Sold",
+    "topDishes": "Top Dishes",
+    "allCommands": "All Commands",
+    "noCommandsStatus": "No {{status}} commands",
+    "portionsSold_one": "{{count}} portion sold",
+    "portionsSold_other": "{{count}} portions sold",
+    "viewCommandLabel": "View command {{no}}",
+    "commandNo": "Command #{{no}}",
+    "todaysSummary": "Today's Summary",
+    "commandsCompleted": "Commands Completed",
+    "totalRevenue": "Total Revenue",
+    "viewFullReport": "View full report",
+    "recentDeliveries": "Recent Deliveries",
+    "deliveriesReceived": "Deliveries Received",
+    "requisitionSummary": "Requisition Summary",
+    "itemsToOrder": "Items to Order",
+    "estimatedTotal": "Estimated Total"
+  },
   "staff": {
     "title": "Staff",
     "hint": "Names to pick for \"Recorded by\" on new commands. Waiters' and cashiers' commands wait for your Accept.",

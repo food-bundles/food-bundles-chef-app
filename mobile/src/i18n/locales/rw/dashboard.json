@@ -207,6 +207,26 @@
     "nextCommand": "+ Komande ikurikira",
     "backToCommands": "Subira kuri komande"
   },
+  "reports": {
+    "totalCommands": "Komande zose",
+    "totalSold": "Byose byagurishijwe",
+    "topDishes": "Ibiryo bikunzwe cyane",
+    "allCommands": "Komande zose",
+    "noCommandsStatus": "Nta komande {{status}}",
+    "portionsSold_one": "{{count}} igice cyagurishijwe",
+    "portionsSold_other": "{{count}} ibice byagurishijwe",
+    "viewCommandLabel": "Reba komande {{no}}",
+    "commandNo": "Komande #{{no}}",
+    "todaysSummary": "Incamake y'uyu munsi",
+    "commandsCompleted": "Komande zarangiye",
+    "totalRevenue": "Amafaranga yose yinjiye",
+    "viewFullReport": "Reba raporo yuzuye",
+    "recentDeliveries": "Ibisanzwe byatanzwe",
+    "deliveriesReceived": "Ibisanzwe byakiriwe",
+    "requisitionSummary": "Incamake y'ibisabwa",
+    "itemsToOrder": "Ibintu byo gutumiza",
+    "estimatedTotal": "Igikoresho cyose"
+  },
   "staff": {
     "title": "Abakozi",
     "hint": "Amazina yo guhitamo kuri \"Yanditswe na\" kuri komande nshya. Komande z'abaseriveri n'abacungamari zitegereza ko uzemera.",

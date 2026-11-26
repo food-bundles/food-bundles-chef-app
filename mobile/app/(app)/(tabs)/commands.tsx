@@ -36,6 +36,8 @@ import type { CommandDto } from '@/api/commands-api';
 import { UNDO_SECONDS } from '@/features/receiving/receive-queue';
 import { formatMoney } from '@/lib/money';
 import { calculateCommandRevenue } from '@/domain/calculations/command-revenue';
+import { ReportSummaryCard } from '@/features/reports/ReportSummaryCard';
+import { calculateRevenue } from '@/domain/rules/command-reports';
 
 type Filter = 'all' | CommandType;
 type StatusFilter = 'all' | CommandStatus;
@@ -86,6 +88,15 @@ export default function CommandsScreen() {
   const newOnes = shown.filter((c) => c.status === 'new').sort((a, b) => a.number - b.number);
   const cooking = shown.filter((c) => c.status === 'cooking').sort((a, b) => a.number - b.number);
   const counts = today.data?.counts;
+
+  // Calculate report summary for served/handed commands
+  const reportSummary = useMemo(() => {
+    if (!commands || commands.length === 0) return null;
+    const doneCommands = commands.filter((c) => c.status === 'served' || c.status === 'handed');
+    if (doneCommands.length === 0) return null;
+    const revenue = calculateRevenue(doneCommands);
+    return { count: doneCommands.length, revenue };
+  }, [commands]);
 
   // Calculate summary for status filter
   const statusSummary = useMemo(() => {
@@ -275,6 +286,26 @@ export default function CommandsScreen() {
         {today.isError && !today.data ? (
           <Text style={[styles.error, { color: tk.danger }]}>{t('commands.loadError')}</Text>
         ) : null}
+
+        {reportSummary && filter === 'all' && statusFilter === 'all' && (
+          <ReportSummaryCard
+            title={t('reports.todaysSummary')}
+            items={[
+              { label: t('reports.commandsCompleted'), value: reportSummary.count.toString() },
+              ...reportSummary.revenue.map((r) => ({
+                label: t('reports.totalRevenue'),
+                value: formatMoney(r.amount, r.currency, i18n.language),
+              })),
+            ]}
+            onViewReport={() =>
+              router.push({
+                pathname: '/(app)/(tabs)/commands',
+                params: { filterStatus: 'served' },
+              })
+            }
+          />
+        )}
+
         {newOnes.length === 0 && cooking.length === 0 && today.data ? (
           <EmptyState
             Icon={FileText}
