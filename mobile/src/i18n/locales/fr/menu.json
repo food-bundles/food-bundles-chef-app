@@ -40,6 +40,10 @@
     "moreOptions": "Plus d'options pour {{name}}",
     "deleteItemLabel": "Supprimer {{name}}",
     "removed": "{{name}} supprimé",
+    "orderedToday": "{{count}} aujourd'hui",
+    "canMake": "{{count}} rest.",
+    "available": "Disponible",
+    "unavailable": "Indisponible",
     "scan": {
       "howTitle": "Comment scanner",
       "howBody": "Visez un menu imprimé ou manuscrit, posé à plat et bien éclairé.",
