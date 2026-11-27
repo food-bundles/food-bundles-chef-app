@@ -9,11 +9,12 @@ import {
   Alert,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Image as ImageIcon } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, Building2, Check, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from '@/api/auth-api';
@@ -22,6 +23,12 @@ import { useSessionStore } from '@/store/session-store';
 import { authPalette, colors } from '@/lib/theme';
 import { validateProfileData } from '@/domain/rules/onboarding';
 import { loadOnboardingState, saveOnboardingState } from '@/store/onboarding-store';
+import {
+  lookupUserByEmail,
+  isRestaurantUser,
+  toRestaurantData,
+  type RestaurantLookupResult,
+} from '@/api/foodbundles-api';
 
 export default function OnboardingProfileScreen() {
   const { t } = useTranslation();
@@ -31,6 +38,10 @@ export default function OnboardingProfileScreen() {
   const [name, setName] = useState(chef?.name ?? '');
   const [email, setEmail] = useState('');
   const [tin, setTin] = useState('');
+  const [restaurantEmail, setRestaurantEmail] = useState('');
+  const [restaurant, setRestaurant] = useState<RestaurantLookupResult | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +76,40 @@ export default function OnboardingProfileScreen() {
       { text: t('common.cancel'), style: 'cancel' },
     ]);
 
+  const handleRestaurantLookup = async () => {
+    if (!restaurantEmail.trim()) return;
+    setLookupError(null);
+    setLookupLoading(true);
+    try {
+      const result = await lookupUserByEmail(restaurantEmail.trim());
+      if (!isRestaurantUser(result.data)) {
+        setLookupError(t('onboarding.notARestaurant'));
+        setRestaurant(null);
+        return;
+      }
+      const restaurantData = toRestaurantData(result.data);
+      if (!restaurantData) {
+        setLookupError(t('onboarding.restaurantNotFound'));
+        setRestaurant(null);
+        return;
+      }
+      setRestaurant(restaurantData);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message === 'USER_NOT_FOUND') {
+          setLookupError(t('onboarding.restaurantNotFound'));
+        } else {
+          setLookupError(t('onboarding.lookupFailed'));
+        }
+      } else {
+        setLookupError(t('onboarding.lookupFailed'));
+      }
+      setRestaurant(null);
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (!isValid) return;
     setError(null);
@@ -74,6 +119,8 @@ export default function OnboardingProfileScreen() {
         name: name.trim(),
         email: email.trim() || null,
         tin: tin.trim() || null,
+        restaurant_id: restaurant?.id || null,
+        restaurant_name: restaurant?.name || null,
       });
       updateChef({ name: profile.name });
 
@@ -185,6 +232,75 @@ export default function OnboardingProfileScreen() {
           style={styles.input}
         />
 
+        {/* Restaurant linkage */}
+        <Text style={styles.sectionTitle}>{t('onboarding.restaurantLinkage')}</Text>
+        <Text style={styles.sectionSub}>{t('onboarding.restaurantLinkageDesc')}</Text>
+
+        <Text style={styles.label}>{t('onboarding.restaurantEmailLabel')}</Text>
+        <View style={styles.lookupRow}>
+          <TextInput
+            keyboardAppearance="dark"
+            value={restaurantEmail}
+            onChangeText={(v) => {
+              setRestaurantEmail(v);
+              setLookupError(null);
+              if (restaurant) setRestaurant(null);
+            }}
+            placeholder={t('onboarding.restaurantEmailPlaceholder')}
+            placeholderTextColor={authPalette.muted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            accessibilityLabel={t('onboarding.restaurantEmailLabel')}
+            style={[styles.input, styles.inputInline]}
+          />
+          <AppPressable
+            onPress={handleRestaurantLookup}
+            disabled={!restaurantEmail.trim() || lookupLoading}
+            accessibilityRole="button"
+            accessibilityLabel={t('onboarding.lookupButton')}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          >
+            <View
+              style={[
+                styles.lookupBtn,
+                (!restaurantEmail.trim() || lookupLoading) && styles.lookupBtnDisabled,
+              ]}
+            >
+              {lookupLoading ? (
+                <ActivityIndicator size="small" color={colors.black} />
+              ) : (
+                <Text style={styles.lookupBtnText}>{t('onboarding.lookup')}</Text>
+              )}
+            </View>
+          </AppPressable>
+        </View>
+
+        {lookupError ? <Text style={styles.errorText}>{lookupError}</Text> : null}
+
+        {restaurant ? (
+          <View style={styles.restaurantCard}>
+            <View style={styles.restaurantIcon}>
+              <Building2 size={24} color={colors.action} />
+            </View>
+            <View style={styles.restaurantInfo}>
+              <Text style={styles.restaurantName}>{restaurant.name}</Text>
+              <Text style={styles.restaurantEmail}>{restaurant.email}</Text>
+              {restaurant.tin ? (
+                <Text style={styles.restaurantTin}>TIN: {restaurant.tin}</Text>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              onPress={() => setRestaurant(null)}
+              style={styles.restaurantRemove}
+              accessibilityRole="button"
+              accessibilityLabel={t('onboarding.removeRestaurant')}
+            >
+              <X size={20} color={authPalette.muted} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
@@ -292,6 +408,19 @@ const styles = StyleSheet.create({
   required: {
     color: authPalette.error,
   },
+  sectionTitle: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  sectionSub: {
+    color: authPalette.muted,
+    fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
   input: {
     backgroundColor: authPalette.input,
     color: colors.white,
@@ -303,10 +432,76 @@ const styles = StyleSheet.create({
     borderColor: authPalette.inputBorder,
     marginBottom: 16,
   },
+  lookupRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  inputInline: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  lookupBtn: {
+    backgroundColor: colors.action,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  lookupBtnDisabled: {
+    backgroundColor: authPalette.card,
+  },
+  lookupBtnText: {
+    color: colors.black,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  restaurantCard: {
+    backgroundColor: authPalette.card,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.action,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  restaurantIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: authPalette.inputBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restaurantInfo: {
+    flex: 1,
+  },
+  restaurantName: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  restaurantEmail: {
+    color: authPalette.muted,
+    fontSize: 13,
+  },
+  restaurantTin: {
+    color: authPalette.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  restaurantRemove: {
+    padding: 8,
+  },
   errorText: {
     color: authPalette.error,
     fontSize: 13,
-    marginTop: 10,
+    marginTop: -8,
+    marginBottom: 16,
   },
   cta: {
     paddingHorizontal: 24,
