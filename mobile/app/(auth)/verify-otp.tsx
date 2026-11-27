@@ -58,6 +58,12 @@ export default function VerifyOtpScreen() {
         }
       }
 
+      // Check if onboarding is needed
+      if (!profile.onboarding_completed_at) {
+        router.replace('/(onboarding)/profile');
+        return;
+      }
+
       let destination: string = '/(app)/(tabs)';
       try {
         const kitchens = await listKitchens();

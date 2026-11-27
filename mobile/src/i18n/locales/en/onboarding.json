@@ -1,0 +1,24 @@
+{
+  "onboarding": {
+    "stepProfile": "Step 1 of 3",
+    "profileTitle": "Tell us about yourself",
+    "profileSubtitle": "This information will be shown to your team and customers",
+    "addPhoto": "Add Photo",
+    "nameLabel": "Your Name",
+    "namePlaceholder": "John Chef",
+    "emailLabel": "Email (optional)",
+    "emailPlaceholder": "chef@example.com",
+    "tinLabel": "TIN Number (optional)",
+    "tinPlaceholder": "123456789",
+    "stepKitchen": "Step 2 of 3",
+    "kitchenTitle": "Set up your kitchen",
+    "kitchenSubtitle": "Create your first kitchen to start managing orders and stock",
+    "stepLanguage": "Step 3 of 3",
+    "languageTitle": "Choose your language",
+    "languageSubtitle": "You can change this later in settings",
+    "finish": "Get Started",
+    "invalidProfile": "Please check your information and try again",
+    "noConnection": "No internet connection",
+    "saveError": "Failed to save. Please try again"
+  }
+}

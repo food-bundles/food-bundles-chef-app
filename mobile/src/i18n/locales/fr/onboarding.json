@@ -1,0 +1,24 @@
+{
+  "onboarding": {
+    "stepProfile": "Étape 1 sur 3",
+    "profileTitle": "Parlez-nous de vous",
+    "profileSubtitle": "Ces informations seront affichées à votre équipe et vos clients",
+    "addPhoto": "Ajouter Photo",
+    "nameLabel": "Votre Nom",
+    "namePlaceholder": "Jean Chef",
+    "emailLabel": "Email (facultatif)",
+    "emailPlaceholder": "chef@exemple.com",
+    "tinLabel": "Numéro TIN (facultatif)",
+    "tinPlaceholder": "123456789",
+    "stepKitchen": "Étape 2 sur 3",
+    "kitchenTitle": "Configurez votre cuisine",
+    "kitchenSubtitle": "Créez votre première cuisine pour commencer à gérer les commandes et le stock",
+    "stepLanguage": "Étape 3 sur 3",
+    "languageTitle": "Choisissez votre langue",
+    "languageSubtitle": "Vous pourrez la modifier ultérieurement dans les paramètres",
+    "finish": "Commencer",
+    "invalidProfile": "Veuillez vérifier vos informations et réessayer",
+    "noConnection": "Pas de connexion Internet",
+    "saveError": "Échec de l'enregistrement. Veuillez réessayer"
+  }
+}
