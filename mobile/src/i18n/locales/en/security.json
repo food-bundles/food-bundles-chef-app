@@ -1,6 +1,11 @@
 {
   "security": {
     "passcode": "Passcode",
+    "passcodeEnabled": "Enabled",
+    "passcodeDisabled": "Not set",
+    "passcodeManagePrompt": "Manage your passcode settings",
+    "passcodeChange": "Change Passcode",
+    "passcodeRemove": "Remove Passcode",
     "setPasscode": "Set Passcode",
     "changePasscode": "Change Passcode",
     "removePasscode": "Remove Passcode",
