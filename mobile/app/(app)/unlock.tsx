@@ -93,8 +93,14 @@ export default function UnlockScreen() {
 
       if (isValid) {
         await clearFailedAttempts(chef.id);
-        unlock();
-        router.replace('/(app)/(tabs)');
+        const restoredPath = unlock();
+        // Navigation handled by InactivityProvider based on unlock() return value
+        // Just trigger state change, provider will navigate
+        if (restoredPath) {
+          router.replace(restoredPath as any);
+        } else {
+          router.replace('/(app)/(tabs)');
+        }
       } else {
         const newAttempts = await recordFailedAttempt(chef.id);
         setFailedAttempts(newAttempts);

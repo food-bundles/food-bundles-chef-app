@@ -12,6 +12,7 @@ interface InactivityState {
   lockCount: number;
   suggestionShown: boolean;
   shouldShowSuggestion: boolean;
+  lockedFromPath: string | null;
 
   /**
    * Record current time as last activity.
@@ -20,18 +21,21 @@ interface InactivityState {
 
   /**
    * Check if lock should be triggered and update state accordingly.
+   * @param currentPath - the current route path to restore after unlock
    */
-  checkLockStatus(hasPasscode: boolean): void;
+  checkLockStatus(hasPasscode: boolean, currentPath?: string): void;
 
   /**
    * Manually lock the app.
+   * @param currentPath - the current route path to restore after unlock
    */
-  lock(): void;
+  lock(currentPath?: string): void;
 
   /**
    * Unlock the app after successful passcode verification.
+   * Returns the path to restore, or null if none saved.
    */
-  unlock(): void;
+  unlock(): string | null;
 
   /**
    * Load last activity time from SecureStore on app start.
@@ -60,6 +64,7 @@ export const useInactivityStore = create<InactivityState>()((set, get) => ({
   lockCount: 0,
   suggestionShown: false,
   shouldShowSuggestion: false,
+  lockedFromPath: null,
 
   recordActivity() {
     const now = Date.now();
@@ -68,7 +73,7 @@ export const useInactivityStore = create<InactivityState>()((set, get) => ({
     void get().persistLastActivity();
   },
 
-  checkLockStatus(hasPasscode) {
+  checkLockStatus(hasPasscode, currentPath) {
     if (!hasPasscode) {
       set({ isLocked: false });
       return;
@@ -83,6 +88,7 @@ export const useInactivityStore = create<InactivityState>()((set, get) => ({
       set({
         isLocked: true,
         lockCount: newLockCount,
+        lockedFromPath: currentPath || null,
         // Show suggestion after 2nd lock if not already shown
         shouldShowSuggestion: newLockCount >= 2 && !suggestionShown,
       });
@@ -92,13 +98,15 @@ export const useInactivityStore = create<InactivityState>()((set, get) => ({
     }
   },
 
-  lock() {
-    set({ isLocked: true });
+  lock(currentPath) {
+    set({ isLocked: true, lockedFromPath: currentPath || null });
   },
 
   unlock() {
-    set({ isLocked: false, lastActiveAt: Date.now() });
+    const { lockedFromPath } = get();
+    set({ isLocked: false, lastActiveAt: Date.now(), lockedFromPath: null });
     void get().persistLastActivity();
+    return lockedFromPath;
   },
 
   async loadLastActivity() {

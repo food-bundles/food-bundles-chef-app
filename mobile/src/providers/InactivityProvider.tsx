@@ -39,7 +39,7 @@ export function InactivityProvider({ children }: InactivityProviderProps) {
         if (nextAppState === 'active') {
           // App came to foreground - check if lock is due
           const hasSetPasscode = await hasPasscode(chef.id);
-          checkLockStatus(hasSetPasscode);
+          checkLockStatus(hasSetPasscode, pathname);
         } else if (nextAppState === 'background') {
           // App went to background - record activity time
           recordActivity();
@@ -48,7 +48,7 @@ export function InactivityProvider({ children }: InactivityProviderProps) {
     );
 
     return () => subscription.remove();
-  }, [chef?.id, isAuthenticated]);
+  }, [chef?.id, isAuthenticated, pathname]);
 
   // Redirect to unlock screen if locked
   useEffect(() => {
@@ -57,7 +57,13 @@ export function InactivityProvider({ children }: InactivityProviderProps) {
     if (isLocked && isAuthenticated && pathname !== '/unlock') {
       router.replace('/(app)/unlock');
     } else if (!isLocked && pathname === '/unlock') {
-      router.replace('/(app)/(tabs)');
+      // After unlock, restore previous path or go to tabs
+      const restoredPath = unlock();
+      if (restoredPath && restoredPath !== '/unlock') {
+        router.replace(restoredPath as any);
+      } else {
+        router.replace('/(app)/(tabs)');
+      }
 
       // Show passcode suggestion after unlock if needed
       if (shouldShowSuggestion && !showingSuggestion) {
