@@ -7,23 +7,24 @@ import { useTranslation } from 'react-i18next';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/theme';
-import type { TabName } from '@/domain/rules/time-sensitive-tabs';
+import { getActiveTab, type TimeTab } from '@/domain/rules/time-sensitive-tabs';
+import type { HomeState } from '@/features/home/useHome';
 
 export interface TimeSensitiveTabsProps {
-  activeTab: TabName;
-  onReceivePress: () => void;
-  onCommandsPress: () => void;
-  onRequisitionPress: () => void;
+  openingTime: string;
+  closingTime: string;
+  currentState: HomeState;
+  onTabPress: (tab: TimeTab) => void;
   receiveBadge?: number;
   commandsBadge?: number;
   requisitionBadge?: number;
 }
 
 export function TimeSensitiveTabs({
-  activeTab,
-  onReceivePress,
-  onCommandsPress,
-  onRequisitionPress,
+  openingTime,
+  closingTime,
+  currentState,
+  onTabPress,
   receiveBadge,
   commandsBadge,
   requisitionBadge,
@@ -31,15 +32,17 @@ export function TimeSensitiveTabs({
   const { t } = useTranslation();
   const tk = useTheme();
 
+  const now = new Date();
+  const activeTab = getActiveTab(openingTime, closingTime, now);
+
   const tabs: Array<{
-    name: TabName;
+    name: TimeTab;
     label: string;
-    onPress: () => void;
     badge?: number;
   }> = [
-    { name: 'receive', label: t('home.tabReceive'), onPress: onReceivePress, badge: receiveBadge },
-    { name: 'commands', label: t('home.tabCommands'), onPress: onCommandsPress, badge: commandsBadge },
-    { name: 'requisition', label: t('home.tabRequisition'), onPress: onRequisitionPress, badge: requisitionBadge },
+    { name: 'receive', label: t('dashboard.tabReceive'), badge: receiveBadge },
+    { name: 'commands', label: t('dashboard.tabCommands'), badge: commandsBadge },
+    { name: 'requisition', label: t('dashboard.tabRequisition'), badge: requisitionBadge },
   ];
 
   return (
@@ -49,7 +52,7 @@ export function TimeSensitiveTabs({
         return (
           <AppPressable
             key={tab.name}
-            onPress={tab.onPress}
+            onPress={() => onTabPress(tab.name)}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: isActive }}
@@ -62,16 +65,13 @@ export function TimeSensitiveTabs({
               pressed && styles.pressed,
             ]}
           >
-            <Text
-              style={[
-                styles.label,
-                { color: isActive ? tk.onPrimary : tk.text },
-              ]}
-            >
+            <Text style={[styles.label, { color: isActive ? tk.onPrimary : tk.text }]}>
               {tab.label}
             </Text>
             {tab.badge !== undefined && tab.badge > 0 ? (
-              <View style={[styles.badge, { backgroundColor: isActive ? tk.onPrimary : tk.primary }]}>
+              <View
+                style={[styles.badge, { backgroundColor: isActive ? tk.onPrimary : tk.primary }]}
+              >
                 <Text style={[styles.badgeText, { color: isActive ? tk.primary : tk.onPrimary }]}>
                   {tab.badge}
                 </Text>
