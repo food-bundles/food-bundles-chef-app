@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { router } from 'expo-router';
@@ -45,6 +46,15 @@ export default function UnlockScreen() {
     void loadAttempts();
   }, [chef?.id]);
 
+  // Prevent Android back button from dismissing unlock screen
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      return true; // Prevent back navigation
+    });
+
+    return () => backHandler.remove();
+  }, []);
+
   useEffect(() => {
     if (lockoutRemaining > 0) {
       const timer = setInterval(() => {
@@ -59,7 +69,7 @@ export default function UnlockScreen() {
     const attempts = await getFailedAttempts(chef.id);
     const lastFailed = await getLastFailedAt(chef.id);
     setFailedAttempts(attempts);
-    
+
     if (isLockedOut(attempts, lastFailed, Date.now())) {
       setLockoutRemaining(getRemainingLockoutTime(attempts, lastFailed, Date.now()));
     }
@@ -67,7 +77,7 @@ export default function UnlockScreen() {
 
   const handleUnlock = async () => {
     if (!chef?.id || !passcode.trim() || loading) return;
-    
+
     // Check lockout
     const lastFailed = await getLastFailedAt(chef.id);
     if (isLockedOut(failedAttempts, lastFailed, Date.now())) {
@@ -111,24 +121,20 @@ export default function UnlockScreen() {
   };
 
   const handleForgotPasscode = () => {
-    Alert.alert(
-      t('security.forgotPasscodeTitle'),
-      t('security.forgotPasscodeMessage'),
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
+    Alert.alert(t('security.forgotPasscodeTitle'), t('security.forgotPasscodeMessage'), [
+      {
+        text: t('common.cancel'),
+        style: 'cancel',
+      },
+      {
+        text: t('security.signOutButton'),
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/phone-number');
         },
-        {
-          text: t('security.signOutButton'),
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/phone-number');
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const isDisabled = !passcode.trim() || loading || lockoutRemaining > 0;
