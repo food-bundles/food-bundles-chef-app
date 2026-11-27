@@ -19,6 +19,7 @@ import enOnboarding from './locales/en/onboarding.json';
 import enOrders from './locales/en/orders.json';
 import enProfile from './locales/en/profile.json';
 import enSales from './locales/en/sales.json';
+import enSecurity from './locales/en/security.json';
 import enSettings from './locales/en/settings.json';
 import enStock from './locales/en/stock.json';
 import frAgent from './locales/fr/agent.json';
@@ -34,6 +35,7 @@ import frOnboarding from './locales/fr/onboarding.json';
 import frOrders from './locales/fr/orders.json';
 import frProfile from './locales/fr/profile.json';
 import frSales from './locales/fr/sales.json';
+import frSecurity from './locales/fr/security.json';
 import frSettings from './locales/fr/settings.json';
 import frStock from './locales/fr/stock.json';
 import rwAgent from './locales/rw/agent.json';
@@ -49,6 +51,7 @@ import rwOnboarding from './locales/rw/onboarding.json';
 import rwOrders from './locales/rw/orders.json';
 import rwProfile from './locales/rw/profile.json';
 import rwSales from './locales/rw/sales.json';
+import rwSecurity from './locales/rw/security.json';
 import rwSettings from './locales/rw/settings.json';
 import rwStock from './locales/rw/stock.json';
 
@@ -68,6 +71,7 @@ export const NAMESPACES = [
   'sales',
   'agent',
   'profile',
+  'security',
   'settings',
 ] as const;
 
@@ -86,6 +90,7 @@ const en = {
   ...enSales,
   ...enAgent,
   ...enProfile,
+  ...enSecurity,
   ...enSettings,
 };
 
@@ -104,6 +109,7 @@ const fr = {
   ...frSales,
   ...frAgent,
   ...frProfile,
+  ...frSecurity,
   ...frSettings,
 };
 
@@ -122,6 +128,7 @@ const rw = {
   ...rwSales,
   ...rwAgent,
   ...rwProfile,
+  ...rwSecurity,
   ...rwSettings,
 };
 
