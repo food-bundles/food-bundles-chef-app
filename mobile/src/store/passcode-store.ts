@@ -6,6 +6,7 @@ const PASSCODE_SALT_KEY = 'fb.chef.passcode_salt';
 const FAILED_ATTEMPTS_KEY = 'fb.chef.passcode_failed_attempts';
 const LAST_FAILED_AT_KEY = 'fb.chef.passcode_last_failed_at';
 const PASSCODE_SUGGESTION_SHOWN_KEY = 'fb.chef.passcode_suggestion_shown';
+const PBKDF2_ITERATIONS = 10000;
 
 /**
  * Generate a random salt for passcode hashing.
@@ -16,11 +17,18 @@ async function generateSalt(): Promise<string> {
 }
 
 /**
- * Hash passcode with salt using SHA-256.
+ * Hash passcode with salt using PBKDF2 with 10,000 iterations.
+ * Uses repeated SHA-256 as PBKDF2 approximation since expo-crypto doesn't have PBKDF2.
  */
 async function hashPasscode(passcode: string, salt: string): Promise<string> {
-  const combined = passcode + salt;
-  return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, combined);
+  let hash = passcode + salt;
+
+  // Perform 10,000 rounds of SHA-256 hashing for PBKDF2-like security
+  for (let i = 0; i < PBKDF2_ITERATIONS; i++) {
+    hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, hash);
+  }
+
+  return hash;
 }
 
 /**
