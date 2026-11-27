@@ -12,8 +12,8 @@ const KEY_REFRESH_TOKEN = 'fb.chef.refresh_token';
 // We only decode to get chef_id and expiry. Signature verification happens on
 // the server — never trust client-decoded JWT claims for authorization.
 interface JwtPayload {
-  sub: string;       // chef UUID
-  exp: number;       // Unix seconds
+  sub: string; // chef UUID
+  exp: number; // Unix seconds
   type: 'access' | 'refresh';
 }
 
@@ -59,11 +59,7 @@ interface SessionState {
    * Called after successful OTP verification + /auth/me fetch.
    * Persists tokens to SecureStore and sets the authenticated state.
    */
-  signIn(params: {
-    accessToken: string;
-    refreshToken: string;
-    chef: ChefSession;
-  }): Promise<void>;
+  signIn(params: { accessToken: string; refreshToken: string; chef: ChefSession }): Promise<void>;
 
   /** Update the in-memory chef profile without touching tokens. */
   updateChef(chef: ChefSession): void;
@@ -144,6 +140,9 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     await clearTokens();
     // Assistant chats can contain kitchen data — never leave them for the next account.
     await clearAllChats();
+    // Clear command drafts on sign-out
+    const { clearAll } = await import('@/store/command-draft-store');
+    clearAll();
     set({ chef: null, isAuthenticated: false });
   },
 
@@ -174,7 +173,9 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const payload = decodeJwtPayload(accessToken);
     if (payload?.sub) {
       set((s) => ({
-        chef: s.chef ? { ...s.chef, id: payload.sub } : { id: payload.sub, phoneNumber: '', name: null },
+        chef: s.chef
+          ? { ...s.chef, id: payload.sub }
+          : { id: payload.sub, phoneNumber: '', name: null },
         isAuthenticated: true,
       }));
     }

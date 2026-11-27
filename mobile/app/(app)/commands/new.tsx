@@ -4,7 +4,7 @@
  * are disabled. The number is automatic (#050). Footer: Dine-in / To go, table, "Recorded by",
  * and Save with the summary. Works offline (queued; the server confirms the number).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -28,6 +28,7 @@ import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/the
 import { formatAmount, formatMoney } from '@/lib/money';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
+import { useCommandDraftStore } from '@/store/command-draft-store';
 import { newRequestId } from '@/features/ai/ai-client';
 import {
   queueNewCommand,
@@ -62,6 +63,9 @@ export default function NewCommandScreen() {
   const qc = useCommandsClient();
   const kitchen = useKitchenStore((s) => s.activeKitchen);
   const chef = useSessionStore((s) => s.chef);
+  const saveDraft = useCommandDraftStore((s) => s.saveDraft);
+  const getDraft = useCommandDraftStore((s) => s.getDraft);
+  const clearDraft = useCommandDraftStore((s) => s.clearDraft);
   const today = useCommandsToday();
   const staff = useStaff();
   const [cat, setCat] = useState<Cat>('all');
@@ -72,6 +76,36 @@ export default function NewCommandScreen() {
   const [recorder, setRecorder] = useState<Recorder>(me);
   const [pickRecorder, setPickRecorder] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (!kitchen || !today.data?.service_date) return;
+    const draft = getDraft(kitchen.id, today.data.service_date);
+    if (draft) {
+      setQty(draft.qty);
+      setType(draft.type);
+      setTable(draft.table);
+      setRecorder(draft.recorder);
+    }
+  }, [kitchen?.id, today.data?.service_date]);
+
+  // Save draft whenever state changes
+  useEffect(() => {
+    if (!kitchen || !today.data?.service_date) return;
+    // Skip saving on initial mount or when nothing is selected
+    const hasSelections = Object.values(qty).some((q) => q > 0);
+    if (!hasSelections) return;
+
+    saveDraft({
+      kitchenId: kitchen.id,
+      serviceDate: today.data.service_date,
+      qty,
+      type,
+      table,
+      recorder,
+      createdAt: Date.now(),
+    });
+  }, [qty, type, table, recorder, kitchen?.id, today.data?.service_date]);
 
   const dishes = useMemo(() => (today.data?.dishes ?? []).filter((d) => d.is_active), [today.data]);
   const shown = dishes.filter((d) => cat === 'all' || d.category === cat);
@@ -138,6 +172,7 @@ export default function NewCommandScreen() {
     );
     try {
       await queueNewCommand(kitchen.id, body, preview, qc);
+      clearDraft(); // Clear draft after successful save
       router.replace({
         pathname: '/(app)/commands/saved',
         params: { id, before: JSON.stringify(before) },
@@ -145,6 +180,15 @@ export default function NewCommandScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleBack = () => {
+    // Clear draft when explicitly backing out or cancelling
+    const hasSelections = Object.values(qty).some((q) => q > 0);
+    if (!hasSelections) {
+      clearDraft();
+    }
+    router.back();
   };
 
   const saveLabel =
@@ -171,7 +215,7 @@ export default function NewCommandScreen() {
         ]}
       >
         <AppPressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           style={styles.iconBtn}
