@@ -28,22 +28,16 @@ export function PasscodeSuggestionModal({
       accessibilityViewIsModal
     >
       <View style={styles.backdrop}>
-        <View style={[styles.dialog, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}>
+        <View
+          style={[styles.dialog, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}
+        >
           {/* Icon */}
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: tk.actionTint },
-            ]}
-          >
+          <View style={[styles.iconContainer, { backgroundColor: tk.actionTint }]}>
             <Lock size={32} color={tk.action} strokeWidth={2} />
           </View>
 
           {/* Title */}
-          <Text
-            style={[styles.title, { color: tk.text }]}
-            accessibilityRole="header"
-          >
+          <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
             {t('security.passcode')}
           </Text>
 
@@ -57,12 +51,10 @@ export function PasscodeSuggestionModal({
             <AppPressable
               onPress={onDismiss}
               accessibilityRole="button"
-              accessibilityLabel={t('security.remindLater')}
+              accessibilityLabel={t('security.notNow')}
               style={[styles.button, { backgroundColor: tk.surfaceSunken }]}
             >
-              <Text style={[styles.buttonText, { color: tk.text }]}>
-                {t('security.remindLater')}
-              </Text>
+              <Text style={[styles.buttonText, { color: tk.text }]}>{t('security.notNow')}</Text>
             </AppPressable>
 
             <AppPressable

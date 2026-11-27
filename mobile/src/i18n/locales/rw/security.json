@@ -41,7 +41,7 @@
     "otpFallbackHint": "Ibigeragezo byinshi byanze? Koresha \"Wibagiwe kode\" kugira ngo winjire na OTP",
     "passcodeSetupSuggestion": "Shiraho kode kugira ngo porogaramu yawe ifunge ku buryo bwikora nyuma y'iminota 30 udakoze ikintu",
     "setUpNow": "Shiraho ubu",
-    "remindLater": "Nkumbuze nyuma",
+    "notNow": "Ntaho ubu",
     "lockWarningTitle": "Iburira ryo gufunga",
     "lockWarningMessage": "Ufite impinduka zitabitswe. Funga nibyose?"
   }

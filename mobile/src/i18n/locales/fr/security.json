@@ -41,7 +41,7 @@
     "otpFallbackHint": "Trop d'échecs ? Utilisez \"Code oublié\" pour vous connecter par OTP",
     "passcodeSetupSuggestion": "Configurez un code pour verrouiller automatiquement votre application après 30 minutes d'inactivité",
     "setUpNow": "Configurer maintenant",
-    "remindLater": "Me rappeler plus tard",
+    "notNow": "Pas maintenant",
     "lockWarningTitle": "Avertissement de verrouillage",
     "lockWarningMessage": "Vous avez des modifications non enregistrées. Verrouiller quand même ?"
   }

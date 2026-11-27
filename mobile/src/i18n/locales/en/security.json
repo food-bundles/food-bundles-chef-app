@@ -46,7 +46,7 @@
     "otpFallbackHint": "Too many failed attempts? Use \"Forgot passcode\" to sign in with OTP",
     "passcodeSetupSuggestion": "Set up a passcode to automatically lock your app after 30 minutes of inactivity",
     "setUpNow": "Set Up Now",
-    "remindLater": "Remind Me Later",
+    "notNow": "Not now",
     "lockWarningTitle": "Lock Warning",
     "lockWarningMessage": "You have unsaved changes. Lock anyway?"
   }
