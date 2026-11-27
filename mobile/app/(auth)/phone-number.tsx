@@ -1,4 +1,12 @@
-import { View, Text, TextInput, KeyboardAvoidingView, ScrollView, StyleSheet, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -274,8 +282,6 @@ const styles = StyleSheet.create({
   },
   btnTextDisabled: {
     color: authPalette.divider,
-  },
-});
   },
   heading: {
     color: colors.white,
