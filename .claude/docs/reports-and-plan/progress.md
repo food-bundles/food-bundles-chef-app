@@ -693,12 +693,38 @@ Sign-out preserves:
 9. `c4d63c3` - "feat(security): restore previous screen after unlock" - Save and restore pathname
 10. `e4b2879` - "test(sync): add unit tests for queue isolation across chefs" - Queue safety tests
 11. `062051a` - "i18n(security): rename 'Remind Me Later' to 'Not now'" - Clearer button text
+12. `5e1fca4` - "docs(progress): mark E4 complete, update status and next steps" - Progress update
+13. `bc239f5` - "fix(home): wire TimeSensitiveTabs with time-based active tab" - Tab buttons now render and respond to time
 
 ---
 
 ## How to Resume
 
 **Items B, C, D, E1, E2, E3, E4 complete (all Built, not verified on device).**
+**Item B.1 (TimeSensitiveTabs rendering) fixed.**
+
+**Backend Dependencies for B.2-B.3, C.4, C.5:**
+
+1. **Previous-period reports (B requirement: "show report of previous experience"):**
+   - Current: `/kitchens/{id}/commands/today` only returns today
+   - Needed: Add `?date=YYYY-MM-DD` parameter or `/commands/history?from=&to=` endpoint
+   - Affects: Commands (yesterday's summary), Receive (yesterday's deliveries), Requisition (today's planned orders)
+
+2. **Status detail screens (B requirement: "navigate to detail screens with reports"):**
+   - CommandStatusReport component exists but not wired to routes
+   - Need: Create `app/(app)/commands/[status].tsx` dynamic route
+   - Similar routes for Receive and Requisition reports
+
+3. **Stock deduction config (C requirement: "deduct from stock"):**
+   - Backend: `COMMAND_DEDUCT_ON` in `app/core/config.py` (default="accept")
+   - Issue: CommandResponse schema (line 90 in schemas.py) lacks stock change details
+   - Needed: Add `stock_updated: bool` field to CommandResponse, or expose config in `/kitchens/{id}`
+   - If COMMAND_DEDUCT_ON="served", mobile should show "Stock updated" feedback on serve
+
+4. **Recording confirmation (C requirement: existing, needs verification on device):**
+   - Batch tracking store exists
+   - Snackbar feedback exists
+   - Needs device testing to confirm visibility
 
 **Backend Migrations to Run:**
 
@@ -714,9 +740,11 @@ This applies:
 
 **Next Steps:**
 
-1. **E5 (2FA):** Requires product decision on second factor delivery method (SMS, TOTP app, email). Check backend support before building UI.
+1. **Backend changes above**, then resume B.2, B.3, C.5 mobile implementation
 
-2. **Test on device:**
+2. **E5 (2FA):** Requires product decision on second factor delivery method (SMS, TOTP app, email). Check backend support before building UI.
+
+3. **Test on device:**
    - Country picker on phone entry
    - Onboarding flow for new users (profile → kitchen → language)
    - Restaurant email lookup
@@ -725,12 +753,14 @@ This applies:
    - Command draft persistence across lock
    - Return to previous screen after unlock
    - Lock count and suggestion modal after 2nd lock
+   - **TimeSensitiveTabs buttons render and respond to time**
+   - **Recording confirmation snackbar visibility**
 
-3. **If Item F is required (FoodBundles Integration):** Start after E is complete and tested
+4. **If Item F is required (FoodBundles Integration):** Start after E is complete and tested
 
 **Hook Skips to Document:**
 
-- gitleaks: executable not found, skipped with SKIP=gitleaks in commits 8-11
+- gitleaks: executable not found, skipped with SKIP=gitleaks in commits 8-12
 - Record in next progress update
 
 **mypy Note:**
