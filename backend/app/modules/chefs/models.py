@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.modules.authentication.models import OtpChallenge
+    from app.modules.kitchens.models import Kitchen
 
 
 class Chef(Base):
@@ -22,6 +27,9 @@ class Chef(Base):
     tin: Mapped[str | None] = mapped_column(String(50), nullable=True)
     restaurant_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     restaurant_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     expo_push_token: Mapped[str | None] = mapped_column(String(300), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -33,9 +41,7 @@ class Chef(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    kitchens: Mapped[list[Kitchen]] = relationship(  # noqa: F821
-        "Kitchen", back_populates="chef", lazy="noload"
-    )
-    otp_challenges: Mapped[list[OtpChallenge]] = relationship(  # noqa: F821
+    kitchens: Mapped[list[Kitchen]] = relationship("Kitchen", back_populates="chef", lazy="noload")
+    otp_challenges: Mapped[list[OtpChallenge]] = relationship(
         "OtpChallenge", back_populates="chef", lazy="noload"
     )

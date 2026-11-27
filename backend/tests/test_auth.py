@@ -159,3 +159,29 @@ async def test_profile_country_validation(client: AsyncClient, monkeypatch) -> N
         json={"country": "USA"},
     )
     assert resp.status_code == 422  # Validation error
+
+
+async def test_update_profile_with_onboarding_completed(client: AsyncClient, monkeypatch) -> None:
+    """Test that onboarding_completed_at can be set via profile update."""
+    from datetime import UTC, datetime
+
+    tokens = await _authenticate(client, monkeypatch, "+250780000010")
+
+    # Initially null
+    resp = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["onboarding_completed_at"] is None
+
+    # Set onboarding complete
+    now = datetime.now(UTC)
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        json={"onboarding_completed_at": now.isoformat()},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["onboarding_completed_at"] is not None
