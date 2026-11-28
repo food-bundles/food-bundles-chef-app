@@ -15,9 +15,11 @@ import enDelivery from './locales/en/delivery.json';
 import enErrors from './locales/en/errors.json';
 import enKitchens from './locales/en/kitchens.json';
 import enMenu from './locales/en/menu.json';
+import enOnboarding from './locales/en/onboarding.json';
 import enOrders from './locales/en/orders.json';
 import enProfile from './locales/en/profile.json';
 import enSales from './locales/en/sales.json';
+import enSecurity from './locales/en/security.json';
 import enSettings from './locales/en/settings.json';
 import enStock from './locales/en/stock.json';
 import frAgent from './locales/fr/agent.json';
@@ -29,9 +31,11 @@ import frDelivery from './locales/fr/delivery.json';
 import frErrors from './locales/fr/errors.json';
 import frKitchens from './locales/fr/kitchens.json';
 import frMenu from './locales/fr/menu.json';
+import frOnboarding from './locales/fr/onboarding.json';
 import frOrders from './locales/fr/orders.json';
 import frProfile from './locales/fr/profile.json';
 import frSales from './locales/fr/sales.json';
+import frSecurity from './locales/fr/security.json';
 import frSettings from './locales/fr/settings.json';
 import frStock from './locales/fr/stock.json';
 import rwAgent from './locales/rw/agent.json';
@@ -43,9 +47,11 @@ import rwDelivery from './locales/rw/delivery.json';
 import rwErrors from './locales/rw/errors.json';
 import rwKitchens from './locales/rw/kitchens.json';
 import rwMenu from './locales/rw/menu.json';
+import rwOnboarding from './locales/rw/onboarding.json';
 import rwOrders from './locales/rw/orders.json';
 import rwProfile from './locales/rw/profile.json';
 import rwSales from './locales/rw/sales.json';
+import rwSecurity from './locales/rw/security.json';
 import rwSettings from './locales/rw/settings.json';
 import rwStock from './locales/rw/stock.json';
 
@@ -55,6 +61,7 @@ export const NAMESPACES = [
   'ai',
   'errors',
   'auth',
+  'onboarding',
   'dashboard',
   'kitchens',
   'menu',
@@ -64,6 +71,7 @@ export const NAMESPACES = [
   'sales',
   'agent',
   'profile',
+  'security',
   'settings',
 ] as const;
 
@@ -72,6 +80,7 @@ const en = {
   ...enAi,
   ...enErrors,
   ...enAuth,
+  ...enOnboarding,
   ...enDashboard,
   ...enKitchens,
   ...enMenu,
@@ -81,6 +90,7 @@ const en = {
   ...enSales,
   ...enAgent,
   ...enProfile,
+  ...enSecurity,
   ...enSettings,
 };
 
@@ -89,6 +99,7 @@ const fr = {
   ...frAi,
   ...frErrors,
   ...frAuth,
+  ...frOnboarding,
   ...frDashboard,
   ...frKitchens,
   ...frMenu,
@@ -98,6 +109,7 @@ const fr = {
   ...frSales,
   ...frAgent,
   ...frProfile,
+  ...frSecurity,
   ...frSettings,
 };
 
@@ -106,6 +118,7 @@ const rw = {
   ...rwAi,
   ...rwErrors,
   ...rwAuth,
+  ...rwOnboarding,
   ...rwDashboard,
   ...rwKitchens,
   ...rwMenu,
@@ -115,6 +128,7 @@ const rw = {
   ...rwSales,
   ...rwAgent,
   ...rwProfile,
+  ...rwSecurity,
   ...rwSettings,
 };
 

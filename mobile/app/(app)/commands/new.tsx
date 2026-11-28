@@ -4,8 +4,17 @@
  * are disabled. The number is automatic (#050). Footer: Dine-in / To go, table, "Recorded by",
  * and Save with the summary. Works offline (queued; the server confirms the number).
  */
-import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -19,8 +28,14 @@ import { fontSize, fontWeight, MIN_TOUCH_SIZE, radius, spacing } from '@/lib/the
 import { formatAmount, formatMoney } from '@/lib/money';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
+import { useCommandDraftStore } from '@/store/command-draft-store';
 import { newRequestId } from '@/features/ai/ai-client';
-import { queueNewCommand, useCommandsClient, useCommandsToday, useStaff } from '@/features/commands/useCommands';
+import {
+  queueNewCommand,
+  useCommandsClient,
+  useCommandsToday,
+  useStaff,
+} from '@/features/commands/useCommands';
 import {
   clampQty,
   commandSummary,
@@ -48,6 +63,9 @@ export default function NewCommandScreen() {
   const qc = useCommandsClient();
   const kitchen = useKitchenStore((s) => s.activeKitchen);
   const chef = useSessionStore((s) => s.chef);
+  const saveDraft = useCommandDraftStore((s) => s.saveDraft);
+  const getDraft = useCommandDraftStore((s) => s.getDraft);
+  const clearDraft = useCommandDraftStore((s) => s.clearDraft);
   const today = useCommandsToday();
   const staff = useStaff();
   const [cat, setCat] = useState<Cat>('all');
@@ -59,18 +77,56 @@ export default function NewCommandScreen() {
   const [pickRecorder, setPickRecorder] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Restore draft on mount
+  useEffect(() => {
+    if (!kitchen || !today.data?.service_date) return;
+    const draft = getDraft(kitchen.id, today.data.service_date);
+    if (draft) {
+      setQty(draft.qty);
+      setType(draft.type);
+      setTable(draft.table);
+      setRecorder(draft.recorder);
+    }
+  }, [kitchen?.id, today.data?.service_date]);
+
+  // Save draft whenever state changes
+  useEffect(() => {
+    if (!kitchen || !today.data?.service_date) return;
+    // Skip saving on initial mount or when nothing is selected
+    const hasSelections = Object.values(qty).some((q) => q > 0);
+    if (!hasSelections) return;
+
+    saveDraft({
+      kitchenId: kitchen.id,
+      serviceDate: today.data.service_date,
+      qty,
+      type,
+      table,
+      recorder,
+      createdAt: Date.now(),
+    });
+  }, [qty, type, table, recorder, kitchen?.id, today.data?.service_date]);
+
   const dishes = useMemo(() => (today.data?.dishes ?? []).filter((d) => d.is_active), [today.data]);
   const shown = dishes.filter((d) => cat === 'all' || d.category === cat);
   const cats = CATEGORIES.filter((c) => dishes.some((d) => d.category === c));
   const picked = dishes
     .filter((d) => (qty[d.menu_item_id] ?? 0) > 0)
-    .map((d) => ({ menuItemId: d.menu_item_id, name: d.name, qty: qty[d.menu_item_id] ?? 0, price: Number(d.selling_price) }));
+    .map((d) => ({
+      menuItemId: d.menu_item_id,
+      name: d.name,
+      qty: qty[d.menu_item_id] ?? 0,
+      price: Number(d.selling_price),
+    }));
   const summary = commandSummary(picked);
   const currency = dishes[0]?.currency ?? kitchen?.currency ?? '';
   const number = today.data?.next_number ?? 1;
 
   const bump = (d: DishTodayDto, delta: number) =>
-    setQty((prev) => ({ ...prev, [d.menu_item_id]: clampQty((prev[d.menu_item_id] ?? 0) + delta, d.can_make) }));
+    setQty((prev) => ({
+      ...prev,
+      [d.menu_item_id]: clampQty((prev[d.menu_item_id] ?? 0) + delta, d.can_make),
+    }));
 
   const save = async () => {
     if (!kitchen || summary.portions === 0 || saving) return;
@@ -116,23 +172,54 @@ export default function NewCommandScreen() {
     );
     try {
       await queueNewCommand(kitchen.id, body, preview, qc);
-      router.replace({ pathname: '/(app)/commands/saved', params: { id, before: JSON.stringify(before) } });
+      clearDraft(); // Clear draft after successful save
+      router.replace({
+        pathname: '/(app)/commands/saved',
+        params: { id, before: JSON.stringify(before) },
+      });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleBack = () => {
+    // Clear draft when explicitly backing out or cancelling
+    const hasSelections = Object.values(qty).some((q) => q > 0);
+    if (!hasSelections) {
+      clearDraft();
+    }
+    router.back();
+  };
+
   const saveLabel =
     summary.portions === 0
       ? t('commands.pickDishes')
-      : [t('commands.save'), summary.label || t('commands.portions', { count: summary.portions }), formatAmount(summary.total, currency, i18n.language)].join(' · ');
+      : [
+          t('commands.save'),
+          summary.label || t('commands.portions', { count: summary.portions }),
+          formatAmount(summary.total, currency, i18n.language),
+        ].join(' · ');
 
   const recorderRole = t(`commands.roles.${recorder.role}`);
 
   return (
     <View style={[styles.root, { backgroundColor: tk.surface }]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm, backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}>
-        <AppPressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.iconBtn}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + spacing.sm,
+            backgroundColor: tk.surfaceRaised,
+            borderBottomColor: tk.border,
+          },
+        ]}
+      >
+        <AppPressable
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          style={styles.iconBtn}
+        >
           <ChevronLeft size={26} color={tk.text} />
         </AppPressable>
         <View style={styles.flex}>
@@ -141,20 +228,37 @@ export default function NewCommandScreen() {
           </Text>
           <Text style={[styles.sub, { color: tk.textMuted }]}>{t('commands.newHint')}</Text>
         </View>
-        <View style={[styles.noPill, { backgroundColor: tk.text }]} accessibilityLabel={t('commands.numberLabel', { no: formatCommandNo(number) })}>
-          <Text style={[styles.noText, { color: tk.surfaceRaised }]}>{formatCommandNo(number)}</Text>
+        <View
+          style={[styles.noPill, { backgroundColor: tk.text }]}
+          accessibilityLabel={t('commands.numberLabel', { no: formatCommandNo(number) })}
+        >
+          <Text style={[styles.noText, { color: tk.surfaceRaised }]}>
+            {formatCommandNo(number)}
+          </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.pills}>
-          <SelectableChip label={t('commands.catAll')} selected={cat === 'all'} onPress={() => setCat('all')} />
+          <SelectableChip
+            label={t('commands.catAll')}
+            selected={cat === 'all'}
+            onPress={() => setCat('all')}
+          />
           {cats.map((c) => (
-            <SelectableChip key={c} label={t(`menu.categories.${c}`)} selected={cat === c} onPress={() => setCat(c)} />
+            <SelectableChip
+              key={c}
+              label={t(`menu.categories.${c}`)}
+              selected={cat === c}
+              onPress={() => setCat(c)}
+            />
           ))}
         </View>
         {dishes.length === 0 && today.data ? (
-          <EmptyState title={t('commands.noDishesTitle')} description={t('commands.noDishesBody')} />
+          <EmptyState
+            title={t('commands.noDishesTitle')}
+            description={t('commands.noDishesBody')}
+          />
         ) : null}
         <View style={styles.grid}>
           {shown.map((d) => {
@@ -172,20 +276,30 @@ export default function NewCommandScreen() {
                 accessibilityLabel={
                   out
                     ? t('commands.tileOutLabel', { name: d.name })
-                    : t('commands.tileLabel', { name: d.name, ordered: d.ordered_today, can: d.can_make ?? '—' })
+                    : t('commands.tileLabel', {
+                        name: d.name,
+                        ordered: d.ordered_today,
+                        can: d.can_make ?? '—',
+                      })
                 }
                 style={[
                   styles.tile,
-                  { backgroundColor: selected ? tk.primaryTint : tk.surfaceRaised, borderColor: selected ? tk.primary : tk.border },
+                  {
+                    backgroundColor: selected ? tk.primaryTint : tk.surfaceRaised,
+                    borderColor: selected ? tk.primary : tk.border,
+                  },
                   out && styles.out,
                 ]}
               >
                 <Text style={[styles.tileName, { color: tk.text }]} numberOfLines={2}>
                   {d.name}
                 </Text>
-                <Text style={[styles.tilePrice, { color: tk.textMuted }]}>{formatMoney(d.selling_price, d.currency ?? currency, i18n.language)}</Text>
+                <Text style={[styles.tilePrice, { color: tk.textMuted }]}>
+                  {formatMoney(d.selling_price, d.currency ?? currency, i18n.language)}
+                </Text>
                 <Text style={[styles.tileOrdered, { color: tk.textMuted }]}>
-                  <Text style={[styles.bold, { color: tk.text }]}>{d.ordered_today}</Text> {t('commands.orderedToday')}
+                  <Text style={[styles.bold, { color: tk.text }]}>{d.ordered_today}</Text>{' '}
+                  {t('commands.orderedToday')}
                 </Text>
                 {selected ? (
                   <View style={styles.stepper}>
@@ -209,11 +323,17 @@ export default function NewCommandScreen() {
                     </AppPressable>
                   </View>
                 ) : out ? (
-                  <Text style={[styles.tileCan, { color: tk.danger }]}>{t('commands.outOfStock')}</Text>
+                  <Text style={[styles.tileCan, { color: tk.danger }]}>
+                    {t('commands.outOfStock')}
+                  </Text>
                 ) : d.can_make !== null ? (
-                  <Text style={[styles.tileCan, { color: tk.link }]}>{t('commands.canMake', { count: d.can_make })}</Text>
+                  <Text style={[styles.tileCan, { color: tk.link }]}>
+                    {t('commands.canMake', { count: d.can_make })}
+                  </Text>
                 ) : (
-                  <Text style={[styles.tileCan, { color: tk.textMuted }]}>{t('commands.noRecipe')}</Text>
+                  <Text style={[styles.tileCan, { color: tk.textMuted }]}>
+                    {t('commands.noRecipe')}
+                  </Text>
                 )}
               </AppPressable>
             );
@@ -221,7 +341,16 @@ export default function NewCommandScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: tk.surfaceRaised, borderTopColor: tk.border, paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: tk.surfaceRaised,
+            borderTopColor: tk.border,
+            paddingBottom: Math.max(insets.bottom, spacing.md),
+          },
+        ]}
+      >
         <View style={styles.typeRow}>
           <View style={[styles.segment, { backgroundColor: tk.surfaceSunken }]}>
             {(['dine_in', 'to_go'] as const).map((k) => (
@@ -233,7 +362,9 @@ export default function NewCommandScreen() {
                 accessibilityLabel={k === 'dine_in' ? t('commands.dineIn') : t('commands.toGo')}
                 style={[styles.segBtn, type === k && { backgroundColor: tk.surfaceRaised }]}
               >
-                <Text style={[styles.segText, { color: type === k ? tk.onInfoTint : tk.textMuted }]}>
+                <Text
+                  style={[styles.segText, { color: type === k ? tk.onInfoTint : tk.textMuted }]}
+                >
                   {k === 'dine_in' ? t('commands.dineIn') : t('commands.toGo')}
                 </Text>
               </AppPressable>
@@ -241,7 +372,9 @@ export default function NewCommandScreen() {
           </View>
           {type === 'dine_in' ? (
             <>
-              <Text style={[styles.tableLabel, { color: tk.textMuted }]}>{t('commands.table')}</Text>
+              <Text style={[styles.tableLabel, { color: tk.textMuted }]}>
+                {t('commands.table')}
+              </Text>
               <TextInput
                 value={table}
                 onChangeText={(v) => setTable(v.replace(/[^0-9A-Za-z]/g, '').slice(0, 4))}
@@ -253,7 +386,11 @@ export default function NewCommandScreen() {
           ) : null}
         </View>
         <Text style={[styles.recorded, { color: tk.textMuted }]}>
-          {t('commands.recordedBy')} <Text style={[styles.bold, { color: tk.text }]}>{recorder.name} · {recorderRole}{recorder.staffId === null ? ` ${t('commands.you')}` : ''}</Text>
+          {t('commands.recordedBy')}{' '}
+          <Text style={[styles.bold, { color: tk.text }]}>
+            {recorder.name} · {recorderRole}
+            {recorder.staffId === null ? ` ${t('commands.you')}` : ''}
+          </Text>
           {' · '}
           <Text
             onPress={() => setPickRecorder(true)}
@@ -263,7 +400,13 @@ export default function NewCommandScreen() {
             {t('commands.change')}
           </Text>
         </Text>
-        <AppButton label={saveLabel} onPress={() => void save()} size="lg" disabled={summary.portions === 0} loading={saving} />
+        <AppButton
+          label={saveLabel}
+          onPress={() => void save()}
+          size="lg"
+          disabled={summary.portions === 0}
+          loading={saving}
+        />
       </View>
 
       <RecorderPicker
@@ -295,10 +438,17 @@ function RecorderPicker({
 }) {
   const { t } = useTranslation();
   const tk = useTheme();
-  const options: Recorder[] = [me, ...staff.map((s) => ({ staffId: s.id, name: s.name, role: s.role }))];
+  const options: Recorder[] = [
+    me,
+    ...staff.map((s) => ({ staffId: s.id, name: s.name, role: s.role })),
+  ];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, { backgroundColor: tk.overlay }]} onPress={onClose} accessibilityLabel={t('common.close')} />
+      <Pressable
+        style={[styles.backdrop, { backgroundColor: tk.overlay }]}
+        onPress={onClose}
+        accessibilityLabel={t('common.close')}
+      />
       <View style={[styles.sheet, { backgroundColor: tk.surfaceRaised }]}>
         <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
           {t('commands.recordedByTitle')}
@@ -311,7 +461,11 @@ function RecorderPicker({
               onPress={() => onPick(item)}
               accessibilityRole="button"
               accessibilityLabel={`${item.name}, ${t(`commands.roles.${item.role}`)}`}
-              style={({ pressed }) => [styles.pickRow, { borderBottomColor: tk.border }, pressed && styles.out]}
+              style={({ pressed }) => [
+                styles.pickRow,
+                { borderBottomColor: tk.border },
+                pressed && styles.out,
+              ]}
             >
               <Text style={[styles.pickName, { color: tk.text }]}>{item.name}</Text>
               <Text style={[styles.sub, { color: tk.textMuted }]}>
@@ -341,34 +495,103 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   bold: { fontWeight: fontWeight.bold },
   out: { opacity: 0.45 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm + 2, borderBottomWidth: StyleSheet.hairlineWidth },
-  iconBtn: { width: MIN_TOUCH_SIZE, height: MIN_TOUCH_SIZE, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm + 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  iconBtn: {
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold },
   sub: { fontSize: fontSize.sm },
-  noPill: { paddingHorizontal: spacing.md, minHeight: MIN_TOUCH_SIZE, borderRadius: radius.full, justifyContent: 'center' },
+  noPill: {
+    paddingHorizontal: spacing.md,
+    minHeight: MIN_TOUCH_SIZE,
+    borderRadius: radius.full,
+    justifyContent: 'center',
+  },
   noText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 4 },
-  tile: { width: '47.5%', minHeight: 150, borderRadius: radius.xl, borderWidth: 1.5, padding: spacing.md, gap: 4 },
+  tile: {
+    width: '47.5%',
+    minHeight: 150,
+    borderRadius: radius.xl,
+    borderWidth: 1.5,
+    padding: spacing.md,
+    gap: 4,
+  },
   tileName: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
   tilePrice: { fontSize: fontSize.base },
   tileOrdered: { fontSize: fontSize.base, marginTop: 'auto' },
   tileCan: { fontSize: fontSize.base, fontWeight: fontWeight.semibold },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
-  stepBtn: { width: MIN_TOUCH_SIZE + 4, height: MIN_TOUCH_SIZE + 4, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  stepQty: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, minWidth: 28, textAlign: 'center' },
-  footer: { padding: spacing.md, gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
-  typeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  segment: { flex: 1, flexDirection: 'row', borderRadius: radius.lg, padding: 4 },
-  segBtn: { flex: 1, minHeight: MIN_TOUCH_SIZE, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  stepBtn: {
+    width: MIN_TOUCH_SIZE + 4,
+    height: MIN_TOUCH_SIZE + 4,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepQty: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    minWidth: 28,
+    textAlign: 'center',
+  },
+  footer: { padding: spacing.md, gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  segment: {
+    flexDirection: 'row',
+    borderRadius: radius.lg,
+    padding: 4,
+  },
+  segBtn: {
+    flex: 1,
+    minHeight: MIN_TOUCH_SIZE,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   segText: { fontSize: fontSize.base, fontWeight: fontWeight.bold },
   tableLabel: { fontSize: fontSize.base },
-  tableInput: { width: 56, minHeight: MIN_TOUCH_SIZE + 8, borderWidth: 1.5, borderRadius: radius.md, textAlign: 'center', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
+  tableInput: {
+    width: 56,
+    minHeight: MIN_TOUCH_SIZE + 8,
+    borderWidth: 1.5,
+    borderRadius: radius.md,
+    textAlign: 'center',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+  },
   recorded: { fontSize: fontSize.sm },
   change: { textDecorationLine: 'underline', fontWeight: fontWeight.semibold },
   backdrop: { flex: 1 },
-  sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm, maxHeight: '70%' },
-  pickRow: { minHeight: MIN_TOUCH_SIZE + 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth },
+  sheet: {
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
+    gap: spacing.sm,
+    maxHeight: '70%',
+  },
+  pickRow: {
+    minHeight: MIN_TOUCH_SIZE + 12,
+    justifyContent: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   pickName: { fontSize: fontSize.lg, fontWeight: fontWeight.semibold },
 });

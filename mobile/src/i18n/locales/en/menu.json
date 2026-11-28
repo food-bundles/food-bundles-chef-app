@@ -40,6 +40,10 @@
     "moreOptions": "More options for {{name}}",
     "deleteItemLabel": "Delete {{name}}",
     "removed": "{{name}} removed",
+    "orderedToday": "{{count}} today",
+    "canMake": "{{count}} left",
+    "available": "Available",
+    "unavailable": "Off",
     "scan": {
       "howTitle": "How to scan",
       "howBody": "Point the camera at a printed or handwritten menu, flat and well lit.",

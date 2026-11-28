@@ -40,6 +40,10 @@
     "moreOptions": "Ibindi bya {{name}}",
     "deleteItemLabel": "Siba {{name}}",
     "removed": "{{name}} yakuweho",
+    "orderedToday": "{{count}} uyu munsi",
+    "canMake": "{{count}} bisigaye",
+    "available": "Birahari",
+    "unavailable": "Ntibihari",
     "scan": {
       "howTitle": "Uko bafotora menu",
       "howBody": "Erekeza kamera kuri menu icapye cyangwa yanditse n'intoki, iri hasi kandi ibonesheje neza.",

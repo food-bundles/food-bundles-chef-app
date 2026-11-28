@@ -4,7 +4,14 @@ import '../src/i18n';
 import { useEffect, Component, type ReactNode } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemeProvider, useTheme } from '@/providers/ThemeProvider';
-import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme, type Theme } from 'expo-router';
+import { InactivityProvider } from '@/providers/InactivityProvider';
+import {
+  Stack,
+  ThemeProvider as NavigationThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  type Theme,
+} from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -50,11 +57,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   render() {
     if (this.state.error) {
       return (
-        <View style={{ flex: 1, backgroundColor: darkTheme.bg, padding: 24, paddingTop: 80, gap: 16 }}>
-          <Text style={{ color: darkTheme.text, fontSize: 20, fontWeight: '700' }} accessibilityRole="header">
+        <View
+          style={{ flex: 1, backgroundColor: darkTheme.bg, padding: 24, paddingTop: 80, gap: 16 }}
+        >
+          <Text
+            style={{ color: darkTheme.text, fontSize: 20, fontWeight: '700' }}
+            accessibilityRole="header"
+          >
             {i18n.t('errors.boundary.title')}
           </Text>
-          <Text style={{ color: darkTheme.textMuted, fontSize: 15, lineHeight: 22 }}>{i18n.t('errors.boundary.body')}</Text>
+          <Text style={{ color: darkTheme.textMuted, fontSize: 15, lineHeight: 22 }}>
+            {i18n.t('errors.boundary.body')}
+          </Text>
           <Pressable
             onPress={() => this.setState({ error: null })}
             accessibilityRole="button"
@@ -67,12 +81,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: darkTheme.onAction, fontSize: 16, fontWeight: '700' }}>{i18n.t('errors.boundary.retry')}</Text>
+            <Text style={{ color: darkTheme.onAction, fontSize: 16, fontWeight: '700' }}>
+              {i18n.t('errors.boundary.retry')}
+            </Text>
           </Pressable>
           {__DEV__ ? (
             <ScrollView>
-              <Text style={{ color: darkTheme.danger, fontSize: 13 }}>{this.state.error.message}</Text>
-              <Text style={{ color: darkTheme.textMuted, fontSize: 11, marginTop: 12 }}>{this.state.error.stack}</Text>
+              <Text style={{ color: darkTheme.danger, fontSize: 13 }}>
+                {this.state.error.message}
+              </Text>
+              <Text style={{ color: darkTheme.textMuted, fontSize: 11, marginTop: 12 }}>
+                {this.state.error.stack}
+              </Text>
             </ScrollView>
           ) : null}
         </View>
@@ -104,7 +124,14 @@ function AppShell() {
       <StatusBar style={tokens.scheme === 'dark' ? 'light' : 'dark'} />
       {/* Root background shows behind the tab bar and home indicator — no white strip in dark mode */}
       <View style={{ flex: 1, backgroundColor: tokens.surface }}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tokens.surface } }} />
+        <InactivityProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: tokens.surface },
+            }}
+          />
+        </InactivityProvider>
       </View>
     </NavigationThemeProvider>
   );
@@ -117,11 +144,7 @@ export default function RootLayout() {
     // Saved choice, else the device language (en/rw/fr), else English.
     const restoreLang = restoreLanguage().catch(() => undefined);
 
-    Promise.all([
-      getDatabase(),
-      initSession(),
-      restoreLang,
-    ])
+    Promise.all([getDatabase(), initSession(), restoreLang])
       .then(() => SplashScreen.hideAsync())
       .catch(() => SplashScreen.hideAsync());
   }, [initSession]);

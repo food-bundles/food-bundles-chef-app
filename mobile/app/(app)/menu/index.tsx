@@ -1,20 +1,52 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, RefreshControl, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ClipboardList, MoreHorizontal, Pencil, Plus, ScanLine, Trash2, UtensilsCrossed, type LucideIcon } from 'lucide-react-native';
+import {
+  ChefHat,
+  ChevronLeft,
+  Plus,
+  ScanLine,
+  ShoppingBasket,
+  Trash2,
+  TrendingUp,
+  UtensilsCrossed,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppPressable } from '@/components/ui/AppPressable';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { SelectableChip } from '@/components/ui/SelectableChip';
 import { Snackbar } from '@/components/ui/Snackbar';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { useDeleteMenuItem, useMenuItems, useToggleMenuItemActive } from '@/features/menu/useMenuItems';
+import {
+  useDeleteMenuItem,
+  useMenuItems,
+  useToggleMenuItemActive,
+} from '@/features/menu/useMenuItems';
 import { ScanMenuModal, type ImportOutcome } from '@/features/menu/ScanMenuModal';
+import { MenuItemCard } from '@/features/menu/MenuItemCard';
 import { useAiFeatures } from '@/features/ai/api';
-import { deleteMenuItem, MENU_ITEM_CATEGORIES, updateMenuItem, type MenuItemCategory, type MenuItemDto } from '@/api/menus-api';
+import {
+  deleteMenuItem,
+  listRecipeLines,
+  MENU_ITEM_CATEGORIES,
+  updateMenuItem,
+  type MenuItemCategory,
+  type MenuItemDto,
+  type RecipeLineDto,
+} from '@/api/menus-api';
+import { getCommandsToday } from '@/api/commands-api';
 import { queryKeys } from '@/api/query-keys';
 import { useKitchenStore } from '@/store/kitchen-store';
 import { useSessionStore } from '@/store/session-store';
@@ -37,6 +69,14 @@ export default function MenuScreen() {
   const { data: allItems = [], isLoading, isError, refetch } = useMenuItems();
   const toggleActive = useToggleMenuItemActive();
   const deleteItem = useDeleteMenuItem();
+
+  // Fetch today's commands to show orders_today and can_make
+  const { data: commandsToday } = useQuery({
+    queryKey: queryKeys.commands.today(kitchenId),
+    queryFn: () => getCommandsToday(kitchenId),
+    enabled: Boolean(kitchenId),
+    staleTime: 60_000, // 1 minute
+  });
 
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
@@ -67,7 +107,9 @@ export default function MenuScreen() {
     try {
       await Promise.all([
         ...outcome.created.map((c) => deleteMenuItem(kitchenId, c.menuId, c.id)),
-        ...outcome.updated.map((u) => updateMenuItem(kitchenId, u.menuId, u.id, { selling_price: u.previousPrice })),
+        ...outcome.updated.map((u) =>
+          updateMenuItem(kitchenId, u.menuId, u.id, { selling_price: u.previousPrice }),
+        ),
       ]);
       setSnack({ message: t('menu.scan.undone') });
     } catch {
@@ -79,53 +121,84 @@ export default function MenuScreen() {
 
   const onImported = (outcome: ImportOutcome) => {
     const count = outcome.created.length + outcome.updated.length;
-    setSnack({ message: t('menu.scan.imported', { count }), onUndo: () => void undoImport(outcome) });
+    setSnack({
+      message: t('menu.scan.imported', { count }),
+      onUndo: () => void undoImport(outcome),
+    });
   };
 
   const confirmDelete = (item: MenuItemDto) => {
     setOverflowItem(null);
-    Alert.alert(t('editItem.removeConfirmTitle'), t('editItem.removeConfirmMessage', { name: item.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('editItem.removeButton'),
-        style: 'destructive',
-        onPress: () =>
-          deleteItem.mutate(
-            { menuId: item.menu_id, itemId: item.id },
-            {
-              onSuccess: () => setSnack({ message: t('menu.removed', { name: item.name }) }),
-              onError: () => setSnack({ message: t('editItem.removeError') }),
-            },
-          ),
-      },
-    ]);
+    Alert.alert(
+      t('editItem.removeConfirmTitle'),
+      t('editItem.removeConfirmMessage', { name: item.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('editItem.removeButton'),
+          style: 'destructive',
+          onPress: () =>
+            deleteItem.mutate(
+              { menuId: item.menu_id, itemId: item.id },
+              {
+                onSuccess: () => setSnack({ message: t('menu.removed', { name: item.name }) }),
+                onError: () => setSnack({ message: t('editItem.removeError') }),
+              },
+            ),
+        },
+      ],
+    );
   };
 
   // Spec 09: one dish form for create, edit and recipe (the old edit/detail screens stay unlinked).
-  const openEdit = (item: MenuItemDto) => router.push({ pathname: '/(app)/menu/dish', params: { id: item.id } });
+  const openEdit = (item: MenuItemDto) =>
+    router.push({ pathname: '/(app)/menu/dish', params: { id: item.id } });
 
   const filters: CategoryFilter[] = ['all', ...MENU_ITEM_CATEGORIES];
 
   return (
     <View style={[styles.root, { backgroundColor: tokens.surface, paddingTop: insets.top }]}>
-      <View style={[styles.header, { borderBottomColor: tokens.border, backgroundColor: tokens.surfaceRaised }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: tokens.border, backgroundColor: tokens.surfaceRaised },
+        ]}
+      >
         <HeaderButton Icon={ChevronLeft} label={t('common.back')} onPress={() => router.back()} />
         <Text style={[styles.title, { color: tokens.text }]} accessibilityRole="header">
           {t('menu.title')}
         </Text>
         <View style={styles.headerActions}>
           {features.menu_scan ? (
-            <HeaderButton Icon={ScanLine} label={t('menu.scanMenu')} onPress={() => setScanOpen(true)} />
+            <HeaderButton
+              Icon={ScanLine}
+              label={t('menu.scanMenu')}
+              onPress={() => setScanOpen(true)}
+            />
           ) : null}
-          <HeaderButton Icon={Plus} label={t('menu.addItem')} onPress={() => router.push('/(app)/menu/dish')} filled />
+          <HeaderButton
+            Icon={Plus}
+            label={t('menu.addItem')}
+            onPress={() => router.push('/(app)/menu/dish')}
+            filled
+          />
         </View>
       </View>
 
       <View style={styles.filters}>
-        <SearchInput value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
+        <SearchInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('menu.searchPlaceholder')}
+        />
         <View style={styles.chips}>
           {filters.map((c) => (
-            <SelectableChip key={c} label={t(`menu.categories.${c}`)} selected={category === c} onPress={() => setCategory(c)} />
+            <SelectableChip
+              key={c}
+              label={t(`menu.categories.${c}`)}
+              selected={category === c}
+              onPress={() => setCategory(c)}
+            />
           ))}
         </View>
       </View>
@@ -146,13 +219,25 @@ export default function MenuScreen() {
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tokens.primary} colors={[tokens.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void onRefresh()}
+              tintColor={tokens.primary}
+              colors={[tokens.primary]}
+            />
           }
           renderItem={({ item }) => (
             <MenuItemCard
               item={item}
+              dishToday={commandsToday?.dishes.find((d) => d.menu_item_id === item.id)}
               onOpen={() => router.push({ pathname: '/(app)/menu/dish', params: { id: item.id } })}
-              onToggle={() => toggleActive.mutate({ menuId: item.menu_id, itemId: item.id, isActive: item.is_active })}
+              onToggle={() =>
+                toggleActive.mutate({
+                  menuId: item.menu_id,
+                  itemId: item.id,
+                  isActive: item.is_active,
+                })
+              }
               onEdit={() => openEdit(item)}
               onMore={() => setOverflowItem(item)}
             />
@@ -160,19 +245,34 @@ export default function MenuScreen() {
           ListEmptyComponent={
             query.trim() || category !== 'all' ? (
               <View style={[styles.pad, styles.emptyWrap]}>
-                <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.noResults')}</Text>
-                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('menu.noResultsBody')}</Text>
+                <Text style={[styles.emptyTitle, { color: tokens.text }]}>
+                  {t('menu.noResults')}
+                </Text>
+                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>
+                  {t('menu.noResultsBody')}
+                </Text>
               </View>
             ) : (
               <View style={[styles.pad, styles.emptyWrap]}>
                 <View style={[styles.emptyIcon, { backgroundColor: tokens.primaryTint }]}>
                   <UtensilsCrossed size={28} color={tokens.onPrimaryTint} />
                 </View>
-                <Text style={[styles.emptyTitle, { color: tokens.text }]}>{t('menu.emptyTitle')}</Text>
-                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>{t('menu.emptyBody')}</Text>
-                <AppButton label={t('menu.addFirstItem')} onPress={() => router.push('/(app)/menu/dish')} />
+                <Text style={[styles.emptyTitle, { color: tokens.text }]}>
+                  {t('menu.emptyTitle')}
+                </Text>
+                <Text style={[styles.emptyBody, { color: tokens.textMuted }]}>
+                  {t('menu.emptyBody')}
+                </Text>
+                <AppButton
+                  label={t('menu.addFirstItem')}
+                  onPress={() => router.push('/(app)/menu/dish')}
+                />
                 {features.menu_scan ? (
-                  <AppButton label={t('menu.scanMenu')} variant="secondary" onPress={() => setScanOpen(true)} />
+                  <AppButton
+                    label={t('menu.scanMenu')}
+                    variant="secondary"
+                    onPress={() => setScanOpen(true)}
+                  />
                 ) : null}
               </View>
             )
@@ -212,7 +312,17 @@ export default function MenuScreen() {
   );
 }
 
-function HeaderButton({ Icon, label, onPress, filled = false }: { Icon: LucideIcon; label: string; onPress: () => void; filled?: boolean }) {
+function HeaderButton({
+  Icon,
+  label,
+  onPress,
+  filled = false,
+}: {
+  Icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+  filled?: boolean;
+}) {
   const tokens = useTheme();
   return (
     <AppPressable
@@ -227,88 +337,6 @@ function HeaderButton({ Icon, label, onPress, filled = false }: { Icon: LucideIc
     >
       <Icon size={20} color={filled ? tokens.onPrimary : tokens.text} strokeWidth={2} />
     </AppPressable>
-  );
-}
-
-function MenuItemCard({
-  item,
-  onOpen,
-  onToggle,
-  onEdit,
-  onMore,
-}: {
-  item: MenuItemDto;
-  onOpen: () => void;
-  onToggle: () => void;
-  onEdit: () => void;
-  onMore: () => void;
-}) {
-  const { t, i18n } = useTranslation();
-  const tokens = useTheme();
-  return (
-    <View style={[styles.card, { backgroundColor: tokens.surfaceRaised, borderColor: tokens.border }]}>
-      <View style={styles.cardTop}>
-        <AppPressable
-          onPress={onOpen}
-          accessibilityRole="button"
-          accessibilityLabel={t('menu.openItem', { name: item.name })}
-          style={({ pressed }) => [styles.cardMain, pressed && styles.pressed]}
-        >
-          <View style={styles.nameRow}>
-            <Text style={[styles.name, { color: item.is_active ? tokens.text : tokens.textMuted }]} numberOfLines={2}>
-              {item.name}
-            </Text>
-            {!item.is_active ? <StatusBadge label={t('menu.off')} variant="neutral" /> : null}
-          </View>
-          {item.category ? (
-            <Text style={[styles.meta, { color: tokens.textMuted }]}>{t(`menu.categories.${item.category}`)}</Text>
-          ) : null}
-          {item.description ? (
-            <Text style={[styles.meta, { color: tokens.textMuted }]} numberOfLines={2}>
-              {item.description}
-            </Text>
-          ) : null}
-          <Text style={[styles.price, { color: tokens.link }]}>{formatMoney(item.selling_price, item.selling_price_currency ?? '', i18n.language)}</Text>
-        </AppPressable>
-        <Switch
-          value={item.is_active}
-          onValueChange={onToggle}
-          trackColor={{ true: tokens.primary, false: tokens.border }}
-          thumbColor={tokens.surfaceRaised}
-          ios_backgroundColor={tokens.border}
-          accessibilityLabel={t('menuItem.availableLabel', { name: item.name })}
-        />
-      </View>
-      <View style={[styles.cardActions, { borderTopColor: tokens.border }]}>
-        <AppPressable
-          onPress={onEdit}
-          accessibilityRole="button"
-          accessibilityLabel={t('menuItem.editItemLabel', { name: item.name })}
-          style={({ pressed }) => [styles.action, { backgroundColor: tokens.surfaceSunken }, pressed && styles.pressed]}
-        >
-          <Pencil size={16} color={tokens.text} />
-          <Text style={[styles.actionText, { color: tokens.text }]}>{t('menu.edit')}</Text>
-        </AppPressable>
-        {/* Tint pair (primaryTint / onPrimaryTint) passes AA in both themes — green-on-green failed (#2). */}
-        <AppPressable
-          onPress={onOpen}
-          accessibilityRole="button"
-          accessibilityLabel={t('menu.recipeOf', { name: item.name })}
-          style={({ pressed }) => [styles.action, { backgroundColor: tokens.primaryTint }, pressed && styles.pressed]}
-        >
-          <ClipboardList size={16} color={tokens.onPrimaryTint} />
-          <Text style={[styles.actionText, { color: tokens.onPrimaryTint }]}>{t('menu.recipe')}</Text>
-        </AppPressable>
-        <AppPressable
-          onPress={onMore}
-          accessibilityRole="button"
-          accessibilityLabel={t('menu.moreOptions', { name: item.name })}
-          style={({ pressed }) => [styles.more, { backgroundColor: tokens.surfaceSunken }, pressed && styles.pressed]}
-        >
-          <MoreHorizontal size={18} color={tokens.text} />
-        </AppPressable>
-      </View>
-    </View>
   );
 }
 
@@ -327,7 +355,13 @@ function OverflowSheet({
   const tokens = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={item !== null} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+    <Modal
+      visible={item !== null}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
       <View style={styles.sheetRoot}>
         <AppPressable
           style={[StyleSheet.absoluteFill, { backgroundColor: tokens.overlay }]}
@@ -336,7 +370,13 @@ function OverflowSheet({
           accessibilityLabel={t('common.close')}
         />
         {item ? (
-          <View style={[styles.sheet, { backgroundColor: tokens.surfaceRaised, paddingBottom: insets.bottom + spacing.md }]} accessibilityViewIsModal>
+          <View
+            style={[
+              styles.sheet,
+              { backgroundColor: tokens.surfaceRaised, paddingBottom: insets.bottom + spacing.md },
+            ]}
+            accessibilityViewIsModal
+          >
             <Text style={[styles.sheetTitle, { color: tokens.textMuted }]} numberOfLines={1}>
               {item.name}
             </Text>
@@ -356,7 +396,9 @@ function OverflowSheet({
               style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
             >
               <Trash2 size={18} color={tokens.danger} />
-              <Text style={[styles.sheetRowText, { color: tokens.danger }]}>{t('menu.deleteItem')}</Text>
+              <Text style={[styles.sheetRowText, { color: tokens.danger }]}>
+                {t('menu.deleteItem')}
+              </Text>
             </AppPressable>
             <AppButton label={t('common.cancel')} variant="ghost" onPress={onClose} />
           </View>
@@ -378,7 +420,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: fontSize.xl, fontWeight: fontWeight.bold },
   headerActions: { flexDirection: 'row', gap: spacing.sm },
-  headerButton: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pressed: { opacity: 0.7 },
   filters: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
@@ -386,33 +434,16 @@ const styles = StyleSheet.create({
   pad: { padding: spacing.lg, gap: spacing.md },
   list: { paddingHorizontal: spacing.md, paddingBottom: 96, gap: spacing.sm },
   emptyWrap: { alignItems: 'stretch' },
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
-  emptyTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, textAlign: 'center' },
-  emptyBody: { fontSize: fontSize.base, lineHeight: 22, textAlign: 'center' },
-  card: { borderRadius: radius.lg, borderWidth: 1, overflow: 'hidden' },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: spacing.md },
-  cardMain: { flex: 1, padding: spacing.md, gap: 2 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  name: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, flexShrink: 1 },
-  meta: { fontSize: fontSize.sm },
-  price: { fontSize: fontSize.base, fontWeight: fontWeight.bold, marginTop: 4 },
-  cardActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    padding: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  action: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radius.md,
-    flexDirection: 'row',
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    alignSelf: 'center',
   },
-  actionText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
-  more: { width: 44, minHeight: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, textAlign: 'center' },
+  emptyBody: { fontSize: fontSize.base, lineHeight: 22, textAlign: 'center' },
   sheetRoot: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     borderTopLeftRadius: radius.xl,
@@ -421,7 +452,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.xs,
   },
-  sheetTitle: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.6 },
+  sheetTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
   sheetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
   sheetRowText: { fontSize: fontSize.base, fontWeight: fontWeight.medium },
 });

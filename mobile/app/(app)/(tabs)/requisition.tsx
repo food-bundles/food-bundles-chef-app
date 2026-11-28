@@ -21,8 +21,14 @@ import { useKitchenStore } from '@/store/kitchen-store';
 import { useIngredients } from '@/features/ingredients/useIngredients';
 import { useCatalog } from '@/features/purchasing/useCatalog';
 import { AddIngredientSheet } from '@/features/menu/AddIngredientSheet';
-import { draftFromSuggestion, useRequisitionDraft, useSuggestedRequisition, type DraftReqLine } from '@/features/purchasing/requisition-draft';
+import {
+  draftFromSuggestion,
+  useRequisitionDraft,
+  useSuggestedRequisition,
+  type DraftReqLine,
+} from '@/features/purchasing/requisition-draft';
 import { lineTotal, requisitionTotal, stepQty } from '@/domain/calculations/requisition';
+import { ReportSummaryCard } from '@/features/reports/ReportSummaryCard';
 
 export default function RequisitionScreen() {
   const { t, i18n } = useTranslation();
@@ -46,6 +52,12 @@ export default function RequisitionScreen() {
   const totals = requisitionTotal(kept, currency);
   const q = (n: number) => formatQuantity(n, i18n.language);
 
+  // Calculate requisition summary
+  const reqSummary = useMemo(() => {
+    if (kept.length === 0) return null;
+    return { items: kept.length, total: totals.total };
+  }, [kept, totals]);
+
   const step = (line: DraftReqLine, dir: 1 | -1) => {
     const next = stepQty(line.qty, line.packSize, dir);
     if (next === 0) remove(line.key);
@@ -63,12 +75,16 @@ export default function RequisitionScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: tk.surface, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}>
+      <View
+        style={[styles.header, { backgroundColor: tk.surfaceRaised, borderBottomColor: tk.border }]}
+      >
         <Text style={[styles.title, { color: tk.text }]} accessibilityRole="header">
           {t('req.title')}
         </Text>
         <Text style={[styles.sub, { color: tk.textMuted }]}>
-          {suggestion.data ? t('req.subtitle', { date: formatDayShort(suggestion.data.for_date, i18n.language) }) : ' '}
+          {suggestion.data
+            ? t('req.subtitle', { date: formatDayShort(suggestion.data.for_date, i18n.language) })
+            : ' '}
         </Text>
       </View>
 
@@ -87,24 +103,57 @@ export default function RequisitionScreen() {
           />
         }
       >
-        {suggestion.isError && !suggestion.data ? <Text style={[styles.error, { color: tk.danger }]}>{t('req.loadError')}</Text> : null}
+        {suggestion.isError && !suggestion.data ? (
+          <Text style={[styles.error, { color: tk.danger }]}>{t('req.loadError')}</Text>
+        ) : null}
+
+        {reqSummary && (
+          <ReportSummaryCard
+            title={t('reports.requisitionSummary')}
+            items={[
+              { label: t('reports.itemsToOrder'), value: reqSummary.items.toString() },
+              {
+                label: t('reports.estimatedTotal'),
+                value: formatMoney(reqSummary.total, currency, i18n.language),
+              },
+            ]}
+          />
+        )}
+
         <View style={styles.sectionRow}>
           <Text style={[styles.section, { color: tk.textMuted }]}>{t('req.suggested')}</Text>
           <Text style={[styles.sub, { color: tk.textMuted }]}>{t('req.fbPrices')}</Text>
         </View>
         {suggestion.data && kept.length === 0 ? (
-          <EmptyState Icon={ShoppingCart} title={t('req.emptyTitle')} description={t('req.emptyBody')} />
+          <EmptyState
+            Icon={ShoppingCart}
+            title={t('req.emptyTitle')}
+            description={t('req.emptyBody')}
+          />
         ) : null}
         {kept.length > 0 ? (
-          <View style={[styles.card, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}>
+          <View
+            style={[styles.card, { backgroundColor: tk.surfaceRaised, borderColor: tk.border }]}
+          >
             {kept.map((l, i) => {
               const total = lineTotal(l);
               return (
-                <View key={l.key} style={[styles.line, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tk.border }]}>
+                <View
+                  key={l.key}
+                  style={[
+                    styles.line,
+                    i > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: tk.border,
+                    },
+                  ]}
+                >
                   <View style={styles.lineTop}>
                     <Text style={[styles.name, { color: tk.text }]}>{l.name}</Text>
                     <Text style={[styles.total, { color: tk.text }]}>
-                      {total !== null && l.currency ? formatAmount(total, l.currency, i18n.language) : '—'}
+                      {total !== null && l.currency
+                        ? formatAmount(total, l.currency, i18n.language)
+                        : '—'}
                     </Text>
                   </View>
                   <View style={styles.lineBottom}>
@@ -119,7 +168,14 @@ export default function RequisitionScreen() {
                     >
                       <Minus size={18} color={tk.text} />
                     </AppPressable>
-                    <Text style={[styles.qty, { color: tk.text }]} accessibilityLabel={t('req.qtyLabel', { qty: q(l.qty), unit: l.unit, name: l.name })}>
+                    <Text
+                      style={[styles.qty, { color: tk.text }]}
+                      accessibilityLabel={t('req.qtyLabel', {
+                        qty: q(l.qty),
+                        unit: l.unit,
+                        name: l.name,
+                      })}
+                    >
                       {q(l.qty)} {l.unit}
                     </Text>
                     <AppPressable
@@ -140,19 +196,34 @@ export default function RequisitionScreen() {
           onPress={() => setSheetOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={t('req.addItem')}
-          style={({ pressed }) => [styles.addBtn, { borderColor: tk.border }, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.addBtn,
+            { borderColor: tk.border },
+            pressed && styles.pressed,
+          ]}
         >
           <Plus size={20} color={tk.link} />
           <Text style={[styles.addText, { color: tk.link }]}>{t('req.addItem')}</Text>
         </AppPressable>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: tk.surfaceRaised, borderTopColor: tk.border }]}>
+      <View
+        style={[styles.footer, { backgroundColor: tk.surfaceRaised, borderTopColor: tk.border }]}
+      >
         <View style={styles.footerRow}>
-          <Text style={[styles.sub, { color: tk.textMuted }]}>{t('req.items', { count: totals.items })}</Text>
-          <Text style={[styles.grand, { color: tk.text }]}>{formatMoney(totals.total, currency, i18n.language)}</Text>
+          <Text style={[styles.sub, { color: tk.textMuted }]}>
+            {t('req.items', { count: totals.items })}
+          </Text>
+          <Text style={[styles.grand, { color: tk.text }]}>
+            {formatMoney(totals.total, currency, i18n.language)}
+          </Text>
         </View>
-        <AppButton label={t('req.continue')} size="lg" disabled={totals.items === 0} onPress={() => router.push('/(app)/requisition/send')} />
+        <AppButton
+          label={t('req.continue')}
+          size="lg"
+          disabled={totals.items === 0}
+          onPress={() => router.push('/(app)/requisition/send')}
+        />
       </View>
 
       <AddIngredientSheet
@@ -164,7 +235,10 @@ export default function RequisitionScreen() {
         takenCatalogIds={kept.map((l) => l.catalogProductId).filter((v): v is string => Boolean(v))}
         currency={currency}
         onAdd={(d) => {
-          const pack = Number(ingredients.data?.find((i) => i.id === d.ingredientId)?.selling_unit_size ?? 1) || 1;
+          const pack =
+            Number(
+              ingredients.data?.find((i) => i.id === d.ingredientId)?.selling_unit_size ?? 1,
+            ) || 1;
           add({
             key: d.key,
             ingredientId: d.ingredientId,
@@ -194,17 +268,41 @@ const styles = StyleSheet.create({
   sub: { fontSize: fontSize.sm },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing['2xl'] },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  section: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1.2, textTransform: 'uppercase' },
-  card: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.md },
+  section: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  card: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
+  },
   line: { paddingVertical: spacing.md, gap: spacing.sm },
   lineTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
   total: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
   lineBottom: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   reason: { flex: 1, fontSize: fontSize.sm },
-  stepBtn: { width: MIN_TOUCH_SIZE + 4, height: MIN_TOUCH_SIZE + 4, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  stepBtn: {
+    width: MIN_TOUCH_SIZE + 4,
+    height: MIN_TOUCH_SIZE + 4,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   qty: { minWidth: 56, textAlign: 'center', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: MIN_TOUCH_SIZE + 8, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: radius.xl },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: MIN_TOUCH_SIZE + 8,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: radius.xl,
+  },
   addText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
   footer: { padding: spacing.md, gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

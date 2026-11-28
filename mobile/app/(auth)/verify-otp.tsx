@@ -5,20 +5,23 @@ import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { verifyOtp, getMe } from '@/api/auth-api';
+import { verifyOtp, getMe, updateProfile } from '@/api/auth-api';
 import { listKitchens } from '@/api/kitchens-api';
 import { ApiError } from '@/api/errors';
 import { useSessionStore } from '@/store/session-store';
 import { authPalette, colors } from '@/lib/theme';
+import * as SecureStore from 'expo-secure-store';
 
 async function tryRegisterPushToken(): Promise<void> {
   // Push token registration disabled until Firebase is configured
 }
 
+const SECURE_COUNTRY_KEY = 'fb.chef.pending_country';
+
 export default function VerifyOtpScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, countryIso } = useLocalSearchParams<{ phone: string; countryIso?: string }>();
   const signIn = useSessionStore((s) => s.signIn);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,31 +47,57 @@ export default function VerifyOtpScreen() {
         chef: { id: profile.id, phoneNumber: profile.phone_number, name: profile.name },
       });
       void tryRegisterPushToken();
+
+      // Save country to profile if provided
+      if (countryIso) {
+        try {
+          await updateProfile({ country: countryIso });
+        } catch {
+          // If update fails, save to SecureStore for retry on next launch
+          await SecureStore.setItemAsync(SECURE_COUNTRY_KEY, countryIso);
+        }
+      }
+
+      // Check if onboarding is needed
+      if (!profile.onboarding_completed_at) {
+        router.replace('/(onboarding)/profile');
+        return;
+      }
+
       let destination: string = '/(app)/(tabs)';
       try {
         const kitchens = await listKitchens();
         if (kitchens.filter((k) => !k.archived_at).length === 0) {
           destination = '/(app)/kitchens/create';
         }
-      } catch { /* default to tabs */ }
+      } catch {
+        /* default to tabs */
+      }
       router.replace(destination as Parameters<typeof router.replace>[0]);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.errorCode === 'OTP_EXPIRED') {
-          setError('Incorrect code. Please check and try again.');
+          setError(t('auth.incorrectCode'));
         } else if (err.errorCode === 'OTP_MAX_ATTEMPTS') {
-          setError('Too many failed attempts. Please request a new code.');
+          setError(t('auth.tooManyFailedAttempts'));
         } else {
           switch (err.kind) {
             case 'auth':
-            case 'validation': setError('Invalid code. Please check and try again.'); break;
-            case 'rate_limit': setError('Too many attempts. Please wait a moment.'); break;
-            case 'transport': setError('No connection. Check your internet and try again.'); break;
-            default: setError('Could not verify. Please try again.');
+            case 'validation':
+              setError(t('auth.invalidCodeCheck'));
+              break;
+            case 'rate_limit':
+              setError(t('auth.tooManyAttemptsWait'));
+              break;
+            case 'transport':
+              setError(t('auth.noConnectionCheck'));
+              break;
+            default:
+              setError(t('auth.verifyError'));
           }
         }
       } else {
-        setError('Something went wrong. Please try again.');
+        setError(t('auth.somethingWrong'));
       }
     } finally {
       setLoading(false);
@@ -76,11 +105,7 @@ export default function VerifyOtpScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior="padding"
-      keyboardVerticalOffset={0}
-    >
+    <KeyboardAvoidingView style={styles.root} behavior="padding" keyboardVerticalOffset={0}>
       {/* Content */}
       <ScrollView
         style={styles.scroll}
@@ -88,7 +113,6 @@ export default function VerifyOtpScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-
         {/* Back */}
         <AppPressable
           onPress={() => router.back()}
@@ -110,7 +134,10 @@ export default function VerifyOtpScreen() {
         <TextInput
           keyboardAppearance="dark"
           value={otp}
-          onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
+          onChangeText={(v) => {
+            setOtp(v.replace(/\D/g, '').slice(0, 6));
+            setError(null);
+          }}
           placeholder="— — — — — —"
           placeholderTextColor={authPalette.muted}
           keyboardType="number-pad"
@@ -118,13 +145,9 @@ export default function VerifyOtpScreen() {
           autoFocus
           textAlign="center"
           accessibilityLabel={t('auth.otpLabel')}
-          style={[
-            styles.input,
-            error ? styles.inputError : isValid ? styles.inputValid : null,
-          ]}
+          style={[styles.input, error ? styles.inputError : isValid ? styles.inputValid : null]}
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
       </ScrollView>
 
       {/* CTA — sits above keyboard when it rises */}

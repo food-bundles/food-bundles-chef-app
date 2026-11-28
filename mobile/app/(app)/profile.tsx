@@ -4,7 +4,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Pencil, LogOut, UtensilsCrossed, ChevronRight, ChevronLeft, Clock, Bot, Users } from 'lucide-react-native';
+import {
+  Settings,
+  Pencil,
+  LogOut,
+  UtensilsCrossed,
+  ChevronRight,
+  ChevronLeft,
+  Clock,
+  Bot,
+  Users,
+  Lock,
+} from 'lucide-react-native';
 import { FEATURES } from '@/constants/features';
 import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '@/store/session-store';
@@ -19,6 +30,8 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { formatMonthYear } from '@/lib/format';
 import { useTheme } from '@/providers/ThemeProvider';
 import { spacing, fontSize, fontWeight, radius } from '@/lib/theme';
+import { PasscodeModal } from '@/components/security/PasscodeModal';
+import { usePasscodeStore } from '@/store/passcode-store';
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -31,7 +44,12 @@ export default function ProfileScreen() {
   const activeKitchen = useKitchenStore((s) => s.activeKitchen);
   const storeKitchens = useKitchenStore((s) => s.kitchens);
   const { refetch: refetchKitchens } = useKitchens();
-  const me = useQuery({ queryKey: ['me', chef?.id ?? ''], queryFn: getMe, enabled: Boolean(chef?.id), staleTime: 10 * 60_000 });
+  const me = useQuery({
+    queryKey: ['me', chef?.id ?? ''],
+    queryFn: getMe,
+    enabled: Boolean(chef?.id),
+    staleTime: 10 * 60_000,
+  });
 
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -41,11 +59,20 @@ export default function ProfileScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [passcodeModalVisible, setPasscodeModalVisible] = useState(false);
+  const [passcodeModalMode, setPasscodeModalMode] = useState<'set' | 'change' | 'remove'>('set');
+  const hasPasscode = usePasscodeStore((s) => s.hasPasscode);
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       const [profile] = await Promise.all([me.refetch(), refetchKitchens()]);
-      if (profile.data) updateChef({ id: profile.data.id, phoneNumber: profile.data.phone_number, name: profile.data.name });
+      if (profile.data)
+        updateChef({
+          id: profile.data.id,
+          phoneNumber: profile.data.phone_number,
+          name: profile.data.name,
+        });
     } finally {
       setRefreshing(false);
     }
@@ -57,7 +84,11 @@ export default function ProfileScreen() {
       Alert.alert(t('profile.permissionNeeded'), t('profile.permissionNeededDesc'));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
     const asset = result.canceled ? undefined : result.assets[0];
     if (asset) setAvatarUri(asset.uri);
   };
@@ -88,6 +119,34 @@ export default function ProfileScreen() {
     }
   };
 
+  const handlePasscodePress = () => {
+    if (hasPasscode) {
+      // Show action sheet to change or remove
+      Alert.alert(t('security.passcode'), t('security.passcodeManagePrompt'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('security.passcodeChange'),
+          onPress: () => {
+            setPasscodeModalMode('change');
+            setPasscodeModalVisible(true);
+          },
+        },
+        {
+          text: t('security.passcodeRemove'),
+          style: 'destructive',
+          onPress: () => {
+            setPasscodeModalMode('remove');
+            setPasscodeModalVisible(true);
+          },
+        },
+      ]);
+    } else {
+      // Set new passcode
+      setPasscodeModalMode('set');
+      setPasscodeModalVisible(true);
+    }
+  };
+
   const handleSignOut = () => {
     Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMsg'), [
       { text: t('profile.signOutConfirmCancel'), style: 'cancel' },
@@ -102,9 +161,17 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const memberSince = me.data?.created_at ? formatMonthYear(me.data.created_at, i18n.language) : null;
+  const memberSince = me.data?.created_at
+    ? formatMonthYear(me.data.created_at, i18n.language)
+    : null;
   const activeKitchens = storeKitchens.filter((k) => !k.isArchived);
-  const card = { backgroundColor: tk.surfaceRaised, borderRadius: radius.xl, borderWidth: 1, borderColor: tk.border, overflow: 'hidden' as const };
+  const card = {
+    backgroundColor: tk.surfaceRaised,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: tk.border,
+    overflow: 'hidden' as const,
+  };
   const sectionLabel = {
     color: tk.textMuted,
     fontSize: fontSize.xs,
@@ -115,22 +182,46 @@ export default function ProfileScreen() {
   };
 
   const header = (
-    <View style={{ paddingHorizontal: spacing.md, minHeight: 52, borderBottomWidth: 1, borderBottomColor: tk.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+    <View
+      style={{
+        paddingHorizontal: spacing.md,
+        minHeight: 52,
+        borderBottomWidth: 1,
+        borderBottomColor: tk.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
       {!editing ? (
         <AppPressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm }}
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: -spacing.sm,
+          }}
         >
           <ChevronLeft size={24} color={tk.text} />
         </AppPressable>
       ) : null}
-      <Text style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: '700', flex: 1 }} accessibilityRole="header">
+      <Text
+        style={{ color: tk.text, fontSize: fontSize.lg, fontWeight: '700', flex: 1 }}
+        accessibilityRole="header"
+      >
         {editing ? t('profile.editProfile') : t('profile.title')}
       </Text>
       {editing ? (
-        <AppPressable onPress={() => setEditing(false)} accessibilityRole="button" accessibilityLabel={t('profile.cancelEditing')} style={{ minHeight: 44, justifyContent: 'center' }}>
+        <AppPressable
+          onPress={() => setEditing(false)}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.cancelEditing')}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
           <Text style={{ color: tk.link, fontWeight: '600' }}>{t('common.cancel')}</Text>
         </AppPressable>
       ) : (
@@ -152,17 +243,32 @@ export default function ProfileScreen() {
         {header}
         <FormScreen
           actions={[
-            { kind: 'save', label: t('profile.saveProfile'), onPress: () => void saveProfile(), loading: saving, disabled: Boolean(nameError) },
+            {
+              kind: 'save',
+              label: t('profile.saveProfile'),
+              onPress: () => void saveProfile(),
+              loading: saving,
+              disabled: Boolean(nameError),
+            },
           ]}
         >
           <View style={{ alignItems: 'center' }}>
-            <Avatar uri={avatarUri} name={nameInput || chef?.name} size={88} onPress={pickAvatar} showCameraBadge />
+            <Avatar
+              uri={avatarUri}
+              name={nameInput || chef?.name}
+              size={88}
+              onPress={pickAvatar}
+              showCameraBadge
+            />
           </View>
           <AppTextField
             label={t('profile.displayNameLabel')}
             placeholder={t('profile.displayNamePlaceholder')}
             value={nameInput}
-            onChangeText={(v) => { setNameInput(v); setNameTouched(true); }}
+            onChangeText={(v) => {
+              setNameInput(v);
+              setNameTouched(true);
+            }}
             error={nameTouched && nameError ? nameError : undefined}
             autoFocus
             autoCapitalize="words"
@@ -170,7 +276,9 @@ export default function ProfileScreen() {
             inputProps={{ onSubmitEditing: () => void saveProfile() }}
           />
           {saveError ? (
-            <Text style={{ color: tk.danger, fontSize: fontSize.sm }} accessibilityRole="alert">{saveError}</Text>
+            <Text style={{ color: tk.danger, fontSize: fontSize.sm }} accessibilityRole="alert">
+              {saveError}
+            </Text>
           ) : null}
         </FormScreen>
       </View>
@@ -184,10 +292,23 @@ export default function ProfileScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tk.primary} colors={[tk.primary]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={tk.primary}
+            colors={[tk.primary]}
+          />
+        }
       >
         <View style={[card, { padding: spacing.lg, alignItems: 'center', gap: spacing.md }]}>
-          <Avatar uri={avatarUri} name={chef?.name} size={88} onPress={pickAvatar} showCameraBadge />
+          <Avatar
+            uri={avatarUri}
+            name={chef?.name}
+            size={88}
+            onPress={pickAvatar}
+            showCameraBadge
+          />
           <View style={{ alignItems: 'center', gap: 4, width: '100%' }}>
             <AppPressable
               onPress={startEditing}
@@ -195,22 +316,52 @@ export default function ProfileScreen() {
               accessibilityLabel={t('profile.editProfile')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
             >
-              <Text style={{ color: tk.text, fontSize: fontSize.xl, fontWeight: '700' }}>{chef?.name ?? t('profile.setYourName')}</Text>
+              <Text style={{ color: tk.text, fontSize: fontSize.xl, fontWeight: '700' }}>
+                {chef?.name ?? t('profile.setYourName')}
+              </Text>
               <Pencil size={16} color={tk.textMuted} strokeWidth={2} />
             </AppPressable>
-            <Text style={{ color: tk.textMuted, fontSize: fontSize.sm }}>{chef?.phoneNumber ?? '—'}</Text>
+            <Text style={{ color: tk.textMuted, fontSize: fontSize.sm }}>
+              {chef?.phoneNumber ?? '—'}
+            </Text>
             {memberSince ? (
-              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>{t('profile.memberSince', { date: memberSince })}</Text>
+              <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
+                {t('profile.memberSince', { date: memberSince })}
+              </Text>
             ) : null}
           </View>
-          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: tk.border, paddingTop: spacing.md, width: '100%' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              borderTopWidth: 1,
+              borderTopColor: tk.border,
+              paddingTop: spacing.md,
+              width: '100%',
+            }}
+          >
             {[
-              { key: 'kitchens', label: t('profile.statsKitchens'), value: String(activeKitchens.length) },
+              {
+                key: 'kitchens',
+                label: t('profile.statsKitchens'),
+                value: String(activeKitchens.length),
+              },
               { key: 'active', label: t('profile.statsActive'), value: activeKitchen ? '1' : '0' },
             ].map((stat, i, arr) => (
-              <View key={stat.key} style={{ flex: 1, alignItems: 'center', borderRightWidth: i < arr.length - 1 ? 1 : 0, borderRightColor: tk.border }}>
-                <Text style={{ color: tk.link, fontSize: 22, fontWeight: '800' }}>{stat.value}</Text>
-                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>{stat.label}</Text>
+              <View
+                key={stat.key}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  borderRightWidth: i < arr.length - 1 ? 1 : 0,
+                  borderRightColor: tk.border,
+                }}
+              >
+                <Text style={{ color: tk.link, fontSize: 22, fontWeight: '800' }}>
+                  {stat.value}
+                </Text>
+                <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, marginTop: 2 }}>
+                  {stat.label}
+                </Text>
               </View>
             ))}
           </View>
@@ -226,7 +377,13 @@ export default function ProfileScreen() {
               [activeKitchen?.cuisineType, activeKitchen?.address].filter(Boolean).join(' · ') ||
               (activeKitchen ? t('profile.kitchenTapHint') : t('profile.kitchenSetupHint'))
             }
-            onPress={() => router.push(activeKitchen ? (`/(app)/kitchens/${activeKitchen.id}` as never) : ('/(app)/kitchens/create' as never))}
+            onPress={() =>
+              router.push(
+                activeKitchen
+                  ? (`/(app)/kitchens/${activeKitchen.id}` as never)
+                  : ('/(app)/kitchens/create' as never),
+              )
+            }
             accessibilityLabel={t('profile.kitchenAccessLabel')}
           />
           <ListRow
@@ -235,8 +392,19 @@ export default function ProfileScreen() {
             title={t('profile.manageKitchens')}
             trailing={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ minWidth: 24, alignItems: 'center', backgroundColor: tk.primary, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                  <Text style={{ color: tk.onPrimary, fontSize: fontSize.xs, fontWeight: '700' }}>{activeKitchens.length}</Text>
+                <View
+                  style={{
+                    minWidth: 24,
+                    alignItems: 'center',
+                    backgroundColor: tk.primary,
+                    borderRadius: 12,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ color: tk.onPrimary, fontSize: fontSize.xs, fontWeight: '700' }}>
+                    {activeKitchens.length}
+                  </Text>
                 </View>
                 <ChevronRight size={16} color={tk.textMuted} />
               </View>
@@ -253,7 +421,10 @@ export default function ProfileScreen() {
               icon={<Clock size={18} color={tk.link} strokeWidth={2} />}
               iconBg={tk.primaryTint}
               title={t('profile.serviceHours')}
-              subtitle={t('profile.serviceHoursValue', { open: activeKitchen.openingTime, close: activeKitchen.closingTime })}
+              subtitle={t('profile.serviceHoursValue', {
+                open: activeKitchen.openingTime,
+                close: activeKitchen.closingTime,
+              })}
               onPress={() => router.push(`/(app)/kitchens/${activeKitchen.id}` as never)}
             />
             <ListRow
@@ -285,6 +456,13 @@ export default function ProfileScreen() {
             onPress={() => router.push('/(app)/settings')}
           />
           <ListRow
+            icon={<Lock size={18} color={tk.textMuted} strokeWidth={2} />}
+            iconBg={tk.surfaceSunken}
+            title={t('security.passcode')}
+            subtitle={hasPasscode ? t('security.passcodeEnabled') : t('security.passcodeDisabled')}
+            onPress={handlePasscodePress}
+          />
+          <ListRow
             icon={<LogOut size={18} color={tk.danger} strokeWidth={2} />}
             iconBg={tk.dangerTint}
             title={t('profile.signOut')}
@@ -295,13 +473,31 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ alignItems: 'center', paddingBottom: spacing.sm, gap: 2 }}>
-          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>
+          <Text
+            style={{
+              color: tk.textMuted,
+              fontSize: fontSize.xs,
+              fontWeight: '700',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
             {t('common.appName')}
           </Text>
-          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('profile.footerTagline')}</Text>
-          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>{t('profile.footerCopyright')}</Text>
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>
+            {t('profile.footerTagline')}
+          </Text>
+          <Text style={{ color: tk.textMuted, fontSize: fontSize.xs }}>
+            {t('profile.footerCopyright')}
+          </Text>
         </View>
       </ScrollView>
+
+      <PasscodeModal
+        visible={passcodeModalVisible}
+        mode={passcodeModalMode}
+        onClose={() => setPasscodeModalVisible(false)}
+      />
     </View>
   );
 }

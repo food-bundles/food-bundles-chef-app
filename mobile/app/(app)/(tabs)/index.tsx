@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ChefHat } from 'lucide-react-native';
 import { useKitchenStore } from '@/store/kitchen-store';
+import { useSessionStore } from '@/store/session-store';
 import { useHome } from '@/features/home/useHome';
 import {
   BeforeServiceCard,
@@ -15,11 +16,14 @@ import {
   ProgressSteps,
   ServiceCard,
 } from '@/features/home/HomeViews';
+import { TimeSensitiveTabs } from '@/features/home/TimeSensitiveTabs';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { CommandSummaryCard } from '@/features/commands/CommandCard';
+import { FloatingAIButton } from '@/components/ui/FloatingAIButton';
 import { formatDayShort } from '@/lib/format';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontSize, spacing } from '@/lib/theme';
+import type { TimeTab } from '@/domain/rules/time-sensitive-tabs';
 
 /**
  * Home: one job at a time (spec screens 01–03). The state is calculated from the time, the
@@ -30,6 +34,7 @@ export default function HomeScreen() {
   const tk = useTheme();
   const insets = useSafeAreaInsets();
   const kitchen = useKitchenStore((s) => s.activeKitchen);
+  const chef = useSessionStore((s) => s.chef);
   const home = useHome();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,6 +69,16 @@ export default function HomeScreen() {
         : t('home.openUntil', { time: home.closingTime });
   const dateLine = [formatDayShort(home.today, i18n.language), home.clock, timeNote].join(' · ');
 
+  const handleTabPress = (tab: TimeTab) => {
+    if (tab === 'receive') {
+      router.push('/(app)/(tabs)/receive');
+    } else if (tab === 'commands') {
+      router.push('/(app)/(tabs)/commands');
+    } else if (tab === 'requisition') {
+      router.push('/(app)/(tabs)/requisition');
+    }
+  };
+
   let card: ReactNode;
   if (home.state === 'before_service') {
     card = home.delivery ? (
@@ -79,8 +94,13 @@ export default function HomeScreen() {
     card = (
       <ServiceCard
         counts={home.commandCounts}
-        newest={home.newestCommand ? <CommandSummaryCard command={home.newestCommand} /> : undefined}
+        newest={
+          home.newestCommand ? <CommandSummaryCard command={home.newestCommand} /> : undefined
+        }
         onOpenCommands={() => router.push('/(app)/(tabs)/commands')}
+        onOpenStatus={(status) =>
+          router.push({ pathname: '/(app)/(tabs)/commands', params: { filterStatus: status } })
+        }
       />
     );
   } else {
@@ -98,22 +118,35 @@ export default function HomeScreen() {
     <View style={[styles.root, { backgroundColor: tk.surface, paddingTop: insets.top }]}>
       <HomeHeader
         kitchenName={kitchen.name}
+        chefName={chef?.name ?? null}
+        chefPhotoUri={null}
         onMenu={() => router.push('/(app)/menu')}
         onProfile={() => router.push('/(app)/profile')}
-        onSwitch={() => router.push('/(app)/kitchens')}
-        onAssistant={FEATURES.assistant ? () => router.push('/(app)/agent') : undefined}
       />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={tk.primary} colors={[tk.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={tk.primary}
+            colors={[tk.primary]}
+          />
         }
       >
-        <ProgressSteps steps={home.steps} />
+        <TimeSensitiveTabs
+          openingTime={home.openingTime}
+          closingTime={home.closingTime}
+          currentState={home.state}
+          onTabPress={handleTabPress}
+        />
         <Text style={[styles.dateLine, { color: tk.textMuted }]}>{dateLine}</Text>
-        {home.error ? <Text style={[styles.error, { color: tk.danger }]}>{t('home.loadError')}</Text> : null}
+        {home.error ? (
+          <Text style={[styles.error, { color: tk.danger }]}>{t('home.loadError')}</Text>
+        ) : null}
         {card}
       </ScrollView>
+      {FEATURES.assistant ? <FloatingAIButton /> : null}
     </View>
   );
 }
